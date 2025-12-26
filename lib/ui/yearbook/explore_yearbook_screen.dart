@@ -53,7 +53,7 @@ class ExploreYearbookScreen extends StatelessWidget {
                 itemBuilder: (context, i) {
                   final batch = _batches[i];
                   return GestureDetector(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => YearbookFilterScreen(batchTitle: batch['title']!))),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => YearbookFilterScreen(batchTitle: batch['title']!))),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       decoration: BoxDecoration(
@@ -91,22 +91,4 @@ class ExploreYearbookScreen extends StatelessWidget {
   }
 }
 
-// Keep the filter screen reference local to avoid exposing unnecessary symbols.
-class YearbookFilterScreen extends StatelessWidget {
-  final String batchTitle;
-  const YearbookFilterScreen({Key? key, required this.batchTitle}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1222),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(batchTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-      ),
-      body: const Center(child: Text('Yearbook Filter (navigates to student grid)', style: TextStyle(color: Colors.white54))),
-    );
-  }
-}
+// Placeholder removed — navigation now goes to the real `YearbookFilterScreen` implementation.
