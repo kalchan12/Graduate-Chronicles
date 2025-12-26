@@ -1,0 +1,44 @@
+import 'package:flutter/material.dart';
+import '../../theme/design_system.dart';
+
+// Reusable app bar widget matching the visual style in the HTML designs.
+// Purely visual — no business logic inside. Use this at the top of screens.
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+  final bool showLeading;
+  final VoidCallback? onLeading;
+  final Widget? trailing;
+
+  const CustomAppBar({Key? key, required this.title, this.showLeading = true, this.onLeading, this.trailing}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      color: DesignSystem.scaffoldBg.withOpacity(0.0),
+      child: Row(
+        children: [
+          if (showLeading)
+            GestureDetector(
+              onTap: onLeading ?? () {},
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: Icon(Icons.arrow_back, color: Colors.white),
+              ),
+            )
+          else
+            const SizedBox(width: 40),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700))),
+          const SizedBox(width: 8),
+          trailing ?? const SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(56);
+}

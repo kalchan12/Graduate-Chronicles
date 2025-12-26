@@ -1,0 +1,29 @@
+import 'package:flutter/material.dart';
+import '../theme/design_system.dart';
+import '../screens/screens.dart';
+import '../ui/onboarding/onboarding1_screen.dart';
+
+class App extends StatelessWidget {
+  const App({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Graduate Chronicles',
+      theme: DesignSystem.theme,
+      debugShowCheckedModeBanner: false,
+      routes: {
+        '/onboarding1': (_) => const Onboarding1Screen(),
+        '/onboarding2': (_) => const Onboarding2Screen(),
+        '/onboarding3': (_) => const Onboarding3Screen(),
+        '/login': (_) => const LoginScreen(),
+        '/signup1': (_) => const SignupStep1(),
+        '/signup2': (_) => const SignupStep2(),
+        '/signup3': (_) => const SignupStep3(),
+        '/signup4': (_) => const SignupStep4(),
+        '/app': (_) => const BottomNavigationScaffold(),
+      },
+      home: const SplashScreen(),
+    );
+  }
+}
