@@ -28,10 +28,19 @@ class AddCvScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   TextField(decoration: InputDecoration(hintText: 'Notes (optional)', hintStyle: const TextStyle(color: Colors.white54), filled: true, fillColor: const Color(0xFF121018), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
                   const SizedBox(height: 20),
-                  Row(children: [Expanded(child: ElevatedButton(onPressed: () {
-                    Navigator.of(context).pop(); // pop AddCvScreen -> returns to select
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PortfolioHubScreen()));
-                  }, child: const Text('Save CV'))])])
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // pop AddCvScreen -> returns to select
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const PortfolioHubScreen()));
+                          },
+                          child: const Text('Save CV'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
