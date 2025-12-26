@@ -11,7 +11,7 @@ class AddAchievementScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF0F0F1A),
       body: SafeArea(
         child: Column(children: [
-          const CustomAppBar(title: 'Add Achievement', showLeading: true),
+          CustomAppBar(title: 'Add Achievement', showLeading: true, onLeading: () => Navigator.of(context).pop()),
           const SizedBox(height: 12),
           Expanded(
             child: SingleChildScrollView(

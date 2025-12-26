@@ -11,7 +11,7 @@ class AddLinkScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF0F0F1A),
       body: SafeArea(
         child: Column(children: [
-          const CustomAppBar(title: 'Add New Link', showLeading: true),
+          CustomAppBar(title: 'Add New Link', showLeading: true, onLeading: () => Navigator.of(context).pop()),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.all(16),

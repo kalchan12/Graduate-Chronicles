@@ -12,7 +12,7 @@ class AddCvScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const CustomAppBar(title: 'Upload Your CV', showLeading: true),
+            CustomAppBar(title: 'Upload Your CV', showLeading: true, onLeading: () => Navigator.of(context).pop()),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.all(16),

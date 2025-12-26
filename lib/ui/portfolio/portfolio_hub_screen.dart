@@ -12,7 +12,7 @@ class PortfolioHubScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const CustomAppBar(title: 'My Portfolio', showLeading: true),
+            CustomAppBar(title: 'My Portfolio', showLeading: true, onLeading: () => Navigator.of(context).pop()),
             const SizedBox(height: 12),
             Expanded(
               child: SingleChildScrollView(
