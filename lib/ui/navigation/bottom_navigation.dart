@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/providers.dart';
 import '../home/home_screen.dart';
+import '../yearbook/explore_yearbook_screen.dart';
 import '../message/message_screen.dart';
 import '../batch/batch_screen.dart';
 import '../profile/profile_screen.dart';
@@ -19,7 +20,7 @@ class BottomNavigationScaffold extends StatefulWidget {
 class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
   int _currentIndex = 0;
 
-  static const _pages = [HomeScreen(), MessageScreen(), BatchScreen(), ProfileScreen()];
+  static const _pages = [HomeScreen(), ExploreYearbookScreen(), MessageScreen(), BatchScreen(), ProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +35,7 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
         unselectedItemColor: Colors.white54,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: 'Yearbook'),
           BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Messages'),
           BottomNavigationBarItem(icon: Icon(Icons.view_list), label: 'Batch'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
