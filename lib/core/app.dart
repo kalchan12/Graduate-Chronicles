@@ -5,6 +5,11 @@ import '../ui/onboarding/onboarding1_screen.dart';
 import '../ui/mentorship/mentorship_home_screen.dart';
 import '../ui/mentorship/find_mentorship_screen.dart';
 import '../ui/mentorship/my_mentorship_screen.dart';
+import '../ui/reunion/reunion_hub_screen.dart';
+import '../ui/reunion/find_join_reunion_screen.dart';
+import '../ui/reunion/reunion_event_details_screen.dart';
+import '../ui/reunion/my_reunions_screen.dart';
+import '../ui/reunion/reunion_gallery_screen.dart';
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
@@ -28,6 +33,11 @@ class App extends StatelessWidget {
         '/mentorship': (_) => const MentorshipHomeScreen(),
         '/mentorship/find': (_) => const FindMentorshipScreen(),
         '/mentorship/my': (_) => const MyMentorshipScreen(),
+        '/reunion': (_) => const ReunionHubScreen(),
+        '/reunion/find': (_) => const FindJoinReunionScreen(),
+        '/reunion/details': (_) => const ReunionEventDetailsScreen(),
+        '/reunion/my': (_) => const MyReunionsScreen(),
+        '/reunion/gallery': (_) => const ReunionGalleryScreen(),
       },
       home: const SplashScreen(),
     );
