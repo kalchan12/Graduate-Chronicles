@@ -37,24 +37,32 @@ class Onboarding3Screen extends StatelessWidget {
               ),
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 child: Row(
                   children: [
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pushReplacementNamed('/onboarding2'),
-                      style: ElevatedButton.styleFrom(shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14), backgroundColor: Colors.white12, foregroundColor: Colors.white),
-                      child: const Text('Back'),
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(color: Colors.white12, shape: BoxShape.circle),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pushReplacementNamed('/onboarding2'),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
                     ),
                     const Spacer(),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pushReplacementNamed('/login'),
-                      style: ElevatedButton.styleFrom(shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), backgroundColor: DesignSystem.warmYellow, foregroundColor: Colors.black),
-                      child: const Text('Get Started', style: TextStyle(fontWeight: FontWeight.w700)),
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(color: DesignSystem.warmYellow, shape: BoxShape.circle),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pushReplacementNamed('/login'),
+                        icon: const Icon(Icons.check, color: Colors.black),
+                      ),
                     ),
                   ],
                 ),
               ),
-              TextButton(onPressed: () => Navigator.of(context).pushReplacementNamed('/login'), child: const Text('Already have an account? Log In', style: TextStyle(color: Colors.white70))),
+              Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => Navigator.of(context).pushReplacementNamed('/login'), child: const Text('Already have an account? Log In', style: TextStyle(color: Colors.white70)))),
               const SizedBox(height: 12),
             ],
           ),

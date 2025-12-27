@@ -38,14 +38,14 @@ class LoginScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 8),
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: DesignSystem.purpleMid,
+                  // Logo placeholder - uses asset at asset/image/GC_logo.png
+                  SizedBox(
+                    width: 92,
+                    height: 92,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
+                      child: Image.asset('assets/images/GC_logo.png', fit: BoxFit.contain),
                     ),
-                    child: const Icon(Icons.school, color: Color(0xFFE94CFF), size: 40),
                   ),
                   const SizedBox(height: 14),
                   const Text('Graduate Chronicles', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
