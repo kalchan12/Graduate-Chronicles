@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../theme/design_system.dart';
 import '../screens/screens.dart';
 import '../ui/onboarding/onboarding1_screen.dart';
+import '../ui/mentorship/mentorship_home_screen.dart';
+import '../ui/mentorship/find_mentorship_screen.dart';
+import '../ui/mentorship/my_mentorship_screen.dart';
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
@@ -22,6 +25,9 @@ class App extends StatelessWidget {
         '/signup3': (_) => const SignupStep3(),
         '/signup4': (_) => const SignupStep4(),
         '/app': (_) => const BottomNavigationScaffold(),
+        '/mentorship': (_) => const MentorshipHomeScreen(),
+        '/mentorship/find': (_) => const FindMentorshipScreen(),
+        '/mentorship/my': (_) => const MyMentorshipScreen(),
       },
       home: const SplashScreen(),
     );
