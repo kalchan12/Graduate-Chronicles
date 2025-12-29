@@ -10,6 +10,11 @@ import '../ui/reunion/find_join_reunion_screen.dart';
 import '../ui/reunion/reunion_event_details_screen.dart';
 import '../ui/reunion/my_reunions_screen.dart';
 import '../ui/reunion/reunion_gallery_screen.dart';
+import '../ui/auth/forgot/forgot_password_screen.dart';
+import '../ui/auth/forgot/password_reset_screen.dart';
+import '../ui/auth/forgot/set_new_password_screen.dart';
+import '../ui/auth/forgot/password_updated_screen.dart';
+import '../ui/auth/admin/admin_dashboard_screen.dart';
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
@@ -38,6 +43,11 @@ class App extends StatelessWidget {
         '/reunion/details': (_) => const ReunionEventDetailsScreen(),
         '/reunion/my': (_) => const MyReunionsScreen(),
         '/reunion/gallery': (_) => const ReunionGalleryScreen(),
+        '/forgot': (_) => const ForgotPasswordScreen(),
+        '/forgot/verify': (_) => const PasswordResetScreen(),
+        '/forgot/set': (_) => const SetNewPasswordScreen(),
+        '/forgot/done': (_) => const PasswordUpdatedScreen(),
+        '/admin': (_) => const AdminDashboardScreen(),
       },
       home: const SplashScreen(),
     );

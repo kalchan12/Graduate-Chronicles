@@ -97,7 +97,7 @@ class LoginScreen extends StatelessWidget {
                         _PasswordField(decoration: fieldDecoration('Enter your password')),
 
                         const SizedBox(height: 8),
-                        Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () {}, child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF9B2CFF))))),
+                            Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => Navigator.of(context).pushNamed('/forgot'), child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF9B2CFF))))),
 
                         const SizedBox(height: 8),
                         SizedBox(
