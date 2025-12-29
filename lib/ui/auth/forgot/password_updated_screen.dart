@@ -31,7 +31,7 @@ class _PasswordUpdatedScreenState extends State<PasswordUpdatedScreen> with Sing
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      backgroundColor: const Color(0xFF1C1022),
       body: SafeArea(
         child: Center(
           child: FadeTransition(
