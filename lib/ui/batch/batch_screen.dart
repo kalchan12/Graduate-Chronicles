@@ -6,7 +6,7 @@ import '../widgets/custom_app_bar.dart';
 
 // Batch / Directory screen implemented to match provided HTML design.
 class BatchScreen extends ConsumerWidget {
-  const BatchScreen({Key? key}) : super(key: key);
+  const BatchScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -23,8 +23,23 @@ class BatchScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(12.0),
               child: Container(
                 height: 48,
-                decoration: BoxDecoration(color: const Color(0xFF2A1727), borderRadius: BorderRadius.circular(12)),
-                child: Row(children: const [SizedBox(width: 12), Icon(Icons.search, color: Colors.white54), SizedBox(width: 12), Expanded(child: Text('Search for classmates...', style: TextStyle(color: Color(0xFFBDB1C9))))]),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A1727),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: const [
+                    SizedBox(width: 12),
+                    Icon(Icons.search, color: Colors.white54),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Search for classmates...',
+                        style: TextStyle(color: Color(0xFFBDB1C9)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -54,18 +69,52 @@ class BatchScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(12.0),
                 child: ListView.separated(
                   itemCount: directory.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final p = directory[i];
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final p = directory[index];
                     return Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: const Color(0xFF2A1727), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A1727),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Row(
                         children: [
-                          Container(width: 56, height: 56, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF3A2738))),
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF3A2738),
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text('${p.year} • ${p.degree}', style: const TextStyle(color: Color(0xFFBDB1C9)))])),
-                          const Icon(Icons.chevron_right, color: Color(0xFFBDB1C9)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  p.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${p.year} • ${p.degree}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFBDB1C9),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Color(0xFFBDB1C9),
+                          ),
                         ],
                       ),
                     );
@@ -83,15 +132,23 @@ class BatchScreen extends ConsumerWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool active;
-  const _FilterChip({Key? key, required this.label, this.active = false}) : super(key: key);
+  const _FilterChip({required this.label, this.active = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: active ? DesignSystem.purpleAccent : const Color(0xFF3A2738), borderRadius: BorderRadius.circular(24)),
-      child: Text(label, style: TextStyle(color: active ? Colors.white : const Color(0xFFBDB1C9))),
+      decoration: BoxDecoration(
+        color: active ? DesignSystem.purpleAccent : const Color(0xFF3A2738),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? Colors.white : const Color(0xFFBDB1C9),
+        ),
+      ),
     );
   }
 }

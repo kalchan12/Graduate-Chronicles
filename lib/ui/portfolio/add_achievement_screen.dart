@@ -3,7 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import 'portfolio_hub_screen.dart';
 
 class AddAchievementScreen extends StatelessWidget {
-  const AddAchievementScreen({Key? key}) : super(key: key);
+  const AddAchievementScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,7 @@ import '../../../theme/design_system.dart';
 import '../../../state/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -33,19 +33,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final auth = ref.watch(authProvider);
     final notifier = ref.read(authProvider.notifier);
 
-    bool isFormValid() => _idCtrl.text.trim().isNotEmpty && _pwCtrl.text.trim().isNotEmpty;
+    bool isFormValid() =>
+        _idCtrl.text.trim().isNotEmpty && _pwCtrl.text.trim().isNotEmpty;
 
     InputDecoration fieldDecoration(String hint) => InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFFBDB1C9)),
-          filled: true,
-          fillColor: const Color(0x14FFFFFF),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        );
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFFBDB1C9)),
+      filled: true,
+      fillColor: const Color(0x14FFFFFF),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+    );
 
     return Scaffold(
       body: Container(
@@ -66,13 +67,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     height: 92,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.asset('assets/images/GC_logo.png', fit: BoxFit.contain),
+                      child: Image.asset(
+                        'assets/images/GC_logo.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text('Graduate Chronicles', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                  const Text(
+                    'Graduate Chronicles',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  const Text('Your University Story, Reimagined.', style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 13)),
+                  const Text(
+                    'Your University Story, Reimagined.',
+                    style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 13),
+                  ),
 
                   const SizedBox(height: 18),
 
@@ -87,22 +101,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // Tab row (smaller)
                         Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  decoration: BoxDecoration(color: DesignSystem.purpleAccent, borderRadius: BorderRadius.circular(6)),
-                                  child: const Center(child: Text('Login', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: DesignSystem.purpleAccent,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Login',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(6),
-                                  onTap: () => Navigator.of(context).pushReplacementNamed('/signup1'),
-                                  child: Container(padding: const EdgeInsets.symmetric(vertical: 8), child: const Center(child: Text('Sign Up', style: TextStyle(color: Color(0xFFBDB1C9))))),
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushReplacementNamed('/signup1'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'Sign Up',
+                                        style: TextStyle(
+                                          color: Color(0xFFBDB1C9),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -110,32 +154,93 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
 
                         const SizedBox(height: 14),
-                        const Text('Email', style: TextStyle(color: Color(0xFFD6C9E6))),
+                        const Text(
+                          'Email',
+                          style: TextStyle(color: Color(0xFFD6C9E6)),
+                        ),
                         const SizedBox(height: 6),
-                        SizedBox(height: 46, child: TextField(controller: _idCtrl, decoration: fieldDecoration('Enter your email'))),
+                        SizedBox(
+                          height: 46,
+                          child: TextField(
+                            controller: _idCtrl,
+                            decoration: fieldDecoration('Enter your email'),
+                          ),
+                        ),
                         const SizedBox(height: 10),
-                        const Text('Password', style: TextStyle(color: Color(0xFFD6C9E6))),
+                        const Text(
+                          'Password',
+                          style: TextStyle(color: Color(0xFFD6C9E6)),
+                        ),
                         const SizedBox(height: 6),
-                        _PasswordField(decoration: fieldDecoration('Enter your password'), controller: _pwCtrl),
+                        _PasswordField(
+                          decoration: fieldDecoration('Enter your password'),
+                          controller: _pwCtrl,
+                        ),
 
                         const SizedBox(height: 8),
-                        if (auth.error != null) Padding(padding: const EdgeInsets.only(top: 6.0), child: Text(auth.error!, style: const TextStyle(color: Colors.orangeAccent))),
+                        if (auth.errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              auth.errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                              ),
+                            ),
+                          ),
 
-                        Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => Navigator.of(context).pushNamed('/forgot'), child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF9B2CFF))))),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () =>
+                                Navigator.of(context).pushNamed('/forgot'),
+                            child: const Text(
+                              'Forgot Password?',
+                              style: TextStyle(color: Color(0xFF9B2CFF)),
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: (auth.loading || !isFormValid())
+                            onPressed: (auth.isLoading || !isFormValid())
                                 ? null
                                 : () async {
-                                    final success = await notifier.signIn(email: _idCtrl.text, password: _pwCtrl.text);
-                                    if (success && mounted) Navigator.of(context).pushReplacementNamed('/app');
+                                    final success = await notifier.login(
+                                      email: _idCtrl.text,
+                                      password: _pwCtrl.text,
+                                    );
+                                    if (!success) return;
+                                    if (!context.mounted) return;
+                                    Navigator.of(
+                                      context,
+                                    ).pushReplacementNamed('/app');
                                   },
-                            style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                            child: auth.loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: DesignSystem.purpleAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: auth.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -150,9 +255,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         text: 'By continuing, you agree to our ',
                         style: TextStyle(color: Color(0xFFBDB1C9)),
                         children: [
-                          TextSpan(text: 'Terms of Service', style: TextStyle(color: Color(0xFF9B2CFF))),
+                          TextSpan(
+                            text: 'Terms of Service',
+                            style: TextStyle(color: Color(0xFF9B2CFF)),
+                          ),
                           TextSpan(text: ' and '),
-                          TextSpan(text: 'Privacy Policy', style: TextStyle(color: Color(0xFF9B2CFF))),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: TextStyle(color: Color(0xFF9B2CFF)),
+                          ),
                         ],
                       ),
                       textAlign: TextAlign.center,
@@ -171,7 +282,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 class _PasswordField extends StatefulWidget {
   final InputDecoration decoration;
   final TextEditingController controller;
-  const _PasswordField({Key? key, required this.decoration, required this.controller}) : super(key: key);
+  const _PasswordField({required this.decoration, required this.controller});
 
   @override
   State<_PasswordField> createState() => _PasswordFieldState();
@@ -189,7 +300,10 @@ class _PasswordFieldState extends State<_PasswordField> {
         obscureText: _obscure,
         decoration: widget.decoration.copyWith(
           suffixIcon: IconButton(
-            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.white54),
+            icon: Icon(
+              _obscure ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white54,
+            ),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
         ),

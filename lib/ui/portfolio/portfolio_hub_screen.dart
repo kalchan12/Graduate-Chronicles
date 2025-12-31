@@ -3,7 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import 'portfolio_select_screen.dart';
 
 class PortfolioHubScreen extends StatelessWidget {
-  const PortfolioHubScreen({Key? key}) : super(key: key);
+  const PortfolioHubScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class PortfolioHubScreen extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)), const Spacer(), IconButton(onPressed: () {}, icon: const Icon(Icons.add, color: Colors.white))]),
         const SizedBox(height: 8),
-        ...items.map((i) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(Icons.circle, size: 8, color: Colors.white54), const SizedBox(width: 8), Expanded(child: Text(i, style: const TextStyle(color: Colors.white70)))]))).toList(),
+        ...items.map((i) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [Icon(Icons.circle, size: 8, color: Colors.white54), const SizedBox(width: 8), Expanded(child: Text(i, style: const TextStyle(color: Colors.white70)))]))),
       ]),
     );
   }

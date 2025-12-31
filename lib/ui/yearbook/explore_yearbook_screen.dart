@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../theme/design_system.dart';
 import '../widgets/custom_app_bar.dart';
 import 'yearbook_filter_screen.dart';
 
 class ExploreYearbookScreen extends StatelessWidget {
-  const ExploreYearbookScreen({Key? key}) : super(key: key);
+  const ExploreYearbookScreen({super.key});
 
   final List<Map<String, String>> _batches = const [
     {'title': 'Class of 2025', 'subtitle': 'The Visionaries'},

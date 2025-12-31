@@ -7,7 +7,7 @@ import '../../theme/design_system.dart';
 // Uses Riverpod to obtain mock data so the UI is data-driven and ready
 // for future backend replacement. This file only defines UI widgets.
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,10 +31,13 @@ class HomeScreen extends ConsumerWidget {
             SizedBox(
               height: 110,
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 scrollDirection: Axis.horizontal,
                 itemCount: 7,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
                 itemBuilder: (context, index) => const _StoryAvatar(),
               ),
             ),
@@ -42,19 +45,36 @@ class HomeScreen extends ConsumerWidget {
             // Featured Graduate section header
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
-              child: Text('Featured Graduate', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Featured Graduate',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
 
             // Featured Graduate card using profile provider
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _FeaturedCard(profileName: profile.name, degreeLine: '${profile.degree} | ${profile.year}'),
+              child: _FeaturedCard(
+                profileName: profile.name,
+                degreeLine: '${profile.degree} | ${profile.year}',
+              ),
             ),
 
             // Batch Highlights header
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 18, 16, 6),
-              child: Text("Batch Highlights: Class of '24", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              child: Text(
+                "Batch Highlights: Class of '24",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
 
             // Batch highlights carousel driven by batchProvider
@@ -64,8 +84,11 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 scrollDirection: Axis.horizontal,
                 itemCount: batches.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (context, i) => _BatchCard(title: batches[i].title, subtitle: batches[i].subtitle),
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => _BatchCard(
+                  title: batches[index].title,
+                  subtitle: batches[index].subtitle,
+                ),
               ),
             ),
 
@@ -74,7 +97,16 @@ class HomeScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
-                children: List.generate(feed.length, (i) => Padding(padding: const EdgeInsets.only(bottom: 14), child: _PostCard(title: feed[i].title, subtitle: feed[i].subtitle))),
+                children: List.generate(
+                  feed.length,
+                  (i) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _PostCard(
+                      title: feed[i].title,
+                      subtitle: feed[i].subtitle,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -86,22 +118,33 @@ class HomeScreen extends ConsumerWidget {
 
 // Reusable app bar widget matching the HTML header visuals.
 class _HomeAppBar extends StatelessWidget {
-  const _HomeAppBar({Key? key}) : super(key: key);
+  const _HomeAppBar();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      color: DesignSystem.scaffoldBg.withOpacity(0.0),
+      color: DesignSystem.scaffoldBg.withValues(alpha: 0.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: const [
               // School icon placeholder
-              CircleAvatar(radius: 20, backgroundColor: DesignSystem.purpleAccent, child: Icon(Icons.school, color: Colors.white)),
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: DesignSystem.purpleAccent,
+                child: Icon(Icons.school, color: Colors.white),
+              ),
               SizedBox(width: 10),
-              Text('Chronicles', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(
+                'Chronicles',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           Row(
@@ -121,14 +164,17 @@ class _HomeAppBar extends StatelessWidget {
 // Small circular icon used in the app bar (visual only).
 class _IconCircle extends StatelessWidget {
   final IconData icon;
-  const _IconCircle({Key? key, required this.icon}) : super(key: key);
+  const _IconCircle({required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(color: DesignSystem.purpleMid, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: DesignSystem.purpleMid,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Icon(icon, color: Colors.white),
     );
   }
@@ -136,7 +182,7 @@ class _IconCircle extends StatelessWidget {
 
 // Story avatar widget used in the horizontal story carousel.
 class _StoryAvatar extends StatelessWidget {
-  const _StoryAvatar({Key? key}) : super(key: key);
+  const _StoryAvatar();
 
   @override
   Widget build(BuildContext context) {
@@ -146,11 +192,21 @@ class _StoryAvatar extends StatelessWidget {
         Container(
           width: 72,
           height: 72,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF2B2630)),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2B2630),
+          ),
           child: const Center(child: Icon(Icons.person, color: Colors.white)),
         ),
         const SizedBox(height: 6),
-        const SizedBox(width: 72, child: Text('Your Story', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 12))),
+        const SizedBox(
+          width: 72,
+          child: Text(
+            'Your Story',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 12),
+          ),
+        ),
       ],
     );
   }
@@ -160,32 +216,69 @@ class _StoryAvatar extends StatelessWidget {
 class _FeaturedCard extends StatelessWidget {
   final String profileName;
   final String degreeLine;
-  const _FeaturedCard({Key? key, required this.profileName, required this.degreeLine}) : super(key: key);
+  const _FeaturedCard({required this.profileName, required this.degreeLine});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: const Color(0xFF2A1727), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A1727),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Image placeholder (aspect video)
-          AspectRatio(aspectRatio: 16 / 9, child: Container(color: const Color(0xFF3A2738))),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(color: const Color(0xFF3A2738)),
+          ),
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(profileName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(
+                  profileName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(degreeLine, style: const TextStyle(color: Color(0xFFBDB1C9))),
+                Text(
+                  degreeLine,
+                  style: const TextStyle(color: Color(0xFFBDB1C9)),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text('Meet $profileName; discover her journey.', style: const TextStyle(color: Color(0xFFBDB1C9), fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        'Meet $profileName; discover her journey.',
+                        style: const TextStyle(
+                          color: Color(0xFFBDB1C9),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: DesignSystem.purpleAccent, borderRadius: BorderRadius.circular(30)), child: const Text('View Profile', style: TextStyle(color: Colors.white))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: DesignSystem.purpleAccent,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Text(
+                        'View Profile',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -201,20 +294,30 @@ class _FeaturedCard extends StatelessWidget {
 class _BatchCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _BatchCard({Key? key, required this.title, required this.subtitle}) : super(key: key);
+  const _BatchCard({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: MediaQuery.of(context).size.width * 0.72,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: const Color(0xFF332236)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF332236),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 6),
             Text(subtitle, style: const TextStyle(color: Color(0xFFBDB1C9))),
           ],
@@ -228,12 +331,15 @@ class _BatchCard extends StatelessWidget {
 class _PostCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _PostCard({Key? key, required this.title, required this.subtitle}) : super(key: key);
+  const _PostCard({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: const Color(0xFF2A1727), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A1727),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -241,14 +347,49 @@ class _PostCard extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
-                Container(width: 40, height: 40, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF3A2738)), child: const Icon(Icons.person, color: Colors.white)),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF3A2738),
+                  ),
+                  child: const Icon(Icons.person, color: Colors.white),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), const SizedBox(height: 2), Text('Class of 2024 • Computer', style: const TextStyle(color: Color(0xFFBDB1C9), fontSize: 12))])),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Class of 2024 • Computer',
+                        style: const TextStyle(
+                          color: Color(0xFFBDB1C9),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Icon(Icons.more_horiz, color: Colors.white54),
               ],
             ),
           ),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 12.0), child: Text(subtitle, style: const TextStyle(color: Color(0xFFD6C9E6)))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Text(
+              subtitle,
+              style: const TextStyle(color: Color(0xFFD6C9E6)),
+            ),
+          ),
           const SizedBox(height: 8),
           // Image placeholder (square)
           Container(height: 180, color: const Color(0xFF3A2738)),
@@ -257,9 +398,21 @@ class _PostCard extends StatelessWidget {
             child: Row(
               children: [
                 // Like
-                Row(children: const [Icon(Icons.favorite_border, color: Colors.white54), SizedBox(width: 8), Text('128', style: TextStyle(color: Color(0xFFBDB1C9)))]),
+                Row(
+                  children: const [
+                    Icon(Icons.favorite_border, color: Colors.white54),
+                    SizedBox(width: 8),
+                    Text('128', style: TextStyle(color: Color(0xFFBDB1C9))),
+                  ],
+                ),
                 const SizedBox(width: 16),
-                Row(children: const [Icon(Icons.chat_bubble_outline, color: Colors.white54), SizedBox(width: 8), Text('12', style: TextStyle(color: Color(0xFFBDB1C9)))]),
+                Row(
+                  children: const [
+                    Icon(Icons.chat_bubble_outline, color: Colors.white54),
+                    SizedBox(width: 8),
+                    Text('12', style: TextStyle(color: Color(0xFFBDB1C9))),
+                  ],
+                ),
                 const Spacer(),
                 Icon(Icons.share, color: Colors.white54),
               ],

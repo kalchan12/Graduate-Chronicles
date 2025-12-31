@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_app_bar.dart';
 
 class YearbookGalleryScreen extends StatelessWidget {
   final String studentName;
-  const YearbookGalleryScreen({Key? key, required this.studentName}) : super(key: key);
+  const YearbookGalleryScreen({super.key, required this.studentName});
 
   @override
   Widget build(BuildContext context) {

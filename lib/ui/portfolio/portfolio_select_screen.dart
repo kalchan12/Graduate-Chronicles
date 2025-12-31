@@ -6,7 +6,7 @@ import 'add_certificate_screen.dart';
 import 'add_link_screen.dart';
 
 class PortfolioSelectScreen extends StatelessWidget {
-  const PortfolioSelectScreen({Key? key}) : super(key: key);
+  const PortfolioSelectScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

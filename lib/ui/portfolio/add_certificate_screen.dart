@@ -3,7 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import 'portfolio_hub_screen.dart';
 
 class AddCertificateScreen extends StatelessWidget {
-  const AddCertificateScreen({Key? key}) : super(key: key);
+  const AddCertificateScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

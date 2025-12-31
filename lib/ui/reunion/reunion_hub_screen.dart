@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 
 class ReunionHubScreen extends StatelessWidget {
-  const ReunionHubScreen({Key? key}) : super(key: key);
+  const ReunionHubScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

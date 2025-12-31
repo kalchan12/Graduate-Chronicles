@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 
 class FindJoinReunionScreen extends StatelessWidget {
-  const FindJoinReunionScreen({Key? key}) : super(key: key);
+  const FindJoinReunionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

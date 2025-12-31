@@ -3,7 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import 'portfolio_hub_screen.dart';
 
 class AddLinkScreen extends StatelessWidget {
-  const AddLinkScreen({Key? key}) : super(key: key);
+  const AddLinkScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,7 @@ import '../../../theme/design_system.dart';
 import '../../../state/auth_provider.dart';
 
 class SignupStep4 extends ConsumerStatefulWidget {
-  const SignupStep4({Key? key}) : super(key: key);
+  const SignupStep4({super.key});
 
   @override
   ConsumerState<SignupStep4> createState() => _SignupStep4State();

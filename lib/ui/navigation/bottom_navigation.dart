@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/providers.dart';
 import '../home/home_screen.dart';
 import '../yearbook/explore_yearbook_screen.dart';
 import '../message/message_screen.dart';
@@ -11,7 +10,7 @@ import '../profile/profile_screen.dart';
 // without relying on a provider for the index. This keeps tabs persistent
 // using an IndexedStack while remaining UI-first.
 class BottomNavigationScaffold extends StatefulWidget {
-  const BottomNavigationScaffold({Key? key}) : super(key: key);
+  const BottomNavigationScaffold({super.key});
 
   @override
   State<BottomNavigationScaffold> createState() => _BottomNavigationScaffoldState();

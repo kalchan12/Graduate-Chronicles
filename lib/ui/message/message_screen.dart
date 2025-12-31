@@ -6,7 +6,7 @@ import '../widgets/custom_app_bar.dart';
 
 // Messages screen built to match the provided static HTML chat design.
 class MessageScreen extends ConsumerWidget {
-  const MessageScreen({Key? key}) : super(key: key);
+  const MessageScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,7 +58,7 @@ class _ChatRow extends StatelessWidget {
   final String sender;
   final String text;
   final bool isIncoming;
-  const _ChatRow({Key? key, required this.sender, required this.text, this.isIncoming = true}) : super(key: key);
+  const _ChatRow({required this.sender, required this.text, this.isIncoming = true});
 
   @override
   Widget build(BuildContext context) {

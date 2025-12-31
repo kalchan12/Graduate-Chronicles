@@ -17,11 +17,22 @@ class DesignSystem {
   static final ThemeData theme = ThemeData(
     useMaterial3: true,
     scaffoldBackgroundColor: purpleDark,
-    colorScheme: ColorScheme.fromSeed(seedColor: purpleAccent, brightness: Brightness.dark),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: purpleAccent,
+      brightness: Brightness.dark,
+    ),
     textTheme: const TextTheme(
-      titleLarge: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white),
+      titleLarge: TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
+      ),
       bodyMedium: TextStyle(fontSize: 14, color: Color(0xFFD6C9E6)),
-      labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+      labelLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
     ),
   );
 
@@ -33,9 +44,14 @@ class DesignSystem {
 
   // Small helpers
   static BoxDecoration cardDecoration() => BoxDecoration(
-        color: const Color(0xFF241228),
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.45), blurRadius: 18, offset: const Offset(0, 8))],
-      );
+    color: const Color(0xFF241228),
+    borderRadius: BorderRadius.circular(borderRadius),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.45),
+        blurRadius: 18,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
 }
-

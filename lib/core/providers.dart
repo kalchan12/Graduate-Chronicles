@@ -1,6 +1,5 @@
 // Riverpod providers and simple mock models for UI-first development.
 // Import both flutter_riverpod and riverpod to ensure provider types are available.
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Simple feed item model used by the home feed provider.

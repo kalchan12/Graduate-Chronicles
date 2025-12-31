@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/design_system.dart';
 import '../screens/screens.dart';
-import '../ui/onboarding/onboarding1_screen.dart';
 import '../ui/mentorship/mentorship_home_screen.dart';
 import '../ui/mentorship/find_mentorship_screen.dart';
 import '../ui/mentorship/my_mentorship_screen.dart';
@@ -17,7 +16,7 @@ import '../ui/auth/forgot/password_updated_screen.dart';
 import '../ui/auth/admin/admin_dashboard_screen.dart';
 
 class App extends StatelessWidget {
-  const App({Key? key}) : super(key: key);
+  const App({super.key});
 
   @override
   Widget build(BuildContext context) {

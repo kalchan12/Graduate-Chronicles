@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
 class Onboarding2Screen extends StatelessWidget {
-  const Onboarding2Screen({Key? key}) : super(key: key);
+  const Onboarding2Screen({super.key});
 
   @override
   Widget build(BuildContext context) {

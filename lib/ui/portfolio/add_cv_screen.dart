@@ -3,7 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import 'portfolio_hub_screen.dart';
 
 class AddCvScreen extends StatelessWidget {
-  const AddCvScreen({Key? key}) : super(key: key);
+  const AddCvScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

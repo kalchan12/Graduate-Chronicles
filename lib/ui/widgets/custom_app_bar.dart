@@ -9,13 +9,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onLeading;
   final Widget? trailing;
 
-  const CustomAppBar({Key? key, required this.title, this.showLeading = true, this.onLeading, this.trailing}) : super(key: key);
+  const CustomAppBar({
+    super.key,
+    required this.title,
+    this.showLeading = true,
+    this.onLeading,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      color: DesignSystem.scaffoldBg.withOpacity(0.0),
+      color: DesignSystem.scaffoldBg.withValues(alpha: 0.0),
       child: Row(
         children: [
           if (showLeading)
@@ -31,7 +37,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           else
             const SizedBox(width: 40),
           const SizedBox(width: 8),
-          Expanded(child: Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700))),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           const SizedBox(width: 8),
           trailing ?? const SizedBox(width: 40),
         ],

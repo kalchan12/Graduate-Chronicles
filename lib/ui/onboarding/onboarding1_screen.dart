@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
 class Onboarding1Screen extends StatelessWidget {
-  const Onboarding1Screen({Key? key}) : super(key: key);
+  const Onboarding1Screen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +76,7 @@ class Onboarding1Screen extends StatelessWidget {
 
 class Dot extends StatelessWidget {
   final bool active;
-  const Dot({Key? key, this.active = false}) : super(key: key);
+  const Dot({super.key, this.active = false});
 
   @override
   Widget build(BuildContext context) {
