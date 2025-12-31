@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/auth_provider.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final TextEditingController _idCtrl = TextEditingController();
+  final TextEditingController _pwCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _pwCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,6 +29,11 @@ class LoginScreen extends StatelessWidget {
       // slightly lighter, modern purple middle tone
       colors: [Color(0xFF2E0F3B), Color(0xFF5C2B7A)],
     );
+
+    final auth = ref.watch(authProvider);
+    final notifier = ref.read(authProvider.notifier);
+
+    bool isFormValid() => _idCtrl.text.trim().isNotEmpty && _pwCtrl.text.trim().isNotEmpty;
 
     InputDecoration fieldDecoration(String hint) => InputDecoration(
           hintText: hint,
@@ -88,26 +110,32 @@ class LoginScreen extends StatelessWidget {
                         ),
 
                         const SizedBox(height: 14),
-                        const Text('ID', style: TextStyle(color: Color(0xFFD6C9E6))),
+                        const Text('Email', style: TextStyle(color: Color(0xFFD6C9E6))),
                         const SizedBox(height: 6),
-                        SizedBox(height: 46, child: TextField(decoration: fieldDecoration('Enter your ID'))),
+                        SizedBox(height: 46, child: TextField(controller: _idCtrl, decoration: fieldDecoration('Enter your email'))),
                         const SizedBox(height: 10),
                         const Text('Password', style: TextStyle(color: Color(0xFFD6C9E6))),
                         const SizedBox(height: 6),
-                        _PasswordField(decoration: fieldDecoration('Enter your password')),
+                        _PasswordField(decoration: fieldDecoration('Enter your password'), controller: _pwCtrl),
 
                         const SizedBox(height: 8),
-                            Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => Navigator.of(context).pushNamed('/forgot'), child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF9B2CFF))))),
+                        if (auth.error != null) Padding(padding: const EdgeInsets.only(top: 6.0), child: Text(auth.error!, style: const TextStyle(color: Colors.orangeAccent))),
+
+                        Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => Navigator.of(context).pushNamed('/forgot'), child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF9B2CFF))))),
 
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton(
-                            // Navigate to the main app scaffold on successful (mock) login.
-                            onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
+                            onPressed: (auth.loading || !isFormValid())
+                                ? null
+                                : () async {
+                                    final success = await notifier.signIn(email: _idCtrl.text, password: _pwCtrl.text);
+                                    if (success && mounted) Navigator.of(context).pushReplacementNamed('/app');
+                                  },
                             style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                            child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                            child: auth.loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                           ),
                         ),
                       ],
@@ -142,7 +170,8 @@ class LoginScreen extends StatelessWidget {
 
 class _PasswordField extends StatefulWidget {
   final InputDecoration decoration;
-  const _PasswordField({Key? key, required this.decoration}) : super(key: key);
+  final TextEditingController controller;
+  const _PasswordField({Key? key, required this.decoration, required this.controller}) : super(key: key);
 
   @override
   State<_PasswordField> createState() => _PasswordFieldState();
@@ -156,6 +185,7 @@ class _PasswordFieldState extends State<_PasswordField> {
     return SizedBox(
       height: 46,
       child: TextField(
+        controller: widget.controller,
         obscureText: _obscure,
         decoration: widget.decoration.copyWith(
           suffixIcon: IconButton(

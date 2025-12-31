@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/auth_provider.dart';
 
-class SignupStep2 extends StatefulWidget {
+class SignupStep2 extends ConsumerStatefulWidget {
   const SignupStep2({Key? key}) : super(key: key);
 
   @override
-  State<SignupStep2> createState() => _SignupStep2State();
+  ConsumerState<SignupStep2> createState() => _SignupStep2State();
 }
 
-class _SignupStep2State extends State<SignupStep2> {
+class _SignupStep2State extends ConsumerState<SignupStep2> {
   String? _selectedRole;
   String? _selectedYear;
   final TextEditingController _deptController = TextEditingController();
 
   final List<String> _roles = ['Graduate student', 'admin', 'staff', 'alumni'];
   final List<String> _years = List.generate(16, (i) => '${2020 + i}');
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = ref.read(authProvider).draft;
+    _selectedRole = draft.role;
+    _selectedYear = draft.graduationYear;
+    _deptController.text = draft.department ?? '';
+  }
 
   @override
   void dispose() {
@@ -67,7 +78,11 @@ class _SignupStep2State extends State<SignupStep2> {
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).pushReplacementNamed('/signup3'),
+                          onPressed: () {
+                            // persist draft
+                            ref.read(authProvider.notifier).updateDraft(role: _selectedRole, department: _deptController.text.trim(), graduationYear: _selectedYear);
+                            Navigator.of(context).pushReplacementNamed('/signup3');
+                          },
                           style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           child: const Text('Next', style: TextStyle(fontWeight: FontWeight.w700)),
                         ),

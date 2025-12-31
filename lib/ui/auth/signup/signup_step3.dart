@@ -1,8 +1,37 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/auth_provider.dart';
 
-class SignupStep3 extends StatelessWidget {
+class SignupStep3 extends ConsumerStatefulWidget {
   const SignupStep3({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<SignupStep3> createState() => _SignupStep3State();
+}
+
+class _SignupStep3State extends ConsumerState<SignupStep3> {
+  Uint8List? _avatarBytes;
+
+  Future<void> _simulatePickFromAssets() async {
+    // Simulate picking an image by loading an app asset into memory.
+    try {
+      final data = await rootBundle.load('assets/images/GC_logo.png');
+      setState(() => _avatarBytes = data.buffer.asUint8List());
+      ref.read(authProvider.notifier).setDraftAvatar(_avatarBytes!);
+    } catch (_) {
+      // ignore if asset missing
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = ref.read(authProvider).draft;
+    _avatarBytes = draft.avatar;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +57,16 @@ class SignupStep3 extends StatelessWidget {
                       height: 160,
                       width: 160,
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(80), border: Border.all(color: Colors.white24, width: 2)),
-                      child: const Center(child: Icon(Icons.camera_alt, color: Colors.white30, size: 36)),
+                      child: _avatarBytes == null
+                          ? const Center(child: Icon(Icons.camera_alt, color: Colors.white30, size: 36))
+                          : ClipRRect(borderRadius: BorderRadius.circular(80), child: Image.memory(_avatarBytes!, fit: BoxFit.cover)),
                     ),
-                    ElevatedButton(onPressed: () {}, style: ElevatedButton.styleFrom(backgroundColor: Colors.white12, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('Upload Photo')),
+                    ElevatedButton(onPressed: _simulatePickFromAssets, style: ElevatedButton.styleFrom(backgroundColor: Colors.white12, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('Upload Photo')),
                     const SizedBox(height: 8),
                     TextButton(onPressed: () => Navigator.of(context).pushReplacementNamed('/signup4'), child: const Text('Skip for now', style: TextStyle(color: Colors.white70))),
                     const SizedBox(height: 12),
                     const SizedBox(height: 18),
-                    SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () => Navigator.of(context).pushReplacementNamed('/signup4'), style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Finish'))),
+                    SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () => Navigator.of(context).pushReplacementNamed('/signup4'), style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Next'))),
                   ]),
                 ),
               ),

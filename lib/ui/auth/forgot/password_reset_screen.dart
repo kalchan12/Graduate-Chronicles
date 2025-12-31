@@ -87,44 +87,63 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       backgroundColor: const Color(0xFF1C1022),
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, leading: BackButton(color: Colors.white)),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(color: const Color(0xFF2A1830), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.mark_email_read, size: 44, color: DesignSystem.purpleAccent),
-                ),
-                const SizedBox(height: 18),
-                const Text('Verification Code', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 8),
-                const Text('Please enter the 4-digit code sent to your email address.', style: TextStyle(color: Color(0xFFD6C9E6)), textAlign: TextAlign.center),
-                const SizedBox(height: 18),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: List.generate(4, (i) => _pinField(i))),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pushNamed('/forgot/set'),
-                    style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                    child: const Text('Verify', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final height = constraints.maxHeight;
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: height),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Icon with glow
+                      Stack(alignment: Alignment.center, children: [
+                        Container(width: 140, height: 140),
+                        Positioned(
+                          child: Container(
+                            width: 112,
+                            height: 112,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A1830),
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [BoxShadow(color: DesignSystem.purpleAccent.withOpacity(0.14), blurRadius: 40, spreadRadius: 6)],
+                            ),
+                            child: const Icon(Icons.mark_email_read, size: 48, color: DesignSystem.purpleAccent),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 18),
+                      const Text('Verification Code', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const SizedBox(height: 8),
+                      const Text('Please enter the 4-digit code sent to your email address.', style: TextStyle(color: Color(0xFFD6C9E6)), textAlign: TextAlign.center),
+                      const SizedBox(height: 18),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: List.generate(4, (i) => _pinField(i))),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).pushNamed('/forgot/set'),
+                          style: ElevatedButton.styleFrom(backgroundColor: DesignSystem.purpleAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                          child: const Text('Verify', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_seconds > 0)
+                        Text('Resend code in $minutes:$seconds', style: const TextStyle(color: Color(0xFFD6C9E6)))
+                      else
+                        TextButton(onPressed: () => _startTimer(), child: const Text('Resend code', style: TextStyle(color: DesignSystem.purpleAccent))),
+                      const SizedBox(height: 8),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (_seconds > 0)
-                  Text('Resend code in $minutes:$seconds', style: const TextStyle(color: Color(0xFFD6C9E6)))
-                else
-                  TextButton(onPressed: () => _startTimer(), child: const Text('Resend code', style: TextStyle(color: DesignSystem.purpleAccent))),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
