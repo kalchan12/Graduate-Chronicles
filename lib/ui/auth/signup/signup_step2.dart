@@ -211,44 +211,83 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
       children: [
         Text(label, style: const TextStyle(color: Color(0xFFD6C9E6))),
         const SizedBox(height: 6),
-        PopupMenuButton<String>(
-          onSelected: onChanged,
-          offset: const Offset(0, 50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          color: const Color(0xFF2E1C36),
-          itemBuilder: (context) {
-            return items.map((String item) {
-              return PopupMenuItem<String>(
-                value: item,
-                child: Text(item, style: const TextStyle(color: Colors.white)),
-              );
-            }).toList();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white10,
-              borderRadius: BorderRadius.circular(12),
-              border: errorText != null
-                  ? Border.all(color: Colors.orangeAccent)
-                  : null,
+        Theme(
+          data: Theme.of(context).copyWith(
+            popupMenuTheme: PopupMenuThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: const Color(
+                0xFF32113F,
+              ).withValues(alpha: 0.95), // Slightly transparent purpleMid
+              elevation: 8,
+              textStyle: const TextStyle(color: Colors.white70),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            child: Row(
-              children: [
-                const Icon(Icons.arrow_drop_down, color: Colors.white54),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    value ?? hint,
-                    style: TextStyle(
-                      color: value != null ? Colors.white : Colors.white38,
+          ),
+          child: PopupMenuButton<String>(
+            onSelected: onChanged,
+            offset: const Offset(0, 56), // Align dropdown below field
+            constraints: const BoxConstraints(
+              minWidth: 200,
+            ), // Ensure decent width
+            itemBuilder: (context) {
+              return items.map((String item) {
+                final isSelected = item == value;
+                return PopupMenuItem<String>(
+                  value: item,
+                  height: 48,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    decoration: isSelected
+                        ? BoxDecoration(
+                            color: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.15,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          )
+                        : null,
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
                     ),
                   ),
-                ),
-                const Icon(Icons.keyboard_arrow_down, color: Colors.white38),
-              ],
+                );
+              }).toList();
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white10, // Input bg
+                borderRadius: BorderRadius.circular(12),
+                border: errorText != null
+                    ? Border.all(color: Colors.orangeAccent)
+                    : null,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_drop_down, color: Colors.white54),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      value ?? hint,
+                      style: TextStyle(
+                        color: value != null ? Colors.white : Colors.white38,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down, color: Colors.white38),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
@@ -12,15 +13,46 @@ class SignupStep3 extends ConsumerStatefulWidget {
 }
 
 class _SignupStep3State extends ConsumerState<SignupStep3> {
-  Future<void> _simulatePickFromAssets() async {
-    // Simulate picking an image by loading an app asset into memory.
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    // Request permission first
+    // Note: On Android 13+, READ_MEDIA_IMAGES is used, but library handles details mostly.
+    // For simplicity, we check photos.
+    var status = await Permission.photos.status;
+    if (!status.isGranted) {
+      status = await Permission.photos.request();
+    }
+
+    // Some Android versions (standard storage) or iOS behavior nuances:
+    // If still denied, try 'storage' or just proceed to picker which might handle it or fail gracefully.
+    if (status.isPermanentlyDenied) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permission denied. Please enable access in settings.'),
+        ),
+      );
+      return;
+    }
+
     try {
-      final data = await rootBundle.load('assets/images/GC_logo.png');
-      ref
-          .read(signupFormProvider.notifier)
-          .setAvatar(data.buffer.asUint8List());
-    } catch (_) {
-      // ignore if asset missing
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800, // Reasonable max width for avatars
+        maxHeight: 800,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        ref.read(signupFormProvider.notifier).setAvatar(bytes);
+      }
+    } catch (e) {
+      // Handle picker errors
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
@@ -80,13 +112,20 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(80),
                           border: Border.all(color: Colors.white24, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
                         child: state.avatar == null
                             ? const Center(
                                 child: Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white30,
-                                  size: 36,
+                                  Icons.account_circle,
+                                  color: Colors.white12,
+                                  size: 120,
                                 ),
                               )
                             : ClipRRect(
@@ -98,14 +137,38 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                               ),
                       ),
                       ElevatedButton(
-                        onPressed: _simulatePickFromAssets,
+                        onPressed: _pickImage,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white12,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
+                            side: const BorderSide(color: Colors.white24),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
                           ),
                         ),
-                        child: const Text('Upload Photo'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              state.avatar == null
+                                  ? Icons.add_a_photo
+                                  : Icons.edit,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              state.avatar == null
+                                  ? 'Upload Photo'
+                                  : 'Change Photo',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 8),
                       TextButton(
@@ -117,8 +180,7 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                           style: TextStyle(color: Colors.white70),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
                         height: 52,
@@ -132,7 +194,13 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text('Next'),
+                          child: const Text(
+                            'Next',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
                       ),
                     ],
