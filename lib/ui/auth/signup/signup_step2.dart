@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
-import '../../../state/auth_provider.dart';
+import '../../../state/signup_state.dart';
 
 class SignupStep2 extends ConsumerStatefulWidget {
   const SignupStep2({super.key});
@@ -11,20 +11,15 @@ class SignupStep2 extends ConsumerStatefulWidget {
 }
 
 class _SignupStep2State extends ConsumerState<SignupStep2> {
-  String? _selectedRole;
-  String? _selectedYear;
   final TextEditingController _deptController = TextEditingController();
-
   final List<String> _roles = ['Graduate student', 'admin', 'staff', 'alumni'];
   final List<String> _years = List.generate(16, (i) => '${2020 + i}');
 
   @override
   void initState() {
     super.initState();
-    final draft = ref.read(authProvider).draft;
-    _selectedRole = draft.role;
-    _selectedYear = draft.graduationYear;
-    _deptController.text = draft.department ?? '';
+    final state = ref.read(signupFormProvider);
+    _deptController.text = state.department ?? '';
   }
 
   @override
@@ -33,30 +28,11 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     super.dispose();
   }
 
-  Future<void> _pickOption(
-    BuildContext context,
-    List<String> options,
-    ValueChanged<String> onSelected,
-  ) async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      builder: (_) => SafeArea(
-        child: ListView.separated(
-          shrinkWrap: true,
-          itemBuilder: (context, index) => ListTile(
-            title: Text(options[index]),
-            onTap: () => Navigator.of(context).pop(options[index]),
-          ),
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemCount: options.length,
-        ),
-      ),
-    );
-    if (result != null) onSelected(result);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(signupFormProvider);
+    final notifier = ref.read(signupFormProvider.notifier);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
@@ -102,15 +78,14 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                   ),
                   child: Column(
                     children: [
-                      _buildDropdown(
+                      _buildOverlayDropdown(
                         context,
                         label: 'I am a...',
-                        hint: _selectedRole ?? 'Select your role',
-                        onTap: () => _pickOption(
-                          context,
-                          _roles,
-                          (r) => setState(() => _selectedRole = r),
-                        ),
+                        hint: state.role ?? 'Select your role',
+                        value: state.role,
+                        items: _roles,
+                        onChanged: (val) => notifier.setRole(val),
+                        errorText: state.roleError,
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -118,17 +93,20 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                         hint: 'e.g. Computer Science',
                         icon: Icons.book,
                         controller: _deptController,
+                        errorText: state.departmentError,
+                        onChanged: (val) =>
+                            notifier.setField('department', val),
                       ),
                       const SizedBox(height: 12),
-                      _buildDropdown(
+                      _buildOverlayDropdown(
                         context,
                         label: 'Graduation Year',
-                        hint: _selectedYear ?? 'Select your year',
-                        onTap: () => _pickOption(
-                          context,
-                          _years,
-                          (y) => setState(() => _selectedYear = y),
-                        ),
+                        hint: state.graduationYear ?? 'Select your year',
+                        value: state.graduationYear,
+                        items: _years,
+                        onChanged: (val) =>
+                            notifier.setField('graduationYear', val),
+                        errorText: state.yearError,
                       ),
                       const SizedBox(height: 18),
                       SizedBox(
@@ -136,17 +114,11 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                         height: 52,
                         child: ElevatedButton(
                           onPressed: () {
-                            // persist draft
-                            ref
-                                .read(authProvider.notifier)
-                                .updateDraft(
-                                  role: _selectedRole,
-                                  department: _deptController.text.trim(),
-                                  graduationYear: _selectedYear,
-                                );
-                            Navigator.of(
-                              context,
-                            ).pushReplacementNamed('/signup3');
+                            if (notifier.validateStep2()) {
+                              Navigator.of(
+                                context,
+                              ).pushReplacementNamed('/signup3');
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
@@ -176,6 +148,8 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     required String hint,
     required IconData icon,
     TextEditingController? controller,
+    String? errorText,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +169,8 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  onChanged: onChanged,
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: hint,
@@ -205,28 +181,58 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
             ],
           ),
         ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildDropdown(
+  Widget _buildOverlayDropdown(
     BuildContext context, {
     required String label,
     required String hint,
-    required VoidCallback onTap,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String> onChanged,
+    String? errorText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Color(0xFFD6C9E6))),
         const SizedBox(height: 6),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+        PopupMenuButton<String>(
+          onSelected: onChanged,
+          offset: const Offset(0, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          color: const Color(0xFF2E1C36),
+          itemBuilder: (context) {
+            return items.map((String item) {
+              return PopupMenuItem<String>(
+                value: item,
+                child: Text(item, style: const TextStyle(color: Colors.white)),
+              );
+            }).toList();
+          },
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white10,
               borderRadius: BorderRadius.circular(12),
+              border: errorText != null
+                  ? Border.all(color: Colors.orangeAccent)
+                  : null,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             child: Row(
@@ -235,8 +241,10 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    hint,
-                    style: const TextStyle(color: Colors.white38),
+                    value ?? hint,
+                    style: TextStyle(
+                      color: value != null ? Colors.white : Colors.white38,
+                    ),
                   ),
                 ),
                 const Icon(Icons.keyboard_arrow_down, color: Colors.white38),
@@ -244,6 +252,18 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
             ),
           ),
         ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
       ],
     );
   }

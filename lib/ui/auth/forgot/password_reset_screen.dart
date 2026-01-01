@@ -1,52 +1,54 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/forgot_password_state.dart';
 
-class PasswordResetScreen extends StatefulWidget {
+class PasswordResetScreen extends ConsumerStatefulWidget {
   const PasswordResetScreen({super.key});
 
   @override
-  State<PasswordResetScreen> createState() => _PasswordResetScreenState();
+  ConsumerState<PasswordResetScreen> createState() =>
+      _PasswordResetScreenState();
 }
 
-class _PasswordResetScreenState extends State<PasswordResetScreen> {
+class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
   final List<TextEditingController> _controllers = List.generate(
     4,
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focus = List.generate(4, (_) => FocusNode());
-  int _seconds = 60;
-  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    // Initialize potential existing OTP
+    // (If user comes back, or if we want to restore)
+    // For now simple empty or pre-fill from state
+    final otp = ref.read(forgotProvider).otp;
+    if (otp.length == 4) {
+      for (int i = 0; i < 4; i++) {
+        _controllers[i].text = otp[i];
+      }
+    }
+
     for (int i = 0; i < _controllers.length; i++) {
       _controllers[i].addListener(() {
         final text = _controllers[i].text;
         if (text.isNotEmpty && i < _controllers.length - 1) {
           _focus[i + 1].requestFocus();
         }
+        _updateState();
       });
     }
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    setState(() => _seconds = 60);
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_seconds <= 0) {
-        t.cancel();
-      } else {
-        setState(() => _seconds -= 1);
-      }
-    });
+  void _updateState() {
+    final code = _controllers.map((c) => c.text).join();
+    ref.read(forgotProvider.notifier).setOtp(code);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -89,16 +91,21 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(forgotProvider);
+    final notifier = ref.read(forgotProvider.notifier);
+
+    // Timer is managed by notifier
+    final seconds = state.timerSeconds;
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits((_seconds ~/ 60));
-    final seconds = twoDigits((_seconds % 60));
+    final minutes = twoDigits((seconds ~/ 60));
+    final secs = twoDigits((seconds % 60));
 
     return Scaffold(
       backgroundColor: const Color(0xFF1C1022),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.white),
+        leading: const BackButton(color: Colors.white),
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -121,7 +128,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            SizedBox(width: 140, height: 140),
+                            const SizedBox(width: 140, height: 140),
                             Positioned(
                               child: Container(
                                 width: 112,
@@ -157,9 +164,9 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Please enter the 4-digit code sent to your email address.',
-                          style: TextStyle(color: Color(0xFFD6C9E6)),
+                        Text(
+                          'Please enter the 4-digit code sent to ${state.email}.',
+                          style: const TextStyle(color: Color(0xFFD6C9E6)),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 18),
@@ -167,13 +174,27 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: List.generate(4, (i) => _pinField(i)),
                         ),
+                        if (state.otpError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              state.otpError!,
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () =>
-                                Navigator.of(context).pushNamed('/forgot/set'),
+                            onPressed: () {
+                              if (notifier.validateOtp()) {
+                                Navigator.of(context).pushNamed('/forgot/set');
+                              }
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: DesignSystem.purpleAccent,
                               shape: RoundedRectangleBorder(
@@ -190,14 +211,14 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        if (_seconds > 0)
+                        if (seconds > 0)
                           Text(
-                            'Resend code in $minutes:$seconds',
+                            'Resend code in $minutes:$secs',
                             style: const TextStyle(color: Color(0xFFD6C9E6)),
                           )
                         else
                           TextButton(
-                            onPressed: () => _startTimer(),
+                            onPressed: notifier.resendCode,
                             child: const Text(
                               'Resend code',
                               style: TextStyle(

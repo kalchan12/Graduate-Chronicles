@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
-import '../../../state/auth_provider.dart';
+import '../../../state/signup_state.dart';
 
 class SignupStep1 extends ConsumerStatefulWidget {
   const SignupStep1({super.key});
@@ -15,15 +15,18 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
   final TextEditingController _fullName = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
+  final TextEditingController _confirmPassword = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    final draft = ref.read(authProvider).draft;
-    _username.text = draft.username;
-    _fullName.text = draft.fullName;
-    _email.text = draft.email;
-    _password.text = draft.password;
+    // Pre-fill from state
+    final state = ref.read(signupFormProvider);
+    _username.text = state.username;
+    _fullName.text = state.fullName;
+    _email.text = state.email;
+    _password.text = state.password;
+    _confirmPassword.text = state.confirmPassword;
   }
 
   @override
@@ -32,25 +35,15 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
     _fullName.dispose();
     _email.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
-  }
-
-  bool _isEmailValid(String e) {
-    final t = e.trim();
-    return t.contains('@') && t.split('@').last.contains('.');
-  }
-
-  bool _isPasswordStrong(String p) {
-    if (p.length < 8) return false;
-    if (!RegExp(r'[A-Z]').hasMatch(p)) return false;
-    if (!RegExp(r'[a-z]').hasMatch(p)) return false;
-    if (!RegExp(r'\d').hasMatch(p)) return false;
-    if (!RegExp(r'[!@#\$%\^&\*(),.?":{}|<>]').hasMatch(p)) return false;
-    return true;
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(signupFormProvider);
+    final notifier = ref.read(signupFormProvider.notifier);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
@@ -94,6 +87,8 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                         hint: 'Choose a username',
                         icon: Icons.alternate_email,
                         controller: _username,
+                        errorText: state.usernameError,
+                        onChanged: (v) => notifier.setField('username', v),
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -101,6 +96,8 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                         hint: 'Enter your full name',
                         icon: Icons.person,
                         controller: _fullName,
+                        errorText: state.fullNameError,
+                        onChanged: (v) => notifier.setField('fullName', v),
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -108,6 +105,8 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                         hint: 'Enter your email',
                         icon: Icons.email,
                         controller: _email,
+                        errorText: state.emailError,
+                        onChanged: (v) => notifier.setField('email', v),
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -116,30 +115,38 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                         icon: Icons.lock,
                         obscure: true,
                         controller: _password,
+                        errorText: state.passwordError,
+                        onChanged: (v) => notifier.setField('password', v),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildField(
+                        label: 'Confirm Password',
+                        hint: 'Re-enter your password',
+                        icon: Icons.lock_outline,
+                        obscure: true,
+                        controller: _confirmPassword,
+                        errorText: state.confirmPasswordError,
+                        onChanged: (v) =>
+                            notifier.setField('confirmPassword', v),
                       ),
                       const SizedBox(height: 18),
+                      // Button always visible/enabled
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed:
-                              (_username.text.trim().isEmpty ||
-                                  !_isEmailValid(_email.text) ||
-                                  !_isPasswordStrong(_password.text))
-                              ? null
-                              : () {
-                                  ref
-                                      .read(authProvider.notifier)
-                                      .updateDraft(
-                                        username: _username.text.trim(),
-                                        fullName: _fullName.text.trim(),
-                                        email: _email.text.trim(),
-                                        password: _password.text,
-                                      );
-                                  Navigator.of(
-                                    context,
-                                  ).pushReplacementNamed('/signup2');
-                                },
+                          onPressed: () {
+                            // On Next, we don't need to manually set fields again because onChanged does it.
+                            // But for safety or if onChanged didn't fire (e.g. initial empty), validation checks state.
+                            // Actually, removing fields from initState doesn't sync if text field changes without onChanged.
+                            // onChanged is present.
+
+                            if (notifier.validateStep1()) {
+                              Navigator.of(
+                                context,
+                              ).pushReplacementNamed('/signup2');
+                            }
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
                             shape: RoundedRectangleBorder(
@@ -179,6 +186,8 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
     required IconData icon,
     bool obscure = false,
     TextEditingController? controller,
+    String? errorText,
+    ValueChanged<String>? onChanged,
   }) {
     controller ??= TextEditingController();
     return Column(
@@ -200,6 +209,8 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                 child: TextField(
                   controller: controller,
                   obscureText: obscure,
+                  onChanged: onChanged,
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: hint,
@@ -210,6 +221,18 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
             ],
           ),
         ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
       ],
     );
   }

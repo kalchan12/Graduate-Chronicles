@@ -1,9 +1,8 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
-import '../../../state/auth_provider.dart';
+import '../../../state/signup_state.dart';
 
 class SignupStep3 extends ConsumerStatefulWidget {
   const SignupStep3({super.key});
@@ -13,28 +12,22 @@ class SignupStep3 extends ConsumerStatefulWidget {
 }
 
 class _SignupStep3State extends ConsumerState<SignupStep3> {
-  Uint8List? _avatarBytes;
-
   Future<void> _simulatePickFromAssets() async {
     // Simulate picking an image by loading an app asset into memory.
     try {
       final data = await rootBundle.load('assets/images/GC_logo.png');
-      setState(() => _avatarBytes = data.buffer.asUint8List());
-      ref.read(authProvider.notifier).setDraftAvatar(_avatarBytes!);
+      ref
+          .read(signupFormProvider.notifier)
+          .setAvatar(data.buffer.asUint8List());
     } catch (_) {
       // ignore if asset missing
     }
   }
 
   @override
-  void initState() {
-    super.initState();
-    final draft = ref.read(authProvider).draft;
-    _avatarBytes = draft.avatar;
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final state = ref.watch(signupFormProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
@@ -88,7 +81,7 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                           borderRadius: BorderRadius.circular(80),
                           border: Border.all(color: Colors.white24, width: 2),
                         ),
-                        child: _avatarBytes == null
+                        child: state.avatar == null
                             ? const Center(
                                 child: Icon(
                                   Icons.camera_alt,
@@ -99,7 +92,7 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(80),
                                 child: Image.memory(
-                                  _avatarBytes!,
+                                  state.avatar!,
                                   fit: BoxFit.cover,
                                 ),
                               ),

@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/forgot_password_state.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = ref.read(forgotProvider).email;
+  }
 
   @override
   void dispose() {
@@ -17,14 +26,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  void _submit() {
+    final notifier = ref.read(forgotProvider.notifier);
+    if (notifier.validateEmail()) {
+      notifier.startTimer();
+      Navigator.of(context).pushNamed('/forgot/verify');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(forgotProvider);
+    final notifier = ref.read(forgotProvider.notifier);
+
     return Scaffold(
       backgroundColor: const Color(0xFF1C1022),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.white),
+        leading: const BackButton(color: Colors.white),
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -96,32 +116,48 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            hintText: 'student@university.edu',
-                            filled: true,
-                            fillColor: const Color(0xFF241228),
-                            prefixIcon: const Icon(
-                              Icons.mail,
-                              color: Color(0xFFBDB1C9),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              onChanged: (v) => notifier.setEmail(v),
+                              decoration: InputDecoration(
+                                hintText: 'student@university.edu',
+                                filled: true,
+                                fillColor: const Color(0xFF241228),
+                                prefixIcon: const Icon(
+                                  Icons.mail,
+                                  color: Color(0xFFBDB1C9),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              style: const TextStyle(color: Colors.white),
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          style: const TextStyle(color: Colors.white),
+                            if (state.emailError != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6, left: 4),
+                                child: Text(
+                                  state.emailError!,
+                                  style: const TextStyle(
+                                    color: Colors.orangeAccent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pushNamed('/forgot/verify'),
+                            onPressed: _submit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: DesignSystem.purpleAccent,
                               shape: RoundedRectangleBorder(

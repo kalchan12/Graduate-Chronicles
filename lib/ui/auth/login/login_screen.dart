@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/auth_provider.dart';
+import '../../../state/login_state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,18 +24,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch independent form state
+    final loginState = ref.watch(loginFormProvider);
+    // Also watch global auth state for generic errors (like "Invalid credentials") if we want to show them
+    // or we can rely on what we did in LoginNotifier which stopped submitting.
+    // The LoginNotifier updates its own state or stops.
+    // Let's watch authProvider too if we want to show global error message from it,
+    // BUT the LoginNotifier in my implementation above didn't explicitly map authProvider.errorMessage to loginState.
+    // However, the prompt says "Invalid credentials -> show generic error".
+    // My LoginNotifier logic:
+    // if (!success) { state = state.copy(isSubmitting: false); return; }
+    // The authProvider holds the errorMessage. So we should display it.
+    final auth = ref.watch(authProvider);
+
     final bgGradient = const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      // slightly lighter, modern purple middle tone
       colors: [Color(0xFF2E0F3B), Color(0xFF5C2B7A)],
     );
-
-    final auth = ref.watch(authProvider);
-    final notifier = ref.read(authProvider.notifier);
-
-    bool isFormValid() =>
-        _idCtrl.text.trim().isNotEmpty && _pwCtrl.text.trim().isNotEmpty;
 
     InputDecoration fieldDecoration(String hint) => InputDecoration(
       hintText: hint,
@@ -61,7 +68,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 8),
-                  // Logo placeholder - uses asset at asset/image/GC_logo.png
                   SizedBox(
                     width: 92,
                     height: 92,
@@ -90,7 +96,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: 18),
 
-                  // Compact Card container
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
@@ -98,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Tab row (smaller)
+                        // Tab row
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
@@ -159,13 +164,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: TextStyle(color: Color(0xFFD6C9E6)),
                         ),
                         const SizedBox(height: 6),
-                        SizedBox(
-                          height: 46,
-                          child: TextField(
-                            controller: _idCtrl,
-                            decoration: fieldDecoration('Enter your email'),
-                          ),
+                        TextField(
+                          controller: _idCtrl,
+                          decoration: fieldDecoration('Enter your email'),
+                          style: const TextStyle(color: Colors.white),
                         ),
+                        if (loginState.emailError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              loginState.emailError!,
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+
                         const SizedBox(height: 10),
                         const Text(
                           'Password',
@@ -176,8 +191,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           decoration: fieldDecoration('Enter your password'),
                           controller: _pwCtrl,
                         ),
+                        if (loginState.passwordError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              loginState.passwordError!,
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
 
                         const SizedBox(height: 8),
+                        // Global error from auth provider (invalid credentials)
                         if (auth.errorMessage != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 6.0),
@@ -185,6 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               auth.errorMessage!,
                               style: const TextStyle(
                                 color: Colors.orangeAccent,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -206,26 +234,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: (auth.isLoading || !isFormValid())
-                                ? null
-                                : () async {
-                                    final success = await notifier.login(
-                                      email: _idCtrl.text,
-                                      password: _pwCtrl.text,
-                                    );
-                                    if (!success) return;
-                                    if (!context.mounted) return;
-                                    Navigator.of(
-                                      context,
-                                    ).pushReplacementNamed('/app');
-                                  },
+                            // Button is ALWAYS enabled
+                            onPressed: () {
+                              ref
+                                  .read(loginFormProvider.notifier)
+                                  .validateAndSubmit(
+                                    email: _idCtrl.text,
+                                    password: _pwCtrl.text,
+                                    context: context,
+                                  );
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: DesignSystem.purpleAccent,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: auth.isLoading
+                            child: loginState.isSubmitting
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
@@ -239,6 +264,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
                                   ),
                           ),
@@ -298,6 +324,7 @@ class _PasswordFieldState extends State<_PasswordField> {
       child: TextField(
         controller: widget.controller,
         obscureText: _obscure,
+        style: const TextStyle(color: Colors.white),
         decoration: widget.decoration.copyWith(
           suffixIcon: IconButton(
             icon: Icon(

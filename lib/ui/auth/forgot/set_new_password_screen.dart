@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/forgot_password_state.dart';
 
-class SetNewPasswordScreen extends StatefulWidget {
+class SetNewPasswordScreen extends ConsumerStatefulWidget {
   const SetNewPasswordScreen({super.key});
 
   @override
-  State<SetNewPasswordScreen> createState() => _SetNewPasswordScreenState();
+  ConsumerState<SetNewPasswordScreen> createState() =>
+      _SetNewPasswordScreenState();
 }
 
-class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
+class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
   final TextEditingController _newCtrl = TextEditingController();
   final TextEditingController _confirmCtrl = TextEditingController();
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
-  String? get _errorText {
-    if (_confirmCtrl.text.isEmpty) return null;
-    if (_newCtrl.text != _confirmCtrl.text) return 'Passwords do not match';
-    return null;
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill
+    final state = ref.read(forgotProvider);
+    _newCtrl.text = state.newPassword;
+    _confirmCtrl.text = state.confirmPassword;
   }
 
   @override
@@ -28,11 +34,16 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
   }
 
   void _submit() {
-    Navigator.of(context).pushNamed('/forgot/done');
+    if (ref.read(forgotProvider.notifier).validateReset()) {
+      Navigator.of(context).pushNamed('/forgot/done');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(forgotProvider);
+    final notifier = ref.read(forgotProvider.notifier);
+
     return Scaffold(
       backgroundColor: const Color(0xFF1C1022),
       appBar: AppBar(
@@ -61,7 +72,7 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            SizedBox(width: 140, height: 140),
+                            const SizedBox(width: 140, height: 140),
                             Positioned(
                               child: Container(
                                 width: 112,
@@ -114,7 +125,7 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                         TextField(
                           controller: _newCtrl,
                           obscureText: _obscureNew,
-                          onChanged: (_) => setState(() {}),
+                          onChanged: (v) => notifier.setNewPassword(v),
                           decoration: InputDecoration(
                             hintText: 'Enter new password',
                             filled: true,
@@ -140,6 +151,18 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                           ),
                           style: const TextStyle(color: Colors.white),
                         ),
+                        if (state.newPasswordError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6, left: 4),
+                            child: Text(
+                              state.newPasswordError!,
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+
                         const SizedBox(height: 14),
                         const Align(
                           alignment: Alignment.centerLeft,
@@ -152,7 +175,7 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                         TextField(
                           controller: _confirmCtrl,
                           obscureText: _obscureConfirm,
-                          onChanged: (_) => setState(() {}),
+                          onChanged: (v) => notifier.setConfirmPassword(v),
                           decoration: InputDecoration(
                             hintText: 'Re-enter password',
                             filled: true,
@@ -179,13 +202,14 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                           ),
                           style: const TextStyle(color: Colors.white),
                         ),
-                        if (_errorText != null)
+                        if (state.confirmPasswordError != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
+                            padding: const EdgeInsets.only(top: 6, left: 4),
                             child: Text(
-                              _errorText!,
+                              state.confirmPasswordError!,
                               style: const TextStyle(
                                 color: Colors.orangeAccent,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -194,12 +218,7 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed:
-                                (_newCtrl.text.isNotEmpty &&
-                                    _confirmCtrl.text.isNotEmpty &&
-                                    _errorText == null)
-                                ? _submit
-                                : null,
+                            onPressed: _submit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: DesignSystem.purpleAccent,
                               shape: RoundedRectangleBorder(
