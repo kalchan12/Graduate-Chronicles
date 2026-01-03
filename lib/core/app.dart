@@ -14,6 +14,7 @@ import '../ui/auth/forgot/password_reset_screen.dart';
 import '../ui/auth/forgot/set_new_password_screen.dart';
 import '../ui/auth/forgot/password_updated_screen.dart';
 import '../ui/auth/admin/admin_dashboard_screen.dart';
+import '../ui/notifications/notifications_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -47,6 +48,8 @@ class App extends StatelessWidget {
         '/forgot/set': (_) => const SetNewPasswordScreen(),
         '/forgot/done': (_) => const PasswordUpdatedScreen(),
         '/admin': (_) => const AdminDashboardScreen(),
+        '/notifications': (_) => const NotificationsScreen(),
+        '/messages': (_) => const MessageScreen(),
       },
       home: const SplashScreen(),
     );

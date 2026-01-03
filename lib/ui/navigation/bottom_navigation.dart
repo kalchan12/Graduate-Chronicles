@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../yearbook/explore_yearbook_screen.dart';
-import '../message/message_screen.dart';
+import '../reunion/reunion_hub_screen.dart';
 import '../portfolio/portfolio_select_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -13,13 +13,20 @@ class BottomNavigationScaffold extends StatefulWidget {
   const BottomNavigationScaffold({super.key});
 
   @override
-  State<BottomNavigationScaffold> createState() => _BottomNavigationScaffoldState();
+  State<BottomNavigationScaffold> createState() =>
+      _BottomNavigationScaffoldState();
 }
 
 class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
   int _currentIndex = 0;
 
-  static const _pages = [HomeScreen(), ExploreYearbookScreen(), MessageScreen(), PortfolioSelectScreen(), ProfileScreen()];
+  static const _pages = [
+    HomeScreen(),
+    ExploreYearbookScreen(),
+    ReunionHubScreen(),
+    PortfolioSelectScreen(),
+    ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +41,15 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
         unselectedItemColor: Colors.white54,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: 'Yearbook'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.work_outline), label: 'Portfolio'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.auto_stories),
+            label: 'Yearbook',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.groups), label: 'Reunions'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.work_outline),
+            label: 'Portfolio',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

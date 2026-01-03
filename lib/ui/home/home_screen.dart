@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
+import '../../state/stories_state.dart';
 
 // Home feed screen implemented to match the provided static HTML layout.
 // Uses Riverpod to obtain mock data so the UI is data-driven and ready
@@ -15,6 +19,7 @@ class HomeScreen extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
     final batches = ref.watch(batchProvider);
     final feed = ref.watch(feedProvider);
+    final stories = ref.watch(storiesProvider);
 
     return Scaffold(
       // Use shared scaffold background from DesignSystem.
@@ -36,9 +41,10 @@ class HomeScreen extends ConsumerWidget {
                   vertical: 6,
                 ),
                 scrollDirection: Axis.horizontal,
-                itemCount: 7,
+                itemCount: stories.length,
                 separatorBuilder: (context, index) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => const _StoryAvatar(),
+                itemBuilder: (context, index) =>
+                    _StoryAvatar(story: stories[index]),
               ),
             ),
 
@@ -148,11 +154,17 @@ class _HomeAppBar extends StatelessWidget {
             ],
           ),
           Row(
-            children: const [
-              // Search and notifications icons (visual only)
-              _IconCircle(icon: Icons.search),
-              SizedBox(width: 8),
-              _IconCircle(icon: Icons.notifications),
+            children: [
+              // Message and notifications icons
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/messages'),
+                child: const _IconCircle(icon: Icons.mail_outline),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/notifications'),
+                child: const _IconCircle(icon: Icons.notifications_none),
+              ),
             ],
           ),
         ],
@@ -181,30 +193,86 @@ class _IconCircle extends StatelessWidget {
 }
 
 // Story avatar widget used in the horizontal story carousel.
-class _StoryAvatar extends StatelessWidget {
-  const _StoryAvatar();
+class _StoryAvatar extends ConsumerWidget {
+  final Story story;
+  const _StoryAvatar({required this.story});
+
+  Future<void> _pickImage(WidgetRef ref) async {
+    final status = await Permission.photos.request();
+    if (status.isPermanentlyDenied) {
+      openAppSettings();
+      return;
+    }
+
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      ref.read(storiesProvider.notifier).addStory(File(image.path));
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF2B2630),
+        GestureDetector(
+          onTap: story.isMe ? () => _pickImage(ref) : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: story.isMe && story.image == null
+                    ? DesignSystem.purpleAccent
+                    : Colors.transparent,
+                width: 2,
+              ),
+              color: const Color(0xFF2B2630),
+              image: story.image != null
+                  ? DecorationImage(
+                      image: FileImage(story.image!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: story.image == null
+                ? Stack(
+                    children: [
+                      const Center(
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                      if (story.isMe)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: DesignSystem.purpleAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.add,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                    ],
+                  )
+                : null,
           ),
-          child: const Center(child: Icon(Icons.person, color: Colors.white)),
         ),
         const SizedBox(height: 6),
-        const SizedBox(
+        SizedBox(
           width: 72,
           child: Text(
-            'Your Story',
+            story.name,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 12),
+            style: const TextStyle(color: Color(0xFFD6C9E6), fontSize: 12),
           ),
         ),
       ],
@@ -328,10 +396,36 @@ class _BatchCard extends StatelessWidget {
 }
 
 // Standard post card used for feed items; uses dynamic title/subtitle.
-class _PostCard extends StatelessWidget {
+class _PostCard extends StatefulWidget {
   final String title;
   final String subtitle;
   const _PostCard({required this.title, required this.subtitle});
+
+  @override
+  State<_PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<_PostCard> {
+  bool _isLiked = false;
+  int _likeCount = 128;
+
+  void _toggleLike() {
+    setState(() {
+      _isLiked = !_isLiked;
+      _likeCount += _isLiked ? 1 : -1;
+    });
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature coming soon!'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        backgroundColor: DesignSystem.purpleMid,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -350,9 +444,9 @@ class _PostCard extends StatelessWidget {
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF3A2738),
+                    color: Color(0xFF3A2738),
                   ),
                   child: const Icon(Icons.person, color: Colors.white),
                 ),
@@ -362,16 +456,16 @@ class _PostCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        widget.title,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      const Text(
                         'Class of 2024 • Computer',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFFBDB1C9),
                           fontSize: 12,
                         ),
@@ -379,14 +473,14 @@ class _PostCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.more_horiz, color: Colors.white54),
+                const Icon(Icons.more_horiz, color: Colors.white54),
               ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Text(
-              subtitle,
+              widget.subtitle,
               style: const TextStyle(color: Color(0xFFD6C9E6)),
             ),
           ),
@@ -398,23 +492,38 @@ class _PostCard extends StatelessWidget {
             child: Row(
               children: [
                 // Like
-                Row(
-                  children: const [
-                    Icon(Icons.favorite_border, color: Colors.white54),
-                    SizedBox(width: 8),
-                    Text('128', style: TextStyle(color: Color(0xFFBDB1C9))),
-                  ],
+                InkWell(
+                  onTap: _toggleLike,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: _isLiked ? Colors.red : Colors.white54,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$_likeCount',
+                        style: const TextStyle(color: Color(0xFFBDB1C9)),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
-                Row(
-                  children: const [
-                    Icon(Icons.chat_bubble_outline, color: Colors.white54),
-                    SizedBox(width: 8),
-                    Text('12', style: TextStyle(color: Color(0xFFBDB1C9))),
-                  ],
+                InkWell(
+                  onTap: () => _showComingSoon('Comments'),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.chat_bubble_outline, color: Colors.white54),
+                      SizedBox(width: 8),
+                      Text('12', style: TextStyle(color: Color(0xFFBDB1C9))),
+                    ],
+                  ),
                 ),
                 const Spacer(),
-                Icon(Icons.share, color: Colors.white54),
+                IconButton(
+                  icon: const Icon(Icons.share, color: Colors.white54),
+                  onPressed: () => _showComingSoon('Sharing'),
+                ),
               ],
             ),
           ),
