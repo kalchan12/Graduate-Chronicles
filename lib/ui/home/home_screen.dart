@@ -6,10 +6,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
+import 'story_viewer_screen.dart';
 
 // Home feed screen implemented to match the provided static HTML layout.
-// Uses Riverpod to obtain mock data so the UI is data-driven and ready
-// for future backend replacement. This file only defines UI widgets.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -217,7 +216,17 @@ class _StoryAvatar extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
-          onTap: story.isMe ? () => _pickImage(ref) : null,
+          onTap: () {
+            if (story.isMe && story.image == null) {
+              _pickImage(ref);
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => StoryViewerScreen(storyId: story.id),
+                ),
+              );
+            }
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             width: 72,
