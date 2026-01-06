@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../yearbook/explore_yearbook_screen.dart';
-import '../community/community_hub_screen.dart';
+import '../community/community_home_screen.dart';
 import '../portfolio/portfolio_select_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -23,7 +23,7 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
   static const _pages = [
     HomeScreen(),
     ExploreYearbookScreen(),
-    CommunityHubScreen(),
+    CommunityHomeScreen(),
     PortfolioSelectScreen(),
     ProfileScreen(),
   ];

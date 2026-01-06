@@ -1,21 +1,14 @@
 import 'package:flutter/material.dart';
 import '../theme/design_system.dart';
 import '../screens/screens.dart';
-import '../ui/community/mentorship/mentorship_home_screen.dart';
-import '../ui/community/mentorship/find_mentorship_screen.dart';
-import '../ui/community/mentorship/my_mentorship_screen.dart';
-import '../ui/community/reunion/reunion_hub_screen.dart';
-import '../ui/community/reunion/find_join_reunion_screen.dart';
-import '../ui/community/reunion/reunion_event_details_screen.dart';
-import '../ui/community/reunion/my_reunions_screen.dart';
-import '../ui/community/reunion/reunion_gallery_screen.dart';
+import '../ui/community/mentorship/mentorship_screen.dart';
+import '../ui/community/reunion/reunion_list_screen.dart';
+import '../ui/community/reunion/reunion_create_screen.dart';
 import '../ui/auth/forgot/forgot_password_screen.dart';
 import '../ui/auth/forgot/password_reset_screen.dart';
 import '../ui/auth/forgot/set_new_password_screen.dart';
 import '../ui/auth/forgot/password_updated_screen.dart';
 import '../ui/auth/admin/admin_dashboard_screen.dart';
-import '../ui/notifications/notification_screen.dart';
-import '../ui/messages/message_list_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -36,14 +29,9 @@ class App extends StatelessWidget {
         '/signup3': (_) => const SignupStep3(),
         '/signup4': (_) => const SignupStep4(),
         '/app': (_) => const BottomNavigationScaffold(),
-        '/mentorship': (_) => const MentorshipHomeScreen(),
-        '/mentorship/find': (_) => const FindMentorshipScreen(),
-        '/mentorship/my': (_) => const MyMentorshipScreen(),
-        '/reunion': (_) => const ReunionHubScreen(),
-        '/reunion/find': (_) => const FindJoinReunionScreen(),
-        '/reunion/details': (_) => const ReunionEventDetailsScreen(),
-        '/reunion/my': (_) => const MyReunionsScreen(),
-        '/reunion/gallery': (_) => const ReunionGalleryScreen(),
+        '/community/mentorship': (_) => const MentorshipScreen(),
+        '/community/reunion': (_) => const ReunionListScreen(),
+        '/community/reunion/create': (_) => const ReunionCreateScreen(),
         '/forgot': (_) => const ForgotPasswordScreen(),
         '/forgot/verify': (_) => const PasswordResetScreen(),
         '/forgot/set': (_) => const SetNewPasswordScreen(),
