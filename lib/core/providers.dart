@@ -16,13 +16,41 @@ class Profile {
   final String name;
   final String degree;
   final String year;
+  final String username;
+  final String bio;
+  final String? profileImage; // Local path or URL
+
   Profile({
     required this.id,
     required this.name,
     required this.degree,
     required this.year,
+    this.username = '',
+    this.bio = '',
+    this.profileImage,
   });
+
+  Profile copyWith({
+    String? name,
+    String? degree,
+    String? year,
+    String? username,
+    String? bio,
+    String? profileImage,
+  }) {
+    return Profile(
+      id: id,
+      name: name ?? this.name,
+      degree: degree ?? this.degree,
+      year: year ?? this.year,
+      username: username ?? this.username,
+      bio: bio ?? this.bio,
+      profileImage: profileImage ?? this.profileImage,
+    );
+  }
 }
+
+// ... existing code ...
 
 // Chat Message model
 class ChatMessage {
@@ -111,11 +139,6 @@ class BatchSummary {
   BatchSummary({required this.id, required this.title, required this.subtitle});
 }
 
-// Holds the selected bottom navigation index implemented with StateNotifier
-// to avoid relying on `StateProvider` in environments where it's unavailable.
-// Note: bottom navigation index is handled locally in the navigation widget.
-// (Providers for feeds, profiles, messages, and batches remain below.)
-
 // Mock feed provider returning a list of feed items.
 final feedProvider = Provider<List<FeedItem>>((ref) {
   return [
@@ -132,15 +155,39 @@ final feedProvider = Provider<List<FeedItem>>((ref) {
   ];
 });
 
-// Mock profile provider returning a sample profile.
-final profileProvider = Provider<Profile>((ref) {
-  return Profile(
-    id: 'u1',
-    name: 'Alex Doe',
-    degree: 'B.Sc. in Computer Science',
-    year: '2024',
-  );
-});
+// Profile Notifier for editing
+class ProfileNotifier extends Notifier<Profile> {
+  @override
+  Profile build() {
+    return Profile(
+      id: 'u1',
+      name: 'Alex Doe',
+      degree: 'B.Sc. in Computer Science',
+      year: '2024',
+      username: '@alex_doe',
+      bio:
+          "Passionate about building intuitive software that solves real-world problems. When I'm not coding, you can find me on the basketball court or exploring new hiking trails. Excited to start my journey as a software engineer!",
+    );
+  }
+
+  void updateProfile({
+    String? name,
+    String? username,
+    String? bio,
+    String? profileImage,
+  }) {
+    state = state.copyWith(
+      name: name,
+      username: username,
+      bio: bio,
+      profileImage: profileImage,
+    );
+  }
+}
+
+final profileProvider = NotifierProvider<ProfileNotifier, Profile>(
+  ProfileNotifier.new,
+);
 
 // StateNotifier for managing conversations (Inbox + Chat details)
 class ConversationsNotifier extends Notifier<List<Conversation>> {

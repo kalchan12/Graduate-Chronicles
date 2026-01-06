@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import '../widgets/custom_app_bar.dart';
+import 'edit_profile_screen.dart';
 
 // Profile screen implemented to match the static HTML profile design.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -45,6 +47,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               child: Column(
                 children: [
+                  // Profile Image with handling for local file
                   Container(
                     width: 120,
                     height: 120,
@@ -65,12 +68,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           width: 2,
                         ),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 60,
-                        ),
+                      child: ClipOval(
+                        child: profile.profileImage != null
+                            ? Image.file(
+                                File(profile.profileImage!),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: 60,
+                                    ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 60,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -84,17 +100,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  if (profile.username.isNotEmpty) ...[
+                    Text(
+                      profile.username,
+                      style: const TextStyle(
+                        color: DesignSystem.purpleAccent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Text(
                     '${profile.degree} | ${profile.year}',
                     style: const TextStyle(
                       color: Color(0xFFBDB1C9),
                       fontSize: 15,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Graduate University',
-                    style: TextStyle(color: Color(0xFFBDB1C9), fontSize: 15),
                   ),
                   const SizedBox(height: 24),
 
@@ -103,16 +125,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       Expanded(
                         child: GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const EditProfileScreen(),
+                              ),
+                            );
+                          },
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
                               color: const Color(0xFF231B26),
                               borderRadius: BorderRadius.circular(25),
+                              border: Border.all(color: Colors.white24),
                             ),
                             child: const Center(
                               child: Text(
-                                'Connect',
+                                'Edit Profile',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -125,16 +155,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            // Share logic placeholder
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Share Profile clicked (Simulated)',
+                                ),
+                              ),
+                            );
+                          },
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF8B2CFF),
+                              color: const Color(0xFF231B26),
                               borderRadius: BorderRadius.circular(25),
                             ),
                             child: const Center(
                               child: Text(
-                                'Message',
+                                'Share Profile',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -151,24 +190,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
 
             // Bio Section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B141E),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Text(
-                  'Passionate about building intuitive software that solves real-world problems. When I\'m not coding, you can find me on the basketball court or exploring new hiking trails. Excited to start my journey as a software engineer!',
-                  style: TextStyle(
-                    color: Color(0xFFD6C9E6),
-                    height: 1.5,
-                    fontSize: 14,
+            if (profile.bio.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1B141E),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    profile.bio,
+                    style: const TextStyle(
+                      color: Color(0xFFD6C9E6),
+                      height: 1.5,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
-            ),
 
             // Interests Chips
             SizedBox(
