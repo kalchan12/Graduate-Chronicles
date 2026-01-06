@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../yearbook/explore_yearbook_screen.dart';
-import '../reunion/reunion_hub_screen.dart';
+import '../community/community_hub_screen.dart';
 import '../portfolio/portfolio_select_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -23,7 +23,7 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
   static const _pages = [
     HomeScreen(),
     ExploreYearbookScreen(),
-    ReunionHubScreen(),
+    CommunityHubScreen(),
     PortfolioSelectScreen(),
     ProfileScreen(),
   ];
@@ -45,7 +45,7 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
             icon: Icon(Icons.auto_stories),
             label: 'Yearbook',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.groups), label: 'Reunions'),
+          BottomNavigationBarItem(icon: Icon(Icons.groups), label: 'Community'),
           BottomNavigationBarItem(
             icon: Icon(Icons.work_outline),
             label: 'Portfolio',

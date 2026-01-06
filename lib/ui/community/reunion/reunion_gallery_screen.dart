@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_app_bar.dart';
+import '../../widgets/custom_app_bar.dart';
 
 class ReunionGalleryScreen extends StatelessWidget {
   const ReunionGalleryScreen({super.key});

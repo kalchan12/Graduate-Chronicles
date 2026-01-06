@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../theme/design_system.dart';
-import '../widgets/custom_app_bar.dart';
+import '../../../theme/design_system.dart';
+import '../../widgets/custom_app_bar.dart';
 
 class MentorshipHomeScreen extends StatelessWidget {
   const MentorshipHomeScreen({super.key});

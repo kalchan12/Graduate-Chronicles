@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_app_bar.dart';
+import '../../widgets/custom_app_bar.dart';
 
 class FindMentorshipScreen extends StatelessWidget {
   const FindMentorshipScreen({super.key});
