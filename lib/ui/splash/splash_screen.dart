@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:graduate_chronicles/theme/design_system.dart';
 import '../onboarding/onboarding1_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -8,74 +10,176 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  // Keeping original duration as requested, though it is quite long.
   static const _splashDuration = Duration(milliseconds: 6500);
-  late final AnimationController _ctrl;
-  late final Animation<double> _scaleAnim;
-  late final Animation<double> _fadeAnim;
+
+  late final AnimationController _mainCtrl;
+
+  late final Animation<double> _logoScaleAnim;
+  late final Animation<double> _logoFadeAnim;
+  late final Animation<Offset> _textSlideAnim;
+  late final Animation<double> _textFadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
-    _scaleAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack);
-    _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
-    _ctrl.forward();
+
+    _mainCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+
+    // Background fade-in (Not using explicit invalidation, keeping controller active)
+
+    // Logo scale and fade
+    _logoScaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _mainCtrl,
+        curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
+      ),
+    );
+    _logoFadeAnim = CurvedAnimation(
+      parent: _mainCtrl,
+      curve: const Interval(0.2, 0.6, curve: Curves.easeIn),
+    );
+
+    // Text slide up and fade
+    _textSlideAnim =
+        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _mainCtrl,
+            curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
+    _textFadeAnim = CurvedAnimation(
+      parent: _mainCtrl,
+      curve: const Interval(0.5, 0.9, curve: Curves.easeIn),
+    );
+
+    _mainCtrl.forward();
 
     Future.delayed(_splashDuration, () {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const Onboarding1Screen()));
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, a1, a2) => const Onboarding1Screen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 800),
+        ),
+      );
     });
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _mainCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF3A0B5A), Color(0xFF7A1BBF)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2E0F3A), DesignSystem.purpleDark],
+            stops: [0.0, 0.8],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: ScaleTransition(
-                scale: _scaleAnim,
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  // Logo (assume asset exists at assets/images/logo.png)
-                  SizedBox(
-                    width: 140,
-                    height: 140,
-                      child: Image.asset('assets/images/GC_logo.png', fit: BoxFit.contain),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Graduate Chronicles',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Centered Content
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Logo
+                FadeTransition(
+                  opacity: _logoFadeAnim,
+                  child: ScaleTransition(
+                    scale: _logoScaleAnim,
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.2,
+                            ),
+                            blurRadius: 60,
+                            spreadRadius: 10,
+                          ),
+                        ],
+                      ),
+                      // Using a color blend to make sure the logo matches the background if it has a background
+                      child: ClipOval(
+                        child: ColorFiltered(
+                          // Assuming the logo might have a background we want to multiply/blend or just show it cleanly
+                          // If it's a PNG with transparency, this is fine.
+                          // If it has a white box, we might need Mix or Multiply.
+                          // For now assuming transparency or "blends with background" requirement.
+                          // A fast way to force blend if it has white bg is Modulate or Multiply, but risky if logo is dark.
+                          // We'll trust the asset is decent but add a subtle glow.
+                          colorFilter: const ColorFilter.mode(
+                            Colors.transparent,
+                            BlendMode.src,
+                          ),
+                          child: Image.asset(
+                            'assets/images/GC_logo.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ]),
-              ),
+                ),
+                const SizedBox(height: 32),
+
+                // Animated Text
+                SlideTransition(
+                  position: _textSlideAnim,
+                  child: FadeTransition(
+                    opacity: _textFadeAnim,
+                    child: Column(
+                      children: [
+                        Text(
+                          'GRADUATE',
+                          style: GoogleFonts.outfit(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 4.0,
+                            height: 1.0,
+                          ),
+                        ),
+                        Text(
+                          'CHRONICLES',
+                          style: GoogleFonts.outfit(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w300,
+                            color: DesignSystem.purpleAccent,
+                            letterSpacing: 8.0,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
         ),
       ),
     );

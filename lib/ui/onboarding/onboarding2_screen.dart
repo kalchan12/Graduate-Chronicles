@@ -7,68 +7,135 @@ class Onboarding2Screen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2E0F3A), DesignSystem.purpleDark],
+          ),
+        ),
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 36),
+              const Spacer(),
+              // Artwork
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 32),
-                height: 220,
-                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(16)),
-                child: const Center(child: Icon(Icons.people, size: 56, color: Colors.white30)),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: DesignSystem.purpleMid.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white12, width: 1),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.groups_outlined,
+                    size: 80,
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
               ),
-              const SizedBox(height: 28),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 32),
-                child: Text('Connect, Share, Thrive.', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
-              ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40),
+              const SizedBox(height: 48),
+
+              // Text
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
-                  'Build your professional network, share your academic journey, and find opportunities within your university community.',
-                  style: TextStyle(color: Color(0xFFBEB2DF), fontSize: 14),
+                  'Connect, Share, Thrive.',
+                  style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  'Build your professional network, share your academic journey, and find opportunities within your university community.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Progress Indicator
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  _Dot(active: false),
+                  SizedBox(width: 8),
+                  _Dot(active: true),
+                  SizedBox(width: 8),
+                  _Dot(active: false),
+                ],
+              ),
+              const Spacer(),
+
+              // Navigation Area
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back icon button
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(color: Colors.white12, shape: BoxShape.circle),
-                      child: IconButton(
-                        onPressed: () => Navigator.of(context).pushReplacementNamed('/onboarding1'),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    // Back Arrow
+                    IconButton(
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/onboarding1'),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
                       ),
+                      iconSize: 24,
+                      splashRadius: 24,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
-                    const Spacer(),
-                    // Continue icon button
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(color: DesignSystem.purpleAccent, shape: BoxShape.circle),
-                      child: IconButton(
-                        onPressed: () => Navigator.of(context).pushReplacementNamed('/onboarding3'),
-                        icon: const Icon(Icons.arrow_forward, color: Colors.white),
+
+                    // Forward Arrow
+                    IconButton(
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/onboarding3'),
+                      icon: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
                       ),
+                      iconSize: 24,
+                      splashRadius: 24,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
               ),
-              Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => Navigator.of(context).pushReplacementNamed('/login'), child: const Text('Skip', style: TextStyle(color: Colors.white70)))),
-              const SizedBox(height: 12),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  final bool active;
+  const _Dot({this.active = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: active ? 24 : 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: active ? DesignSystem.purpleAccent : Colors.white24,
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }

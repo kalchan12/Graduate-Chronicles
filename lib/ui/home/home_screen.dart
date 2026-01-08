@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
 import 'story_viewer_screen.dart';
+import '../profile/profile_screen.dart';
 
 // Home feed screen implemented to match the provided static HTML layout.
 class HomeScreen extends ConsumerWidget {
@@ -21,148 +23,180 @@ class HomeScreen extends ConsumerWidget {
     final stories = ref.watch(storiesProvider);
 
     return Scaffold(
-      // Use shared scaffold background from DesignSystem.
-      backgroundColor: DesignSystem.scaffoldBg,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 96),
-          children: [
-            // Top App Bar (reusable widget)
-            const _HomeAppBar(),
+      backgroundColor: DesignSystem.purpleDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          // Subtle gradient background
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF2E0F3A),
+              DesignSystem.purpleDark,
+              Color(0xFF150518),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 96),
+            children: [
+              // Top App Bar
+              const _HomeAppBar(),
 
-            // Story carousel (horizontal avatars)
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 110,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                scrollDirection: Axis.horizontal,
-                itemCount: stories.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
-                itemBuilder: (context, index) =>
-                    _StoryAvatar(story: stories[index]),
-              ),
-            ),
-
-            // Featured Graduate section header
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
-              child: Text(
-                'Featured Graduate',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-
-            // Featured Graduate card using profile provider
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _FeaturedCard(
-                profileName: profile.name,
-                degreeLine: '${profile.degree} | ${profile.year}',
-              ),
-            ),
-
-            // Batch Highlights header
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 18, 16, 6),
-              child: Text(
-                "Batch Highlights: Class of '24",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+              // Story carousel (horizontal avatars)
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 110,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: stories.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 16),
+                  itemBuilder: (context, index) =>
+                      _StoryAvatar(story: stories[index]),
                 ),
               ),
-            ),
 
-            // Batch highlights carousel driven by batchProvider
-            SizedBox(
-              height: 140,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                scrollDirection: Axis.horizontal,
-                itemCount: batches.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => _BatchCard(
-                  title: batches[index].title,
-                  subtitle: batches[index].subtitle,
+              // Featured Graduate section header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                child: Text(
+                  'Featured Graduate',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 20),
                 ),
               ),
-            ),
 
-            // Standard post cards - render feed items from feedProvider
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: List.generate(
-                  feed.length,
-                  (i) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _PostCard(
-                      title: feed[i].title,
-                      subtitle: feed[i].subtitle,
+              // Featured Graduate card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _FeaturedCard(
+                  profileName: profile.name,
+                  degreeLine: '${profile.degree} | ${profile.year}',
+                ),
+              ),
+
+              // Batch Highlights header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+                child: Text(
+                  "Batch Highlights: Class of '24",
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                ),
+              ),
+
+              // Batch highlights carousel
+              SizedBox(
+                height: 150,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: batches.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 16),
+                  itemBuilder: (context, index) => _BatchCard(
+                    title: batches[index].title,
+                    subtitle: batches[index].subtitle,
+                  ),
+                ),
+              ),
+
+              // Feed
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: List.generate(
+                    feed.length,
+                    (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: _PostCard(
+                        title: feed[i].title,
+                        subtitle: feed[i].subtitle,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Reusable app bar widget matching the HTML header visuals.
 class _HomeAppBar extends StatelessWidget {
   const _HomeAppBar();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      color: DesignSystem.scaffoldBg.withValues(alpha: 0.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            children: const [
-              // School icon placeholder
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: DesignSystem.purpleAccent,
-                child: Icon(Icons.school, color: Colors.white),
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: DesignSystem.purpleAccent,
+                  child: Icon(
+                    Icons.auto_stories,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 12),
               Text(
                 'Chronicles',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
                 ),
               ),
             ],
           ),
           Row(
             children: [
-              // Message and notifications icons
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/messages'),
-                child: const _IconCircle(icon: Icons.mail_outline),
+              IconButton(
+                // Message
+                onPressed: () => Navigator.pushNamed(context, '/messages'),
+                icon: const Icon(
+                  Icons.messenger_outline_rounded,
+                  color: Colors.white,
+                ),
+                splashRadius: 24,
+                tooltip: 'Messages',
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/notifications'),
-                child: const _IconCircle(icon: Icons.notifications_none),
+              IconButton(
+                // Notification
+                onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                ),
+                splashRadius: 24,
+                tooltip: 'Notifications',
               ),
             ],
           ),
@@ -172,26 +206,6 @@ class _HomeAppBar extends StatelessWidget {
   }
 }
 
-// Small circular icon used in the app bar (visual only).
-class _IconCircle extends StatelessWidget {
-  final IconData icon;
-  const _IconCircle({required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: DesignSystem.purpleMid,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: Colors.white),
-    );
-  }
-}
-
-// Story avatar widget used in the horizontal story carousel.
 class _StoryAvatar extends ConsumerWidget {
   final Story story;
   const _StoryAvatar({required this.story});
@@ -202,7 +216,6 @@ class _StoryAvatar extends ConsumerWidget {
       openAppSettings();
       return;
     }
-
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -227,61 +240,71 @@ class _StoryAvatar extends ConsumerWidget {
               );
             }
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 72,
-            height: 72,
+          child: Container(
+            width: 74, // size + border spacing
+            height: 74,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
                 color: story.isMe && story.image == null
-                    ? DesignSystem.purpleAccent
-                    : Colors.transparent,
+                    ? Colors
+                          .white24 // Subtle for add
+                    : DesignSystem.purpleAccent, // Highlight for stories
                 width: 2,
               ),
-              color: const Color(0xFF2B2630),
-              image: story.image != null
-                  ? DecorationImage(
-                      image: FileImage(story.image!),
-                      fit: BoxFit.cover,
+            ),
+            padding: const EdgeInsets.all(
+              3,
+            ), // Spacing between border and image
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF2B2630),
+                image: story.image != null
+                    ? DecorationImage(
+                        image: FileImage(story.image!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: story.image == null
+                  ? Stack(
+                      children: [
+                        const Center(
+                          child: Icon(Icons.person, color: Colors.white54),
+                        ),
+                        if (story.isMe)
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: DesignSystem.purpleAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.add,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
                     )
                   : null,
             ),
-            child: story.image == null
-                ? Stack(
-                    children: [
-                      const Center(
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                      if (story.isMe)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: DesignSystem.purpleAccent,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                    ],
-                  )
-                : null,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SizedBox(
-          width: 72,
+          width: 74,
           child: Text(
             story.name,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFD6C9E6), fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ),
       ],
@@ -289,7 +312,6 @@ class _StoryAvatar extends ConsumerWidget {
   }
 }
 
-// Featured graduate card widget using profile data supplied externally.
 class _FeaturedCard extends StatelessWidget {
   final String profileName;
   final String degreeLine;
@@ -298,62 +320,105 @@ class _FeaturedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A1727),
-        borderRadius: BorderRadius.circular(14),
+      decoration: DesignSystem.cardDecoration().copyWith(
+        color: const Color(0xFF251029), // Richer dark purple
+        borderRadius: BorderRadius.circular(20),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Image placeholder (aspect video)
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: Container(color: const Color(0xFF3A2738)),
+            child: Container(
+              color: const Color(0xFF3A2738),
+              child: Stack(
+                children: [
+                  const Center(
+                    child: Icon(Icons.image, size: 48, color: Colors.white12),
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Featured',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   profileName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 22),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   degreeLine,
-                  style: const TextStyle(color: Color(0xFFBDB1C9)),
+                  style: const TextStyle(color: Colors.white54, fontSize: 14),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
-                        'Meet $profileName; discover her journey.',
+                        'Meet $profileName and discover their journey.',
                         style: const TextStyle(
-                          color: Color(0xFFBDB1C9),
+                          color: Color(0xFFD6C9E6),
                           fontSize: 13,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: DesignSystem.purpleAccent,
-                        borderRadius: BorderRadius.circular(30),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Navigate to Profile
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DesignSystem.purpleAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
                       ),
                       child: const Text(
                         'View Profile',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -367,7 +432,6 @@ class _FeaturedCard extends StatelessWidget {
   }
 }
 
-// Batch highlight card widget (horizontal carousel item).
 class _BatchCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -376,35 +440,67 @@ class _BatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: MediaQuery.of(context).size.width * 0.72,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: const Color(0xFF332236),
+      width: 260,
+      decoration: DesignSystem.cardDecoration().copyWith(
+        color: const Color(0xFF1F0B26),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+      child: Stack(
+        children: [
+          // Decorative gradient overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                  colors: [
+                    DesignSystem.purpleAccent.withValues(alpha: 0.1),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(subtitle, style: const TextStyle(color: Color(0xFFBDB1C9))),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// Standard post card used for feed items; uses dynamic title/subtitle.
 class _PostCard extends StatefulWidget {
   final String title;
   final String subtitle;
@@ -425,39 +521,146 @@ class _PostCardState extends State<_PostCard> {
     });
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature coming soon!'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        backgroundColor: DesignSystem.purpleMid,
+  void _showComments() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A0B20),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 400,
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text('Comments', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 20),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 48,
+                      color: Colors.white24,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No comments yet.',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            TextField(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Add a comment...',
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: const Icon(
+                  Icons.send,
+                  color: DesignSystem.purpleAccent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showShare() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A0B20),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Share to',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontSize: 18),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _shareOption(Icons.link, 'Copy Link'),
+                _shareOption(Icons.share, 'More'),
+                _shareOption(Icons.send, 'Direct'),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shareOption(IconData icon, String label) {
+    return Column(
+      children: [
+        Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white10,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A1727),
-        borderRadius: BorderRadius.circular(14),
+      decoration: DesignSystem.cardDecoration().copyWith(
+        color: const Color(0xFF1F0C24), // Darker card bg
+        borderRadius: BorderRadius.circular(24),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFF3A2738),
-                  ),
-                  child: const Icon(Icons.person, color: Colors.white),
+                const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Color(0xFF3A2738),
+                  child: Icon(Icons.person, color: Colors.white70),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -468,70 +671,78 @@ class _PostCardState extends State<_PostCard> {
                         widget.title,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        'Class of 2024 • Computer',
-                        style: TextStyle(
-                          color: Color(0xFFBDB1C9),
-                          fontSize: 12,
-                        ),
+                        'Class of 2024 • Computer Science',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.more_horiz, color: Colors.white54),
+                IconButton(
+                  icon: const Icon(Icons.more_horiz, color: Colors.white38),
+                  onPressed: () {},
+                ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               widget.subtitle,
-              style: const TextStyle(color: Color(0xFFD6C9E6)),
+              style: const TextStyle(
+                color: Color(0xFFE0D4F5),
+                fontSize: 15,
+                height: 1.4,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Image placeholder (square)
-          Container(height: 180, color: const Color(0xFF3A2738)),
+          const SizedBox(height: 12),
+          Container(
+            height: 240,
+            color: const Color(0xFF2D1636),
+          ), // Placeholder image
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Row(
               children: [
-                // Like
-                InkWell(
-                  onTap: _toggleLike,
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isLiked ? Icons.favorite : Icons.favorite_border,
-                        color: _isLiked ? Colors.red : Colors.white54,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$_likeCount',
-                        style: const TextStyle(color: Color(0xFFBDB1C9)),
-                      ),
-                    ],
+                IconButton(
+                  onPressed: _toggleLike,
+                  icon: Icon(
+                    _isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: _isLiked ? Colors.redAccent : Colors.white70,
+                  ),
+                ),
+                Text(
+                  '$_likeCount',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(width: 16),
-                InkWell(
-                  onTap: () => _showComingSoon('Comments'),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.chat_bubble_outline, color: Colors.white54),
-                      SizedBox(width: 8),
-                      Text('12', style: TextStyle(color: Color(0xFFBDB1C9))),
-                    ],
+                IconButton(
+                  onPressed: _showComments,
+                  icon: const Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: Colors.white70,
+                  ),
+                ),
+                const Text(
+                  '12',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.share, color: Colors.white54),
-                  onPressed: () => _showComingSoon('Sharing'),
+                  onPressed: _showShare,
+                  icon: const Icon(Icons.share_outlined, color: Colors.white70),
                 ),
               ],
             ),

@@ -12,7 +12,8 @@ class SignupStep2 extends ConsumerStatefulWidget {
 
 class _SignupStep2State extends ConsumerState<SignupStep2> {
   final TextEditingController _deptController = TextEditingController();
-  final List<String> _roles = ['Graduate student', 'admin', 'staff', 'alumni'];
+  // Roles updated as per requirements: Student, Graduate, Alumni, Staff
+  final List<String> _roles = ['Student', 'Graduate', 'Alumni', 'Staff'];
   final List<String> _years = List.generate(16, (i) => '${2020 + i}');
 
   @override
@@ -34,6 +35,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     final notifier = ref.read(signupFormProvider.notifier);
 
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
       body: Container(
         decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
         child: SafeArea(
@@ -42,57 +44,63 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 16,
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.of(
                         context,
                       ).pushReplacementNamed('/signup1'),
                     ),
-                    const Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 48),
-                        child: Center(
-                          child: Text(
-                            'Step 2 of 4',
-                            style: TextStyle(color: Colors.white70),
-                          ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Step 2 of 4',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 48), // Balance for back button
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 28),
+
+              const SizedBox(height: 16),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Text(
                   'Academic Details',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 36),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 36),
                 child: Text(
                   "Let's find your campus community.",
-                  style: TextStyle(color: Color(0xFFBEB2DF), fontSize: 14),
+                  style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 18),
+
+              const SizedBox(height: 32),
+
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
+                    horizontal: 24,
                     vertical: 8,
                   ),
                   child: Column(
@@ -106,17 +114,19 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                         onChanged: (val) => notifier.setRole(val),
                         errorText: state.roleError,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+
                       _buildField(
                         label: 'Department / Major',
                         hint: 'e.g. Computer Science',
-                        icon: Icons.book,
+                        icon: Icons.school_outlined,
                         controller: _deptController,
                         errorText: state.departmentError,
                         onChanged: (val) =>
                             notifier.setField('department', val),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+
                       _buildOverlayDropdown(
                         context,
                         label: 'Graduation Year',
@@ -127,10 +137,12 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                             notifier.setField('graduationYear', val),
                         errorText: state.yearError,
                       ),
-                      const SizedBox(height: 18),
+
+                      const SizedBox(height: 48),
+
                       SizedBox(
                         width: double.infinity,
-                        height: 52,
+                        height: 54,
                         child: ElevatedButton(
                           onPressed: () {
                             if (notifier.validateStep2()) {
@@ -141,13 +153,21 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
+                            elevation: 4,
+                            shadowColor: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.4,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           child: const Text(
-                            'Next',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                            'Next Step',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -173,18 +193,25 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFD6C9E6))),
-        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white10,
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Icon(icon, color: Colors.white54),
-              const SizedBox(width: 10),
+              Icon(icon, color: Colors.white38, size: 20),
+              const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: controller,
@@ -194,6 +221,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                     border: InputBorder.none,
                     hintText: hint,
                     hintStyle: const TextStyle(color: Colors.white38),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
               ),
@@ -208,7 +236,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               style: const TextStyle(
                 color: Colors.orangeAccent,
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -228,27 +256,29 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFD6C9E6))),
-        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
         Theme(
           data: Theme.of(context).copyWith(
             popupMenuTheme: PopupMenuThemeData(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
-              color: const Color(
-                0xFF32113F,
-              ).withValues(alpha: 0.95), // Slightly transparent purpleMid
-              elevation: 8,
-              textStyle: const TextStyle(color: Colors.white70),
+              color: const Color(0xFF2E1A3C), // Darker, cleaner background
+              elevation: 12,
+              textStyle: const TextStyle(color: Colors.white),
             ),
           ),
           child: PopupMenuButton<String>(
             onSelected: onChanged,
-            offset: const Offset(0, 56), // Align dropdown below field
-            constraints: const BoxConstraints(
-              minWidth: 200,
-            ), // Ensure decent width
+            offset: const Offset(0, 60),
+            constraints: const BoxConstraints(minWidth: 200),
             itemBuilder: (context) {
               return items.map((String item) {
                 final isSelected = item == value;
@@ -256,11 +286,6 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                   value: item,
                   height: 48,
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
                     decoration: isSelected
                         ? BoxDecoration(
                             color: DesignSystem.purpleAccent.withValues(
@@ -269,14 +294,29 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                             borderRadius: BorderRadius.circular(8),
                           )
                         : null,
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white70,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          item,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        if (isSelected)
+                          const Icon(
+                            Icons.check,
+                            size: 16,
+                            color: DesignSystem.purpleAccent,
+                          ),
+                      ],
                     ),
                   ),
                 );
@@ -284,17 +324,15 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white10, // Input bg
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
                 border: errorText != null
                     ? Border.all(color: Colors.orangeAccent)
-                    : null,
+                    : Border.all(color: Colors.white10),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_drop_down, color: Colors.white54),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       value ?? hint,

@@ -30,23 +30,90 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
   ];
 
   Future<void> _onFinish() async {
-    // Confirmation
-    final confirmed = await showDialog<bool>(
+    // Elegant Confirmation Dialog
+    final confirmed = await showGeneralDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Confirm'),
-        content: const Text('Complete signup with selected preferences?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(c).pop(false),
-            child: const Text('Cancel'),
+      barrierDismissible: true,
+      barrierLabel: 'Confirm',
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      pageBuilder: (context, a1, a2) => Container(), // unused
+      transitionBuilder: (ctx, anim, secondaryAnim, child) {
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+          child: FadeTransition(
+            opacity: anim,
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF261230),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              titlePadding: const EdgeInsets.only(top: 24, left: 24, right: 24),
+              contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              title: const Text(
+                'Ready to start?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Complete your profile setup and join the community.',
+                    style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Colors.white10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.white60),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: DesignSystem.purpleAccent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Let\'s Go',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(c).pop(true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
@@ -60,6 +127,7 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
     final notifier = ref.read(signupFormProvider.notifier);
 
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
       body: Container(
         decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
         child: SafeArea(
@@ -68,62 +136,68 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 16,
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.of(
                         context,
                       ).pushReplacementNamed('/signup3'),
                     ),
-                    const Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 48),
-                        child: Center(
-                          child: Text(
-                            'Step 4 of 4',
-                            style: TextStyle(color: Colors.white70),
-                          ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Step 4 of 4',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 28),
+
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Text(
                   'What are you into?',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 28),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Text(
                   'Select a few interests to personalize your feed.',
-                  style: TextStyle(color: Color(0xFFBEB2DF), fontSize: 14),
+                  style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 12),
+
+              const SizedBox(height: 24),
+
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
+                    horizontal: 16,
                     vertical: 8,
                   ),
                   child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.center,
                     children: _allInterests.map((k) {
                       final active = state.interests.contains(k);
                       return ChoiceChip(
@@ -131,42 +205,67 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                           k,
                           style: TextStyle(
                             color: active ? Colors.white : Colors.white70,
+                            fontWeight: active
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                         selected: active,
                         onSelected: (v) => notifier.toggleInterest(k),
-                        backgroundColor: Colors.white10,
+                        backgroundColor: Colors.white.withValues(alpha: 0.05),
                         selectedColor: DesignSystem.purpleAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: active ? Colors.transparent : Colors.white12,
+                          ),
+                        ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                          horizontal: 16,
+                          vertical: 12,
                         ),
                       );
                     }).toList(),
                   ),
                 ),
               ),
+
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
+                  horizontal: 24,
+                  vertical: 24,
                 ),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: 54,
                   child: ElevatedButton(
                     onPressed: state.isSubmitting ? null : _onFinish,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DesignSystem.purpleAccent,
+                      elevation: 8,
+                      shadowColor: DesignSystem.purpleAccent.withValues(
+                        alpha: 0.4,
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: state.isSubmitting
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Text(
-                            'Finish',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                            'Finish Setup',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DesignSystem {
   // Core colors
@@ -21,17 +22,25 @@ class DesignSystem {
       seedColor: purpleAccent,
       brightness: Brightness.dark,
     ),
-    textTheme: const TextTheme(
-      titleLarge: TextStyle(
-        fontSize: 26,
-        fontWeight: FontWeight.w800,
-        color: Colors.white,
-      ),
-      bodyMedium: TextStyle(fontSize: 14, color: Color(0xFFD6C9E6)),
-      labelLarge: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        color: Colors.white,
+    textTheme: GoogleFonts.outfitTextTheme(
+      ThemeData.dark().textTheme.copyWith(
+        titleLarge: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          letterSpacing: -0.5,
+        ),
+        bodyMedium: const TextStyle(
+          fontSize: 16,
+          color: Color(0xFFE0D4F5),
+          height: 1.5,
+        ),
+        labelLarge: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          letterSpacing: 0.5,
+        ),
       ),
     ),
   );

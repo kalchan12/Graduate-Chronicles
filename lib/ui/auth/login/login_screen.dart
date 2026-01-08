@@ -26,36 +26,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     // Watch independent form state
     final loginState = ref.watch(loginFormProvider);
-    // Also watch global auth state for generic errors (like "Invalid credentials") if we want to show them
-    // or we can rely on what we did in LoginNotifier which stopped submitting.
-    // The LoginNotifier updates its own state or stops.
-    // Let's watch authProvider too if we want to show global error message from it,
-    // BUT the LoginNotifier in my implementation above didn't explicitly map authProvider.errorMessage to loginState.
-    // However, the prompt says "Invalid credentials -> show generic error".
-    // My LoginNotifier logic:
-    // if (!success) { state = state.copy(isSubmitting: false); return; }
-    // The authProvider holds the errorMessage. So we should display it.
     final auth = ref.watch(authProvider);
 
     final bgGradient = const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF2E0F3B), Color(0xFF5C2B7A)],
+      colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
     );
 
     InputDecoration fieldDecoration(String hint) => InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFFBDB1C9)),
+      hintStyle: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: Colors.white38),
       filled: true,
-      fillColor: const Color(0x14FFFFFF),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: DesignSystem.purpleAccent,
+          width: 1,
+        ),
       ),
     );
 
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -63,43 +64,65 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 92,
-                    height: 92,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/GC_logo.png',
-                        fit: BoxFit.contain,
+                  const SizedBox(height: 16),
+
+                  // Logo
+                  Hero(
+                    tag: 'app_logo',
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.2,
+                            ),
+                            blurRadius: 24,
+                            spreadRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/GC_logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  const Text(
+                  const SizedBox(height: 24),
+
+                  Text(
                     'Graduate Chronicles',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 26),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your University Story, Reimagined.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFFD6C9E6),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Your University Story, Reimagined.',
-                    style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 13),
-                  ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 32),
 
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: DesignSystem.cardDecoration(),
+                    padding: const EdgeInsets.all(20),
+                    decoration: DesignSystem.cardDecoration().copyWith(
+                      borderRadius: BorderRadius.circular(24),
+                      color: const Color(
+                        0xFF1E0A25,
+                      ), // Slightly lighter than bg
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -107,19 +130,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white10,
-                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
+                                    vertical: 10,
                                   ),
                                   decoration: BoxDecoration(
                                     color: DesignSystem.purpleAccent,
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: const Center(
                                     child: Text(
@@ -127,27 +159,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w700,
+                                        fontSize: 14,
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 4),
                               Expanded(
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(10),
                                   onTap: () => Navigator.of(
                                     context,
                                   ).pushReplacementNamed('/signup1'),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
+                                      vertical: 10,
                                     ),
-                                    child: const Center(
+                                    child: Center(
                                       child: Text(
                                         'Sign Up',
                                         style: TextStyle(
-                                          color: Color(0xFFBDB1C9),
+                                          color: Colors.white54,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
                                         ),
                                       ),
                                     ),
@@ -158,42 +193,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 14),
-                        const Text(
+                        const SizedBox(height: 24),
+
+                        // Email Field
+                        Text(
                           'Email',
-                          style: TextStyle(color: Color(0xFFD6C9E6)),
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         TextField(
                           controller: _idCtrl,
                           decoration: fieldDecoration('Enter your email'),
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                          keyboardType: TextInputType.emailAddress,
                         ),
                         if (loginState.emailError != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
+                            padding: const EdgeInsets.only(top: 6.0, left: 4),
                             child: Text(
                               loginState.emailError!,
                               style: const TextStyle(
                                 color: Colors.orangeAccent,
                                 fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
 
-                        const SizedBox(height: 10),
-                        const Text(
+                        const SizedBox(height: 16),
+
+                        // Password Field
+                        Text(
                           'Password',
-                          style: TextStyle(color: Color(0xFFD6C9E6)),
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         _PasswordField(
                           decoration: fieldDecoration('Enter your password'),
                           controller: _pwCtrl,
                         ),
                         if (loginState.passwordError != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
+                            padding: const EdgeInsets.only(top: 6.0, left: 4),
                             child: Text(
                               loginState.passwordError!,
                               style: const TextStyle(
@@ -203,20 +247,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
 
-                        const SizedBox(height: 8),
-                        // Global error from auth provider (invalid credentials)
+                        // Global error
                         if (auth.errorMessage != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
-                            child: Text(
-                              auth.errorMessage!,
-                              style: const TextStyle(
-                                color: Colors.orangeAccent,
-                                fontWeight: FontWeight.bold,
+                            padding: const EdgeInsets.only(top: 12.0),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.redAccent,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      auth.errorMessage!,
+                                      style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
 
+                        const SizedBox(height: 12),
+
+                        // Action Links
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -224,31 +292,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onPressed: () => Navigator.of(
                                 context,
                               ).pushNamed('/admin/login'),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
                               child: const Text(
                                 'Admin Portal',
                                 style: TextStyle(
-                                  color: Color(0xFFBDB1C9),
+                                  color: Colors.white38,
                                   fontSize: 13,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
                             TextButton(
                               onPressed: () =>
                                   Navigator.of(context).pushNamed('/forgot'),
-                              child: const Text(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: Text(
                                 'Forgot Password?',
-                                style: TextStyle(color: Color(0xFF9B2CFF)),
+                                style: TextStyle(
+                                  color: DesignSystem.purpleAccent.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 20),
+
+                        // Login Button
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
+                          height: 54,
                           child: ElevatedButton(
-                            // Button is ALWAYS enabled
                             onPressed: () {
                               ref
                                   .read(loginFormProvider.notifier)
@@ -260,25 +342,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: DesignSystem.purpleAccent,
+                              elevation: 4,
+                              shadowColor: DesignSystem.purpleAccent.withValues(
+                                alpha: 0.4,
+                              ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: loginState.isSubmitting
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: 24,
+                                    height: 24,
                                     child: CircularProgressIndicator(
                                       color: Colors.white,
-                                      strokeWidth: 2,
+                                      strokeWidth: 2.5,
                                     ),
                                   )
                                 : const Text(
                                     'Login',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.bold,
                                       color: Colors.white,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                           ),
@@ -287,29 +374,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text.rich(
-                      TextSpan(
-                        text: 'By continuing, you agree to our ',
-                        style: TextStyle(color: Color(0xFFBDB1C9)),
-                        children: [
-                          TextSpan(
-                            text: 'Terms of Service',
-                            style: TextStyle(color: Color(0xFF9B2CFF)),
-                          ),
-                          TextSpan(text: ' and '),
-                          TextSpan(
-                            text: 'Privacy Policy',
-                            style: TextStyle(color: Color(0xFF9B2CFF)),
-                          ),
-                        ],
+                  const SizedBox(height: 24),
+
+                  // Footer
+                  Text.rich(
+                    TextSpan(
+                      text: 'By continuing, you agree to our ',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 12,
                       ),
-                      textAlign: TextAlign.center,
+                      children: [
+                        TextSpan(
+                          text: 'Terms of Service',
+                          style: TextStyle(
+                            color: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.8,
+                            ),
+                          ),
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: TextStyle(
+                            color: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.8,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -334,20 +430,18 @@ class _PasswordFieldState extends State<_PasswordField> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: TextField(
-        controller: widget.controller,
-        obscureText: _obscure,
-        style: const TextStyle(color: Colors.white),
-        decoration: widget.decoration.copyWith(
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscure ? Icons.visibility_off : Icons.visibility,
-              color: Colors.white54,
-            ),
-            onPressed: () => setState(() => _obscure = !_obscure),
+    return TextField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      style: const TextStyle(color: Colors.white, fontSize: 15),
+      decoration: widget.decoration.copyWith(
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white38,
+            size: 20,
           ),
+          onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),
     );
