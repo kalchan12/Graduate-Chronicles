@@ -110,35 +110,24 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Container(
                       width: 160,
                       height: 160,
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
+                        color: Colors.white,
                         boxShadow: [
                           BoxShadow(
                             color: DesignSystem.purpleAccent.withValues(
-                              alpha: 0.2,
+                              alpha: 0.5,
                             ),
-                            blurRadius: 60,
-                            spreadRadius: 10,
+                            blurRadius: 40,
+                            spreadRadius: 5,
                           ),
                         ],
                       ),
-                      // Using a color blend to make sure the logo matches the background if it has a background
                       child: ClipOval(
-                        child: ColorFiltered(
-                          // Assuming the logo might have a background we want to multiply/blend or just show it cleanly
-                          // If it's a PNG with transparency, this is fine.
-                          // If it has a white box, we might need Mix or Multiply.
-                          // For now assuming transparency or "blends with background" requirement.
-                          // A fast way to force blend if it has white bg is Modulate or Multiply, but risky if logo is dark.
-                          // We'll trust the asset is decent but add a subtle glow.
-                          colorFilter: const ColorFilter.mode(
-                            Colors.transparent,
-                            BlendMode.src,
-                          ),
-                          child: Image.asset(
-                            'assets/images/GC_logo.png',
-                            fit: BoxFit.contain,
-                          ),
+                        child: Image.asset(
+                          'assets/images/GC_logo.png',
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),

@@ -127,12 +127,11 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                       ),
                       const SizedBox(height: 20),
 
-                      _buildOverlayDropdown(
+                      _buildYearPicker(
                         context,
                         label: 'Graduation Year',
                         hint: state.graduationYear ?? 'Select your year',
                         value: state.graduationYear,
-                        items: _years,
                         onChanged: (val) =>
                             notifier.setField('graduationYear', val),
                         errorText: state.yearError,
@@ -270,7 +269,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: const Color(0xFF2E1A3C), // Darker, cleaner background
+              color: const Color(0xFF2E1A3C),
               elevation: 12,
               textStyle: const TextStyle(color: Colors.white),
             ),
@@ -357,6 +356,143 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                 color: Colors.orangeAccent,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildYearPicker(
+    BuildContext context, {
+    required String label,
+    required String hint,
+    required String? value,
+    required ValueChanged<String> onChanged,
+    String? errorText,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: const Color(0xFF1F0C24),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (ctx) {
+                return Container(
+                  height: 300,
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Select Graduation Year',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      Expanded(
+                        child: ListWheelScrollView(
+                          itemExtent: 50,
+                          physics: const FixedExtentScrollPhysics(),
+                          perspective: 0.005,
+                          onSelectedItemChanged: (index) {
+                            onChanged(_years[index]);
+                          },
+                          children: _years.map((year) {
+                            final isSelected = year == value;
+                            return Container(
+                              alignment: Alignment.center,
+                              decoration: isSelected
+                                  ? BoxDecoration(
+                                      color: DesignSystem.purpleAccent
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    )
+                                  : null,
+                              child: Text(
+                                year,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? DesignSystem.purpleAccent
+                                      : Colors.white54,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  color: Colors.white38,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    value ?? hint,
+                    style: TextStyle(
+                      color: value == null ? Colors.white38 : Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.unfold_more_rounded,
+                  color: Colors.white38,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

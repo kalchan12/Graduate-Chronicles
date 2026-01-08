@@ -22,25 +22,32 @@ class DesignSystem {
       seedColor: purpleAccent,
       brightness: Brightness.dark,
     ),
-    textTheme: GoogleFonts.outfitTextTheme(
-      ThemeData.dark().textTheme.copyWith(
-        titleLarge: const TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-          letterSpacing: -0.5,
-        ),
-        bodyMedium: const TextStyle(
-          fontSize: 16,
-          color: Color(0xFFE0D4F5),
-          height: 1.5,
-        ),
-        labelLarge: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          letterSpacing: 0.5,
-        ),
+    textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+      titleLarge: GoogleFonts.outfit(
+        fontSize: 32,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
+        letterSpacing: -0.5,
+      ),
+      titleMedium: GoogleFonts.outfit(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
+      bodyMedium: GoogleFonts.inter(
+        fontSize: 16,
+        color: const Color(0xFFE0D4F5),
+        height: 1.5,
+      ),
+      bodySmall: GoogleFonts.inter(
+        fontSize: 14,
+        color: const Color(0xFFBDB1C9),
+      ),
+      labelLarge: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+        letterSpacing: 0.2,
       ),
     ),
   );
