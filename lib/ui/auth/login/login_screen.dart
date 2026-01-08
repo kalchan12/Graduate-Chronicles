@@ -217,16 +217,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
 
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () =>
-                                Navigator.of(context).pushNamed('/forgot'),
-                            child: const Text(
-                              'Forgot Password?',
-                              style: TextStyle(color: Color(0xFF9B2CFF)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).pushNamed('/admin/login'),
+                              child: const Text(
+                                'Admin Portal',
+                                style: TextStyle(
+                                  color: Color(0xFFBDB1C9),
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
-                          ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(context).pushNamed('/forgot'),
+                              child: const Text(
+                                'Forgot Password?',
+                                style: TextStyle(color: Color(0xFF9B2CFF)),
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 8),
@@ -296,35 +310,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const _AdminPortalLink(),
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AdminPortalLink extends StatelessWidget {
-  const _AdminPortalLink();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
-      child: GestureDetector(
-        onTap: () {
-          // Navigate to Admin Login
-          Navigator.of(context).pushNamed('/admin/login');
-        },
-        child: const Text(
-          'Admin Portal',
-          style: TextStyle(
-            color: Color(0xFFBDB1C9),
-            decoration: TextDecoration.underline,
-            fontSize: 12,
           ),
         ),
       ),

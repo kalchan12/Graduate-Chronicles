@@ -65,12 +65,31 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
         child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 18),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  'Step 4 of 4',
-                  style: TextStyle(color: Colors.white70),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/signup3'),
+                    ),
+                    const Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 48),
+                        child: Center(
+                          child: Text(
+                            'Step 4 of 4',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),

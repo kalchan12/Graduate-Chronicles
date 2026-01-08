@@ -227,6 +227,37 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
                       const SizedBox(height: 20),
 
+                      // Request Access Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Need administrative privileges? ',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(
+                                context,
+                              ).pushReplacementNamed('/admin/signup');
+                            },
+                            child: const Text(
+                              'Request Access',
+                              style: TextStyle(
+                                color: Color(0xFF9B2CFF),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 30),
+
                       const Row(
                         children: [
                           Expanded(child: Divider(color: Colors.white12)),
