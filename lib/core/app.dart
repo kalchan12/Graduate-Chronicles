@@ -8,7 +8,11 @@ import '../ui/auth/forgot/forgot_password_screen.dart';
 import '../ui/auth/forgot/password_reset_screen.dart';
 import '../ui/auth/forgot/set_new_password_screen.dart';
 import '../ui/auth/forgot/password_updated_screen.dart';
-import '../ui/auth/admin/admin_dashboard_screen.dart';
+import '../ui/auth/admin/screens/admin_login_screen.dart';
+import '../ui/auth/admin/screens/admin_signup_screen.dart';
+import '../ui/auth/admin/screens/admin_dashboard_screen.dart';
+import '../ui/auth/admin/screens/user_monitoring_screen.dart';
+import '../ui/auth/admin/screens/content_monitoring_screen.dart'; // Will add later
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -36,7 +40,13 @@ class App extends StatelessWidget {
         '/forgot/verify': (_) => const PasswordResetScreen(),
         '/forgot/set': (_) => const SetNewPasswordScreen(),
         '/forgot/done': (_) => const PasswordUpdatedScreen(),
-        '/admin': (_) => const AdminDashboardScreen(),
+
+        // Admin Routes
+        '/admin/login': (_) => const AdminLoginScreen(),
+        '/admin/signup': (_) => const AdminSignupScreen(),
+        '/admin/dashboard': (_) => const AdminDashboardScreen(),
+        '/admin/users': (_) => const UserMonitoringScreen(),
+        '/admin/monitoring': (_) => const ContentMonitoringScreen(),
         '/notifications': (_) => const NotificationScreen(),
         '/messages': (_) => const MessageListScreen(),
       },

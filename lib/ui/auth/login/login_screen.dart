@@ -295,9 +295,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  const _AdminPortalLink(),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminPortalLink extends StatelessWidget {
+  const _AdminPortalLink();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: GestureDetector(
+        onTap: () {
+          // Navigate to Admin Login
+          Navigator.of(context).pushNamed('/admin/login');
+        },
+        child: const Text(
+          'Admin Portal',
+          style: TextStyle(
+            color: Color(0xFFBDB1C9),
+            decoration: TextDecoration.underline,
+            fontSize: 12,
           ),
         ),
       ),
