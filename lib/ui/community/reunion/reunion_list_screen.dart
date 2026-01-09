@@ -11,198 +11,272 @@ class ReunionListScreen extends StatefulWidget {
 class _ReunionListScreenState extends State<ReunionListScreen> {
   String _selectedFilter = 'All';
 
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars(); // Clear existing toasts
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A1727),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: DesignSystem.purpleAccent,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: DesignSystem.scaffoldBg,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Reunions',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () =>
-                Navigator.pushNamed(context, '/community/reunion/create'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: const TextField(
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search events, batches, year...',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.white38),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 14),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Reunions',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Reconnect with your batch',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.add,
+                          color: DesignSystem.purpleAccent,
+                        ),
+                        onPressed: () => Navigator.pushNamed(
+                          context,
+                          '/community/reunion/create',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
 
-            // Tab Filters
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _TabChip(
-                    label: 'All',
-                    isSelected: _selectedFilter == 'All',
-                    onTap: () => setState(() => _selectedFilter = 'All'),
+              // Search
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF24122E),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'My Batch',
-                    isSelected: _selectedFilter == 'My Batch',
-                    onTap: () => setState(() => _selectedFilter = 'My Batch'),
+                  child: const TextField(
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search events...',
+                      hintStyle: TextStyle(color: Colors.white30),
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: Colors.white30),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'Mentorship Mixers',
-                    isSelected: _selectedFilter == 'Mentorship Mixers',
-                    onTap: () =>
-                        setState(() => _selectedFilter = 'Mentorship Mixers'),
-                  ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'Major',
-                    isSelected: _selectedFilter == 'Major',
-                    onTap: () => setState(() => _selectedFilter = 'Major'),
-                  ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'Location',
-                    isSelected: _selectedFilter == 'Location',
-                    onTap: () => setState(() => _selectedFilter = 'Location'),
-                  ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'Year',
-                    isSelected: _selectedFilter == 'Year',
-                    onTap: () => setState(() => _selectedFilter = 'Year'),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
 
-            // Featured Event Header
-            const Row(
-              children: [
-                Icon(Icons.star, color: DesignSystem.purpleAccent),
-                SizedBox(width: 8),
-                Text(
-                  'Featured Events',
+              const SizedBox(height: 24),
+
+              // Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    _TabChip(
+                      label: 'All',
+                      isSelected: _selectedFilter == 'All',
+                      onTap: () => setState(() => _selectedFilter = 'All'),
+                    ),
+                    const SizedBox(width: 8),
+                    _TabChip(
+                      label: 'My Batch',
+                      isSelected: _selectedFilter == 'My Batch',
+                      onTap: () => setState(() => _selectedFilter = 'My Batch'),
+                    ),
+                    const SizedBox(width: 8),
+                    _TabChip(
+                      label: 'Year',
+                      isSelected: _selectedFilter == 'Year',
+                      onTap: () => setState(() => _selectedFilter = 'Year'),
+                    ),
+                    const SizedBox(width: 8),
+                    _TabChip(
+                      label: 'Major',
+                      isSelected: _selectedFilter == 'Major',
+                      onTap: () => setState(() => _selectedFilter = 'Major'),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Featured
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Featured',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'See All',
+                      style: TextStyle(
+                        color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              SizedBox(
+                height: 220,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    _FeaturedEventCard(
+                      title: 'Class of 2024 Grand Gala',
+                      location: 'Grand Hotel, City Center',
+                      date: 'Dec 24, 2024',
+                      goingCount: 142,
+                      color: const Color(0xFF5D28BC),
+                      onJoin: () =>
+                          _showToast('Joined Class of 2024 Grand Gala'),
+                    ),
+                    const SizedBox(width: 16),
+                    _FeaturedEventCard(
+                      title: 'Tech Alumni Meetup',
+                      location: 'Innovation Hub',
+                      date: 'Jan 15, 2025',
+                      goingCount: 85,
+                      color: const Color(0xFFBC287B),
+                      onJoin: () => _showToast('Joined Tech Alumni Meetup'),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Upcoming
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Upcoming Reunions',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Horizontal Featured List
-            SizedBox(
-              height: 260,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  _FeaturedEventCard(
-                    title: 'Class of 2024 Grand Gala',
-                    location: 'Grand Ballroom',
-                    date: 'Sat, Nov 12',
-                    goingCount: 45,
-                    primaryColor: DesignSystem.purpleAccent,
-                  ),
-                  SizedBox(width: 16),
-                  _FeaturedEventCard(
-                    title: 'Global Tech Summit',
-                    location: 'Convention Center',
-                    date: 'Fri, Dec 10',
-                    goingCount: 120,
-                    primaryColor: Color(0xFF536DFE),
-                    isSecondary: true,
-                  ),
-                ],
               ),
-            ),
+              const SizedBox(height: 16),
 
-            const SizedBox(height: 32),
-
-            // Upcoming Reunions
-            const Text(
-              'Upcoming Reunions',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: 3,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _EventListItem(
+                      title: index == 0
+                          ? 'Computer Science Batch 2023'
+                          : index == 1
+                          ? 'Design Dept Mixer'
+                          : 'University Annual Meet',
+                      date: 'Nov ${15 + index}, 2024',
+                      location: 'Uni Campus, Hall A',
+                      isOnline: index == 1,
+                      onJoin: () => _showToast('Request sent to join event'),
+                    ),
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-
-            const _EventListItem(
-              title: 'Design Alumni Coffee',
-              type: 'MENTORSHIP',
-              date: 'Sun, Nov 20 • 10:00 AM',
-              count: '12 going',
-              imageColor: Colors.brown,
-            ),
-            const SizedBox(height: 16),
-            const _EventListItem(
-              title: 'Tech Innovators Mixer',
-              type: 'NETWORKING',
-              date: 'Fri, Nov 18 • 6:30 PM',
-              count: '28 going',
-              imageColor: Colors.teal,
-            ),
-            const SizedBox(height: 16),
-            const _EventListItem(
-              title: 'Batch \'21 Virtual Hangout',
-              type: 'SOCIAL',
-              date: 'Sat, Dec 05 • 8:00 PM',
-              count: 'Jessica + 5 others',
-              imageColor: Colors.pinkAccent,
-              isOnline: true,
-            ),
-          ],
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () =>
             Navigator.pushNamed(context, '/community/reunion/create'),
         backgroundColor: DesignSystem.purpleAccent,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -254,178 +328,156 @@ class _FeaturedEventCard extends StatelessWidget {
   final String location;
   final String date;
   final int goingCount;
-  final Color primaryColor;
-  final bool isSecondary;
+  final Color color;
+  final VoidCallback onJoin;
 
   const _FeaturedEventCard({
     required this.title,
     required this.location,
     required this.date,
     required this.goingCount,
-    required this.primaryColor,
-    this.isSecondary = false,
+    required this.color,
+    required this.onJoin,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 320,
+      width: 280,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A1727),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: color,
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: [color, color.withValues(alpha: 0.7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Background Placeholder
           Container(
-            height: 140,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
+              color: Colors.black26,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Center(
-              child: Icon(Icons.image, color: Colors.white10, size: 48),
+            child: Text(
+              date,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
-          // Gradient Overlay
-          Container(
-            height: 140,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  const Color(0xFF2A1727).withValues(alpha: 0.9),
-                  const Color(0xFF2A1727),
-                ],
-              ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: primaryColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'FEATURED',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+          const Spacer(),
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 14, color: Colors.white70),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  location,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
-            ),
+            ],
           ),
-          Positioned.fill(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    title,
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    width: 48,
+                    height: 24,
+                    child: Stack(
+                      children: [
+                        const CircleAvatar(
+                          radius: 12,
+                          backgroundColor: Colors.white24,
+                          child: Icon(
+                            Icons.person,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Positioned(
+                          left: 16,
+                          child: const CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.white38,
+                            child: Icon(
+                              Icons.person,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 32,
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.white,
+                            child: Text(
+                              '+${goingCount > 99 ? '99' : goingCount}',
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$goingCount Going',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Padding(
+                ],
+              ),
+              ElevatedButton(
+                onPressed: onJoin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: color,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.location_on, color: Colors.white54, size: 14),
-                      SizedBox(width: 4),
-                      Text(
-                        '$location • ',
-                        style: TextStyle(color: Colors.white54, fontSize: 13),
-                      ),
-                      Text(
-                        date,
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(20),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '+$goingCount going',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: primaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          minimumSize: const Size(0, 36),
-                        ),
-                        child: Text(
-                          'Join',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: const Text(
+                  'Join',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -435,62 +487,39 @@ class _FeaturedEventCard extends StatelessWidget {
 
 class _EventListItem extends StatelessWidget {
   final String title;
-  final String type;
   final String date;
-  final String count;
-  final Color imageColor;
+  final String location;
   final bool isOnline;
+  final VoidCallback onJoin;
 
   const _EventListItem({
     required this.title,
-    required this.type,
     required this.date,
-    required this.count,
-    required this.imageColor,
+    required this.location,
     this.isOnline = false,
+    required this.onJoin,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF241228), // Matches card color in system
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF24122E),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
-            width: 70,
-            height: 70,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: imageColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Stack(
-              children: [
-                Center(child: Icon(Icons.event, color: imageColor, size: 28)),
-                if (isOnline)
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'Online',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 9),
-                      ),
-                    ),
-                  ),
-              ],
+            child: const Center(
+              child: Icon(Icons.event, color: Colors.white54),
             ),
           ),
           const SizedBox(width: 16),
@@ -500,6 +529,8 @@ class _EventListItem extends StatelessWidget {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -509,40 +540,39 @@ class _EventListItem extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        type,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
+                    Icon(
                       Icons.calendar_today,
-                      size: 14,
-                      color: DesignSystem.purpleAccent,
+                      size: 12,
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Text(
                       date,
                       style: const TextStyle(
                         color: Colors.white54,
-                        fontSize: 12,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      isOnline ? Icons.laptop : Icons.location_on,
+                      size: 12,
+                      color: isOnline ? Colors.greenAccent : Colors.white54,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        isOnline ? 'Online Event' : location,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isOnline ? Colors.greenAccent : Colors.white54,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -551,54 +581,18 @@ class _EventListItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (!isOnline)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: const Text(
-                    'Interested',
-                    style: TextStyle(
-                      color: DesignSystem.purpleAccent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              else
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: DesignSystem.purpleAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 0,
-                    ),
-                    minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Join', style: TextStyle(fontSize: 11)),
-                ),
-              const SizedBox(height: 8),
-              Text(
-                count,
-                style: const TextStyle(color: Colors.white30, fontSize: 10),
+          ElevatedButton(
+            onPressed: onJoin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DesignSystem.purpleAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              minimumSize: const Size(0, 36),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
+            ),
+            child: const Text('Join', style: TextStyle(fontSize: 13)),
           ),
         ],
       ),

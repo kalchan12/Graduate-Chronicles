@@ -260,23 +260,68 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
     }
   }
 
+  void _showToast(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A1727),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isError
+                  ? Colors.redAccent.withValues(alpha: 0.5)
+                  : DesignSystem.purpleAccent.withValues(alpha: 0.3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isError ? Icons.error_outline : Icons.check_circle,
+                color: isError ? Colors.redAccent : DesignSystem.purpleAccent,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   void _createEvent() {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter an event title'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showToast('Please enter an event title', isError: true);
+      return;
+    }
+    if (_selectedType == 0 && _locationController.text.trim().isEmpty) {
+      _showToast('Please enter a location', isError: true);
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reunion Event Created (Simulated)'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    _showToast('Reunion Event Created (Simulated)');
     Navigator.pop(context);
   }
 
