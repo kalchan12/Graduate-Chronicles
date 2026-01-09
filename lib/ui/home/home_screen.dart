@@ -178,6 +178,7 @@ class _HomeAppBar extends StatelessWidget {
           ),
           Row(
             children: [
+              const SizedBox(width: 4),
               IconButton(
                 // Message
                 onPressed: () => Navigator.pushNamed(context, '/messages'),
@@ -188,6 +189,7 @@ class _HomeAppBar extends StatelessWidget {
                 splashRadius: 24,
                 tooltip: 'Messages',
               ),
+              const SizedBox(width: 4),
               IconButton(
                 // Notification
                 onPressed: () => Navigator.pushNamed(context, '/notifications'),
@@ -513,6 +515,14 @@ class _PostCard extends StatefulWidget {
 class _PostCardState extends State<_PostCard> {
   bool _isLiked = false;
   int _likeCount = 128;
+  final List<String> _comments = [];
+  final TextEditingController _commentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
   void _toggleLike() {
     setState(() {
@@ -545,25 +555,81 @@ class _PostCardState extends State<_PostCard> {
             Text('Comments', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 20),
             Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      size: 48,
-                      color: Colors.white24,
+              child: _comments.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 48,
+                            color: Colors.white24,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'No comments yet.',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _comments.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: DesignSystem.purpleAccent,
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'You',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _comments[index],
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No comments yet.',
-                      style: TextStyle(color: Colors.white54),
-                    ),
-                  ],
-                ),
-              ),
             ),
             TextField(
+              controller: _commentController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Add a comment...',
@@ -574,9 +640,19 @@ class _PostCardState extends State<_PostCard> {
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
-                suffixIcon: const Icon(
-                  Icons.send,
-                  color: DesignSystem.purpleAccent,
+                suffixIcon: IconButton(
+                  icon: const Icon(
+                    Icons.send,
+                    color: DesignSystem.purpleAccent,
+                  ),
+                  onPressed: () {
+                    if (_commentController.text.trim().isNotEmpty) {
+                      setState(() {
+                        _comments.add(_commentController.text.trim());
+                        _commentController.clear();
+                      });
+                    }
+                  },
                 ),
               ),
             ),

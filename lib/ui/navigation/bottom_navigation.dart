@@ -53,14 +53,7 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-      // Show the floating add button only on the Home tab (index 0).
-      floatingActionButton: _currentIndex == 0
-          ? FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: const Color(0xFF9B2CFF),
-              child: const Icon(Icons.add),
-            )
-          : null,
+      // Floating add button removed for cleaner UI
     );
   }
 }

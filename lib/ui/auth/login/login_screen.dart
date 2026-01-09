@@ -41,7 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ).textTheme.bodyMedium?.copyWith(color: Colors.white38),
       filled: true,
       fillColor: Colors.white.withValues(alpha: 0.05),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -62,20 +62,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         height: double.infinity,
         decoration: BoxDecoration(gradient: bgGradient),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 8),
 
                   // Logo
                   Hero(
                     tag: 'app_logo',
                     child: Container(
-                      width: 100,
-                      height: 100,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         boxShadow: [
@@ -96,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   Text(
                     'Graduate Chronicles',
@@ -104,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       context,
                     ).textTheme.titleLarge?.copyWith(fontSize: 26),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Your University Story, Reimagined.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -112,11 +111,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: DesignSystem.cardDecoration().copyWith(
                       borderRadius: BorderRadius.circular(24),
                       color: const Color(
@@ -193,17 +192,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 18),
 
-                        // Email Field
+                        // User ID Field
                         Text(
-                          'Email',
+                          'User ID',
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _idCtrl,
-                          decoration: fieldDecoration('Enter your email'),
+                          decoration: fieldDecoration('Enter your user ID'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -223,7 +222,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
                         // Password Field
                         Text(
@@ -282,7 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
 
                         // Action Links
                         Row(
@@ -324,12 +323,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
                         // Login Button
                         SizedBox(
                           width: double.infinity,
-                          height: 54,
+                          height: 50,
                           child: ElevatedButton(
                             onPressed: () {
                               ref
@@ -374,7 +373,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const Spacer(),
 
                   // Footer
                   Text.rich(
@@ -411,7 +410,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

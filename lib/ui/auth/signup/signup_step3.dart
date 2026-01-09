@@ -62,7 +62,13 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
+          ),
+        ),
         child: SafeArea(
           child: Column(
             children: [

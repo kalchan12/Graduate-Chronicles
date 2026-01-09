@@ -37,7 +37,13 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     return Scaffold(
       backgroundColor: DesignSystem.purpleDark,
       body: Container(
-        decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
+          ),
+        ),
         child: SafeArea(
           child: Column(
             children: [
@@ -392,7 +398,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               ),
               builder: (ctx) {
                 return Container(
-                  height: 300,
+                  height: 350,
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
@@ -425,20 +431,24 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                               decoration: isSelected
                                   ? BoxDecoration(
                                       color: DesignSystem.purpleAccent
-                                          .withValues(alpha: 0.1),
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: DesignSystem.purpleAccent
+                                            .withValues(alpha: 0.3),
+                                      ),
                                     )
                                   : null,
                               child: Text(
                                 year,
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: isSelected ? 22 : 20,
                                   fontWeight: isSelected
                                       ? FontWeight.bold
                                       : FontWeight.normal,
                                   color: isSelected
                                       ? DesignSystem.purpleAccent
-                                      : Colors.white54,
+                                      : Colors.white38,
                                 ),
                               ),
                             );

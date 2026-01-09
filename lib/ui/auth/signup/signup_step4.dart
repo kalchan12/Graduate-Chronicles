@@ -129,7 +129,13 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
     return Scaffold(
       backgroundColor: DesignSystem.purpleDark,
       body: Container(
-        decoration: const BoxDecoration(gradient: DesignSystem.mainGradient),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
+          ),
+        ),
         child: SafeArea(
           child: Column(
             children: [
@@ -200,29 +206,60 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                     alignment: WrapAlignment.center,
                     children: _allInterests.map((k) {
                       final active = state.interests.contains(k);
-                      return ChoiceChip(
-                        label: Text(
-                          k,
-                          style: TextStyle(
-                            color: active ? Colors.white : Colors.white70,
-                            fontWeight: active
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                      return GestureDetector(
+                        onTap: () => notifier.toggleInterest(k),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
                           ),
-                        ),
-                        selected: active,
-                        onSelected: (v) => notifier.toggleInterest(k),
-                        backgroundColor: Colors.white.withValues(alpha: 0.05),
-                        selectedColor: DesignSystem.purpleAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: active ? Colors.transparent : Colors.white12,
+                          decoration: BoxDecoration(
+                            color: active
+                                ? DesignSystem.purpleAccent
+                                : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: active
+                                  ? DesignSystem.purpleAccent
+                                  : Colors.white.withValues(alpha: 0.15),
+                              width: 1.5,
+                            ),
+                            boxShadow: active
+                                ? [
+                                    BoxShadow(
+                                      color: DesignSystem.purpleAccent
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      spreadRadius: 0,
+                                    ),
+                                  ]
+                                : null,
                           ),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (active)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 6),
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              Text(
+                                k,
+                                style: TextStyle(
+                                  color: active ? Colors.white : Colors.white70,
+                                  fontWeight: active
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  fontSize: 14,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }).toList(),
