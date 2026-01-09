@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/design_system.dart';
 
 class ReunionCreateScreen extends StatefulWidget {
   const ReunionCreateScreen({super.key});
@@ -12,7 +13,6 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  // Simulation of date/time
   String _date = 'mm/dd/yy';
   String _time = '--:-- --';
   int _selectedType = 0; // 0: Physical, 1: Virtual
@@ -21,9 +21,9 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1c1a3c),
+      backgroundColor: DesignSystem.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1c1a3c),
+        backgroundColor: DesignSystem.scaffoldBg,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -51,9 +51,11 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel('Date'),
-                      _buildDateTimePicker(Icons.calendar_today, _date, () {
-                        setState(() => _date = '11/12/26');
-                      }),
+                      _buildDateTimePicker(
+                        Icons.calendar_today,
+                        _date,
+                        _pickDate,
+                      ),
                     ],
                   ),
                 ),
@@ -63,9 +65,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel('Time'),
-                      _buildDateTimePicker(Icons.access_time, _time, () {
-                        setState(() => _time = '08:00 PM');
-                      }),
+                      _buildDateTimePicker(Icons.access_time, _time, _pickTime),
                     ],
                   ),
                 ),
@@ -123,7 +123,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
               children: [
                 const Icon(
                   Icons.visibility,
-                  color: Color(0xFFBB00FF),
+                  color: DesignSystem.purpleAccent,
                   size: 18,
                 ),
                 const SizedBox(width: 8),
@@ -131,6 +131,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                   'Visible to',
                   style: TextStyle(
                     color: Colors.white,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -169,7 +170,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                   child: ElevatedButton(
                     onPressed: _createEvent,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFBB00FF),
+                      backgroundColor: DesignSystem.purpleAccent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -197,9 +198,84 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
     );
   }
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 2),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: DesignSystem.purpleAccent,
+              onPrimary: Colors.white,
+              surface: Color(0xFF24122E),
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: const Color(0xFF1B0423),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _date = "${picked.month}/${picked.day}/${picked.year}";
+      });
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: DesignSystem.purpleAccent,
+              onPrimary: Colors.white,
+              surface: Color(0xFF24122E),
+              onSurface: Colors.white,
+            ),
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: const Color(0xFF1B0423),
+              hourMinuteTextColor: Colors.white,
+              dayPeriodTextColor: Colors.white,
+              dialHandColor: DesignSystem.purpleAccent,
+              dialBackgroundColor: const Color(0xFF24122E),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      if (!mounted) return;
+      setState(() {
+        _time = picked.format(context);
+      });
+    }
+  }
+
   void _createEvent() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an event title'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reunion Event Created (Simulated)')),
+      const SnackBar(
+        content: Text('Reunion Event Created (Simulated)'),
+        backgroundColor: Colors.green,
+      ),
     );
     Navigator.pop(context);
   }
@@ -209,7 +285,11 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(color: Color(0xFFD6C9E6), fontSize: 14),
+        style: const TextStyle(
+          color: Color(0xFFD6C9E6),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -233,7 +313,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
           prefixIcon: icon != null
-              ? Icon(icon, color: const Color(0xFFBB00FF))
+              ? Icon(icon, color: DesignSystem.purpleAccent)
               : null,
         ),
       ),
@@ -251,16 +331,19 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFFBB00FF), size: 20),
+            Icon(icon, color: DesignSystem.purpleAccent, size: 20),
             const SizedBox(width: 12),
-            Text(value, style: const TextStyle(color: Colors.white)),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
             if (value == 'mm/dd/yy' || value == '--:-- --')
-              const Icon(
-                Icons.calendar_month_outlined,
-                color: Colors.white30,
-                size: 16,
-              )
+              const Icon(Icons.arrow_drop_down, color: Colors.white30, size: 20)
             else
               const Icon(
                 Icons.check_circle,
@@ -278,7 +361,8 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedType = index),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFF4A1070) : Colors.transparent,
@@ -288,7 +372,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? const Color(0xFFBB00FF) : Colors.white54,
+              color: isSelected ? DesignSystem.purpleAccent : Colors.white54,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -301,16 +385,23 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
     final isSelected = _visibleTo == index;
     return GestureDetector(
       onTap: () => setState(() => _visibleTo = index),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4A1070) : const Color(0xFF24122E),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFFBB00FF) : Colors.transparent,
+            color: isSelected ? DesignSystem.purpleAccent : Colors.transparent,
           ),
         ),
-        child: Text(label, style: const TextStyle(color: Colors.white)),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

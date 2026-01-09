@@ -7,7 +7,7 @@ class CommunityHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B0423), // Matching bottom nav bg
+      backgroundColor: DesignSystem.scaffoldBg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -129,7 +129,10 @@ class CommunityHomeScreen extends StatelessWidget {
                       _QuickAction(
                         icon: Icons.add,
                         label: 'Create Event',
-                        onTap: () {},
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/community/reunion/create',
+                        ),
                       ),
                       _QuickAction(
                         icon: Icons.edit,
@@ -189,7 +192,6 @@ class _NavCard extends StatelessWidget {
           end: Alignment.topCenter,
           colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
         ),
-        // In a real app, use DecorationImage with NetworkImage or AssetImage
       ),
       child: Stack(
         children: [
@@ -283,7 +285,7 @@ class _QuickAction extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white10),
             ),
-            child: Icon(icon, color: const Color(0xFFE94CFF)),
+            child: Icon(icon, color: DesignSystem.purpleAccent),
           ),
         ),
         const SizedBox(height: 8),

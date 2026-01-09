@@ -1,15 +1,84 @@
 import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
 
-class MentorshipScreen extends StatelessWidget {
+class MentorshipScreen extends StatefulWidget {
   const MentorshipScreen({super.key});
 
   @override
+  State<MentorshipScreen> createState() => _MentorshipScreenState();
+}
+
+class _MentorshipScreenState extends State<MentorshipScreen> {
+  String _selectedFilter = 'All';
+  String _searchQuery = '';
+  final List<String> _filters = [
+    'All',
+    'Career',
+    'Engineering',
+    'Design',
+    'Available Now',
+  ];
+
+  // Mock Data
+  final List<Map<String, dynamic>> _mentors = [
+    {
+      'name': 'Sarah Jenkins',
+      'role': 'Product Designer @ Google',
+      'tags': ['UX Design', 'Big Tech'],
+      'available': true,
+      'isTopRated': false,
+      'responseTime': null,
+      'category': 'Design',
+      'isSaved': false,
+      'requestSent': false,
+    },
+    {
+      'name': 'Dr. Aris Thorne',
+      'role': 'Research Lead @ OpenAI',
+      'tags': ['AI Ethics', 'Academia'],
+      'available': false,
+      'isTopRated': true,
+      'responseTime': null,
+      'category': 'Engineering',
+      'isSaved': true,
+      'requestSent': false,
+    },
+    {
+      'name': 'Maya Lin',
+      'role': 'VP of Strategy @ Chase',
+      'tags': ['Finance', 'Leadership'],
+      'available': false,
+      'isTopRated': false,
+      'responseTime': 'Responds in 2 days',
+      'category': 'Career',
+      'isSaved': false,
+      'requestSent': false,
+    },
+  ];
+
+  @override
   Widget build(BuildContext context) {
+    // Filter Logic
+    final filteredMentors = _mentors.where((mentor) {
+      final matchesSearch =
+          mentor['name'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          mentor['role'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
+      final matchesFilter =
+          _selectedFilter == 'All' ||
+          (_selectedFilter == 'Available Now' && mentor['available'] == true) ||
+          mentor['category'] == _selectedFilter;
+      return matchesSearch && matchesFilter;
+    }).toList();
+
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
       appBar: AppBar(
         backgroundColor: DesignSystem.scaffoldBg,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -30,17 +99,19 @@ class MentorshipScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFF2A1727),
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white10),
               ),
-              child: const TextField(
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+              child: TextField(
+                style: const TextStyle(color: Colors.white),
+                onChanged: (val) => setState(() => _searchQuery = val),
+                decoration: const InputDecoration(
                   hintText: 'Search by name, role, or company...',
                   hintStyle: TextStyle(color: Colors.white30),
                   border: InputBorder.none,
                   icon: Icon(Icons.search, color: Colors.white30),
                   suffixIcon: Icon(Icons.tune, color: Colors.white30),
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
@@ -50,17 +121,16 @@ class MentorshipScreen extends StatelessWidget {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  _FilterChip(label: 'All', isSelected: true),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Career'),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Engineering'),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Design'),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Available Now'),
-                ],
+                children: _filters.map((filter) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _FilterChip(
+                      label: filter,
+                      isSelected: _selectedFilter == filter,
+                      onTap: () => setState(() => _selectedFilter = filter),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 32),
@@ -81,13 +151,14 @@ class MentorshipScreen extends StatelessWidget {
                   'View History',
                   style: TextStyle(
                     color: DesignSystem.purpleAccent,
-                    fontSize: 14,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _RequestCard(
+            const _RequestCard(
               name: 'James Chen',
               role: 'Startup Funding',
               status: 'Pending',
@@ -113,28 +184,47 @@ class MentorshipScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            _MentorCard(
-              name: 'Sarah Jenkins',
-              role: 'Product Designer @ Google',
-              tags: const ['UX Design', 'Big Tech'],
-              available: true,
-            ),
-            const SizedBox(height: 16),
-            _MentorCard(
-              name: 'Dr. Aris Thorne',
-              role: 'Research Lead @ OpenAI',
-              tags: const ['AI Ethics', 'Academia'],
-              available: false,
-              isTopRated: true,
-            ),
-            const SizedBox(height: 16),
-            _MentorCard(
-              name: 'Maya Lin',
-              role: 'VP of Strategy @ Chase',
-              tags: const ['Finance', 'Leadership'],
-              available: false,
-              responseTime: 'Responds in 2 days',
-            ),
+            if (filteredMentors.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 20),
+                child: Center(
+                  child: Text(
+                    "No mentors found.",
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              )
+            else
+              ...filteredMentors.map(
+                (mentor) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _MentorCard(
+                    name: mentor['name'],
+                    role: mentor['role'],
+                    tags: List<String>.from(mentor['tags']),
+                    available: mentor['available'],
+                    isTopRated: mentor['isTopRated'],
+                    responseTime: mentor['responseTime'],
+                    isSaved: mentor['isSaved'],
+                    requestSent: mentor['requestSent'],
+                    onSave: () {
+                      setState(() {
+                        mentor['isSaved'] = !mentor['isSaved'];
+                      });
+                    },
+                    onRequest: () {
+                      setState(() {
+                        mentor['requestSent'] = true;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Request sent to ${mentor['name']}'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -145,22 +235,38 @@ class MentorshipScreen extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
-  const _FilterChip({required this.label, this.isSelected = false});
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    this.isSelected = false,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFBB00FF) : const Color(0xFF2B1F2E),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected ? Colors.transparent : Colors.white12,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? DesignSystem.purpleAccent
+              : const Color(0xFF2B1F2E),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.white12,
+          ),
         ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
@@ -186,6 +292,7 @@ class _RequestCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF241228),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -194,7 +301,8 @@ class _RequestCard extends StatelessWidget {
               const CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.grey,
-              ), // Placeholder
+                child: Icon(Icons.person, color: Colors.white),
+              ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,6 +389,10 @@ class _MentorCard extends StatelessWidget {
   final bool available;
   final bool isTopRated;
   final String? responseTime;
+  final bool isSaved;
+  final bool requestSent;
+  final VoidCallback onSave;
+  final VoidCallback onRequest;
 
   const _MentorCard({
     required this.name,
@@ -289,6 +401,10 @@ class _MentorCard extends StatelessWidget {
     this.available = false,
     this.isTopRated = false,
     this.responseTime,
+    this.isSaved = false,
+    this.requestSent = false,
+    required this.onSave,
+    required this.onRequest,
   });
 
   @override
@@ -309,7 +425,8 @@ class _MentorCard extends StatelessWidget {
               const CircleAvatar(
                 radius: 28,
                 backgroundColor: Colors.teal,
-              ), // Placeholder
+                child: Icon(Icons.person, color: Colors.white, size: 30),
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -328,12 +445,13 @@ class _MentorCard extends StatelessWidget {
                       role,
                       style: const TextStyle(
                         color: Color(0xFFB04CFF),
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ), // Purple text
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: tags
                           .map(
                             (t) => Container(
@@ -349,7 +467,7 @@ class _MentorCard extends StatelessWidget {
                                 t,
                                 style: const TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                 ),
                               ),
                             ),
@@ -380,7 +498,13 @@ class _MentorCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.bookmark_border, color: Colors.white54),
+              IconButton(
+                icon: Icon(
+                  isSaved ? Icons.bookmark : Icons.bookmark_border,
+                  color: isSaved ? DesignSystem.purpleAccent : Colors.white54,
+                ),
+                onPressed: onSave,
+              ),
             ],
           ),
 
@@ -422,11 +546,12 @@ class _MentorCard extends StatelessWidget {
                   ),
 
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: requestSent ? null : onRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isTopRated
                         ? Colors.transparent
-                        : const Color(0xFFBB00FF),
+                        : DesignSystem.purpleAccent,
+                    disabledBackgroundColor: Colors.white12,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     side: isTopRated
@@ -440,7 +565,11 @@ class _MentorCard extends StatelessWidget {
                       vertical: 8,
                     ),
                   ),
-                  child: Text(isTopRated ? 'View Profile' : 'Send Request'),
+                  child: Text(
+                    requestSent
+                        ? 'Pending'
+                        : (isTopRated ? 'View Profile' : 'Send Request'),
+                  ),
                 ),
               ],
             ),
