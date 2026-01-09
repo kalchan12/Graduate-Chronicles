@@ -70,8 +70,11 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B2233),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -83,20 +86,21 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: const InputDecoration(
                           hintText: 'Search yearbooks',
-                          hintStyle: TextStyle(color: Colors.white54),
+                          hintStyle: TextStyle(color: Colors.white38),
                           border: InputBorder.none,
                           isDense: true,
                         ),
+                        cursorColor: DesignSystem.purpleAccent,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             // Filters
             SizedBox(
-              height: 40,
+              height: 36,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -111,7 +115,7 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.symmetric(
@@ -141,20 +145,27 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
     final isSelected = _selectedFilter == label;
     return GestureDetector(
       onTap: () => setState(() => _selectedFilter = label),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? DesignSystem.purpleAccent
-              : const Color(0xFF1B2233),
+              : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : Colors.white.withValues(alpha: 0.1),
+          ),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.white70,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontSize: 13,
             ),
           ),
         ),
@@ -178,30 +189,38 @@ class _BatchGridItem extends StatelessWidget {
         ),
       ),
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          color: const Color(0xFF241228),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+        decoration: DesignSystem.cardDecoration().copyWith(
+          color: const Color(0xFF1E0A25), // Match card base
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-                  color: Color(0xFF332236),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [const Color(0xFF2E1A36), const Color(0xFF1E0A25)],
+                  ),
                 ),
-                child: const Icon(
-                  Icons.school,
-                  color: Colors.white10,
-                  size: 48,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                    child: const Icon(
+                      Icons.school_rounded,
+                      color: Colors.white24,
+                      size: 32,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -214,11 +233,11 @@ class _BatchGridItem extends StatelessWidget {
                     batch['title']!,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     batch['subtitle']!,
                     maxLines: 1,

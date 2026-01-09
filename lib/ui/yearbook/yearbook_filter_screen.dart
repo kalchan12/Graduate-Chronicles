@@ -67,15 +67,20 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B2233),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Row(
                   children: [
                     const SizedBox(width: 12),
                     Icon(
                       Icons.search,
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: Colors.white.withValues(
+                        alpha: 0.5,
+                      ), // consistent icon color
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -84,10 +89,11 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: const InputDecoration(
                           hintText: 'Search by name or degree...',
-                          hintStyle: TextStyle(color: Colors.white30),
+                          hintStyle: TextStyle(color: Colors.white38),
                           border: InputBorder.none,
                           isDense: true,
                         ),
+                        cursorColor: DesignSystem.purpleAccent,
                       ),
                     ),
                   ],
@@ -97,19 +103,19 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
 
             // Filter Chips
             SizedBox(
-              height: 40,
+              height: 36,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   _navChip('All'),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   _navChip('Major'),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   _navChip('Club'),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   _navChip('Achievement'),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   _navChip('Location'),
                 ],
               ),
@@ -167,10 +173,12 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? DesignSystem.purpleAccent
-              : const Color(0xFF1B2233),
+              : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.transparent : Colors.white10,
+            color: isSelected
+                ? Colors.transparent
+                : Colors.white.withValues(alpha: 0.1),
           ),
         ),
         child: Center(
@@ -178,8 +186,8 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
             label,
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.white60,
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
         ),
@@ -193,89 +201,116 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.45,
+        initialChildSize: 0.40,
         minChildSize: 0.30,
         maxChildSize: 0.85,
         builder: (_, controller) => Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: DesignSystem.scaffoldBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 24,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
           child: ListView(
             controller: controller,
             children: [
               Center(
                 child: Container(
-                  width: 84,
-                  height: 84,
+                  width: 96,
+                  height: 96,
                   decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Icon(
-                    Icons.person,
-                    color: Colors.white54,
-                    size: 44,
+                    Icons.person_rounded,
+                    color: Colors.white24,
+                    size: 48,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Center(
                 child: Text(
                   student['name']!,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Center(
                 child: Text(
                   student['degree']!,
-                  style: const TextStyle(color: Colors.white54),
+                  style: const TextStyle(color: Colors.white54, fontSize: 14),
                 ),
               ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: DesignSystem.purpleAccent,
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
+              const SizedBox(height: 24),
+              Center(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DesignSystem.purpleAccent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
                         ),
-                      );
-                    },
-                    child: const Text('View Profile'),
-                  ),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => YearbookGalleryScreen(
-                            studentName: student['name']!,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
                           ),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'View Photo Gallery',
-                      style: TextStyle(color: Colors.white),
+                        );
+                      },
+                      child: const Text('View Profile'),
                     ),
-                  ),
-                ],
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => YearbookGalleryScreen(
+                              studentName: student['name']!,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('View Gallery'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -295,8 +330,8 @@ class _StudentCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF241228),
+        decoration: DesignSystem.cardDecoration().copyWith(
+          color: const Color(0xFF1E0A25), // Match card base
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -304,12 +339,29 @@ class _StudentCard extends StatelessWidget {
           children: [
             Expanded(
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF332236),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [const Color(0xFF2E1A36), const Color(0xFF1E0A25)],
+                  ),
                 ),
-                child: const Center(
-                  child: Icon(Icons.person, color: Colors.white10, size: 56),
+                child: Center(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white24,
+                      size: 40,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -324,11 +376,11 @@ class _StudentCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     student['degree']!,
                     maxLines: 1,
