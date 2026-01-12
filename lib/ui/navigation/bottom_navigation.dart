@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../yearbook/explore_yearbook_screen.dart';
 import '../community/community_home_screen.dart';
-import '../portfolio/portfolio_select_screen.dart';
+import '../portfolio/portfolio_hub_screen.dart';
 import '../profile/profile_screen.dart';
 
 // Bottom navigation scaffold driven by Riverpod's `currentIndexProvider`.
@@ -24,7 +24,7 @@ class _BottomNavigationScaffoldState extends State<BottomNavigationScaffold> {
     HomeScreen(),
     ExploreYearbookScreen(),
     CommunityHomeScreen(),
-    PortfolioSelectScreen(),
+    PortfolioHubScreen(),
     ProfileScreen(),
   ];
 

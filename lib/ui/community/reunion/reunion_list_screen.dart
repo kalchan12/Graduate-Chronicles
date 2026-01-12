@@ -115,6 +115,56 @@ class _ReunionListScreenState extends State<ReunionListScreen> {
                 ),
               ),
 
+              // -- Feature Image (Sample) --
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                child: Container(
+                  height: 140,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    image: const DecorationImage(
+                      image: AssetImage(
+                        'assets/images/placeholder_reunion.png',
+                      ), // Placeholder or use colored box if asset missing
+                      fit: BoxFit.cover,
+                    ),
+                    color: const Color(0xFF3B2F4D), // Fallback
+                  ),
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [Colors.black54, Colors.transparent],
+                          ),
+                        ),
+                      ),
+                      const Positioned(
+                        bottom: 16,
+                        left: 16,
+                        child: Text(
+                          "Batch '23 Reunion",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // Search
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -123,7 +173,9 @@ class _ReunionListScreenState extends State<ReunionListScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF24122E),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
                   child: const TextField(
                     style: TextStyle(color: Colors.white),

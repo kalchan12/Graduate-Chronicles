@@ -1,294 +1,621 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/design_system.dart';
+import 'portfolio_viewed_screen.dart';
+import 'portfolio_liked_screen.dart';
 import 'portfolio_select_screen.dart';
 
-class PortfolioHubScreen extends ConsumerWidget {
+class PortfolioHubScreen extends StatelessWidget {
   const PortfolioHubScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
       body: Stack(
         children: [
-          // Background subtle gradient/glow (optional, keeping clean for now)
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(context),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 24,
-                    ),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader('Achievements'),
-                        const SizedBox(height: 12),
-                        _buildCard(
-                          icon: Icons.emoji_events_rounded,
-                          iconColor: Colors.amberAccent,
-                          title: "Dean's List 2023",
-                          subtitle: 'Academic Excellence',
-                        ),
-                        _buildCard(
-                          icon: Icons.verified_rounded,
-                          iconColor: Colors.blueAccent,
-                          title: 'Google UX Design Certificate',
-                          subtitle: 'Professional Certification',
-                        ),
-                        _buildCard(
-                          icon: Icons.lightbulb_rounded,
-                          iconColor: Colors.orangeAccent,
-                          title: 'Agile Methodology Intro',
-                          subtitle: 'Workshop',
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        _buildSectionHeader('CVs / Resumes'),
-                        const SizedBox(height: 12),
-                        _buildCard(
-                          icon: Icons.picture_as_pdf_rounded,
-                          iconColor: Colors.redAccent,
-                          title: 'Design_Portfolio_CV.pdf',
-                          subtitle: 'Last updated 2 days ago',
-                          isFile: true,
-                        ),
-                        _buildCard(
-                          icon: Icons.description_rounded,
-                          iconColor: Colors.white70,
-                          title: 'General_Resume_2024.pdf',
-                          subtitle: 'Uploaded Oct 2023',
-                          isFile: true,
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        _buildSectionHeader('Certificates'),
-                        const SizedBox(height: 12),
-                        _buildCard(
-                          icon: Icons.workspace_premium_rounded,
-                          iconColor: DesignSystem.purpleAccent,
-                          title: 'Google UX Design',
-                          subtitle: 'Coursera',
-                        ),
-                        _buildCard(
-                          icon: Icons.school_rounded,
-                          iconColor: Colors.cyanAccent,
-                          title: 'Agile Methodology',
-                          subtitle: 'Udemy',
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        _buildSectionHeader('Links'),
-                        const SizedBox(height: 12),
-                        _buildCard(
-                          icon: Icons.link_rounded,
-                          iconColor: Colors.blue,
-                          title: 'GitHub Profile',
-                          subtitle: 'github.com/username',
-                          showExternalIcon: true,
-                        ),
-                        _buildCard(
-                          icon: Icons.business_center_rounded,
-                          iconColor: Colors.blue[800],
-                          title: 'LinkedIn Profile',
-                          subtitle: 'linkedin.com/in/username',
-                          showExternalIcon: true,
-                        ),
-
-                        // Bottom Spacer for FAB
-                        const SizedBox(height: 80),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          // -- Cover Image with Fade --
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 350,
+            child: ShaderMask(
+              shaderCallback: (rect) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black, Colors.transparent],
+                  stops: [0.6, 1.0],
+                ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
+              },
+              blendMode: BlendMode.dstIn,
+              child: Image.asset('assets/images/dog.png', fit: BoxFit.cover),
             ),
           ),
 
-          // Floating Add Button
-          Positioned(
-            bottom: 24,
-            right: 24,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const PortfolioSelectScreen(),
+          // -- Content --
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
+                children: [
+                  _buildTopBar(context),
+
+                  const SizedBox(height: 100), // Spacing for cover
+
+                  _buildAvatar(),
+
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Alex Rivera',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    gradient: DesignSystem.mainGradient,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Crafting digital experiences @ University',
+                    style: TextStyle(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 8),
                       Text(
-                        'Add New',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.labelLarge?.copyWith(fontSize: 16),
+                        'SENIOR YEAR',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(
+                          Icons.circle,
+                          size: 4,
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      Text(
+                        'GLOBAL TECH ACADEMY',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ],
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+
+                  _buildStatsRow(context),
+
+                  const SizedBox(height: 32),
+
+                  _buildSectionHeader('ACHIEVEMENTS', '3 items'),
+                  const SizedBox(height: 16),
+                  _buildAchievementsList(),
+
+                  const SizedBox(height: 32),
+
+                  _buildSectionHeader('RESUMES', ''),
+                  const SizedBox(height: 16),
+                  _buildResumesGrid(),
+
+                  const SizedBox(height: 32),
+
+                  _buildSectionHeader('CERTS', ''),
+                  const SizedBox(height: 16),
+                  _buildCertsGrid(),
+
+                  const SizedBox(height: 32),
+
+                  _buildSectionHeader('CONNECTED NETWORK', ''),
+                  const SizedBox(height: 16),
+                  _buildNetworkRow(),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            style: IconButton.styleFrom(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          // -- Floating Add Button --
+          Positioned(
+            bottom: 24,
+            right: 24,
+            child: FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PortfolioSelectScreen(),
+                  ),
+                );
+              },
+              backgroundColor: DesignSystem.purpleAccent,
+              elevation: 8,
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
-          const SizedBox(width: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            onPressed: () => Navigator.maybePop(context),
+          ),
           Text(
-            'Portfolio',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontSize: 28),
+            'PROFILE HUB',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              letterSpacing: 3,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.settings, color: Colors.white, size: 20),
+            ),
+            onPressed: () {},
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title.toUpperCase(),
-      style: const TextStyle(
-        color: Colors.white54,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-      ),
+  Widget _buildAvatar() {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: DesignSystem.purpleAccent.withValues(alpha: 0.6),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: const CircleAvatar(
+            radius: 54,
+            backgroundColor: Color(0xFFC7A069),
+            child: Icon(Icons.person, size: 64, color: Colors.white24),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.only(right: 6, bottom: 6),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2ECC71),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF1E1E2E), width: 3),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCard({
-    required IconData icon,
-    required Color? iconColor,
-    required String title,
-    required String subtitle,
-    bool isFile = false,
-    bool showExternalIcon = false,
-  }) {
+  Widget _buildStatsRow(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.05),
-          width: 1,
-        ),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(20),
-          splashColor: DesignSystem.purpleAccent.withValues(alpha: 0.1),
-          highlightColor: DesignSystem.purpleAccent.withValues(alpha: 0.05),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: (iconColor ?? Colors.white).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: iconColor ?? Colors.white, size: 22),
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PortfolioViewedScreen(),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.visibility_outlined,
+                    color: DesignSystem.purpleAccent,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
+                      const Text(
+                        '1.2k',
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
                       Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 13,
+                        'VIEWS',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 10,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-                ),
-                if (showExternalIcon)
+                ],
+              ),
+            ),
+
+            VerticalDivider(
+              color: Colors.white.withValues(alpha: 0.1),
+              thickness: 1,
+            ),
+
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PortfolioLikedScreen()),
+              ),
+              child: Row(
+                children: [
                   const Icon(
-                    Icons.arrow_outward_rounded,
-                    color: Colors.white24,
+                    Icons.favorite,
+                    color: Colors.pinkAccent,
                     size: 18,
-                  )
-                else if (isFile)
-                  const Icon(
-                    Icons.more_vert_rounded,
-                    color: Colors.white24,
-                    size: 20,
                   ),
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '458',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        'LIKES',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, String trailing) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Icon(
+            Icons.verified_user,
+            size: 16,
+            color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              fontSize: 13,
+            ),
+          ),
+          const Spacer(),
+          if (trailing.isNotEmpty)
+            Text(
+              trailing,
+              style: TextStyle(
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementsList() {
+    return SizedBox(
+      height: 100,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: [
+          _buildAchieveCard(
+            Icons.emoji_events,
+            "Dean's Honor List",
+            "ACADEMIC 2023",
+          ),
+          const SizedBox(width: 12),
+          _buildAchieveCard(
+            Icons.star,
+            "Hackathon Winner",
+            "TECHNICAL EXCELLENCE",
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchieveCard(IconData icon, String title, String subtitle) {
+    return Container(
+      width: 240,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151019),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: DesignSystem.purpleAccent),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResumesGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF151019),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.description,
+                  color: DesignSystem.purpleAccent,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'MAIN RESUME',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "Main_V3.pdf",
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                  Icon(
+                    Icons.download,
+                    size: 16,
+                    color: DesignSystem.purpleAccent,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCertsGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF151019),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.workspace_premium,
+                  color: DesignSystem.purpleAccent,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'RECENT CERTIFICATES',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _miniFileIcon(),
+                const SizedBox(width: 8),
+                _miniFileIcon(),
+                const SizedBox(width: 8),
+                _miniFileIcon(),
+                const SizedBox(width: 8),
+                Text(
+                  '+3 more',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _miniFileIcon() {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFF151019), width: 2),
+      ),
+      child: const Icon(
+        Icons.insert_drive_file,
+        color: Colors.white70,
+        size: 16,
+      ),
+    );
+  }
+
+  Widget _buildNetworkRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          _socialChip("LINKEDIN", Colors.blue),
+          const SizedBox(width: 12),
+          _socialChip("GITHUB", Colors.white),
+          const SizedBox(width: 12),
+          _socialChip("BEHANCE", Colors.pink),
+        ],
+      ),
+    );
+  }
+
+  Widget _socialChip(String label, Color dotColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.circle, size: 8, color: dotColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

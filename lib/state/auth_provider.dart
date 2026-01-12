@@ -106,7 +106,12 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     // seed with a sample user for quick testing
-    return AuthState.initial().copyWith(users: {'test@uni.edu': 'Test@1234'});
+    return AuthState.initial().copyWith(
+      users: {
+        'test@uni.edu': 'Test@1234',
+        'UGE/24170/13': '12345678', // Default dev user
+      },
+    );
   }
 
   bool _validateCredentials(String email, String password) {

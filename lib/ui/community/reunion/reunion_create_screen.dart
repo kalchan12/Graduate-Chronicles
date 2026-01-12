@@ -205,16 +205,18 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
       initialDate: now,
       firstDate: now,
       lastDate: DateTime(now.year + 2),
-      builder: (context, child) {
+      builder: (BuildContext context, Widget? child) {
         return Theme(
-          data: Theme.of(context).copyWith(
+          data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
               primary: DesignSystem.purpleAccent,
               onPrimary: Colors.white,
-              surface: Color(0xFF24122E),
+              surface: DesignSystem.purpleDark,
               onSurface: Colors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF1B0423),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF1E1E2E),
+            ),
           ),
           child: child!,
         );
