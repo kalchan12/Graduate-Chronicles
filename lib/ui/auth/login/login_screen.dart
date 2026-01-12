@@ -222,7 +222,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     color: Colors.white,
                                     fontSize: 15,
                                   ),
-                                  keyboardType: TextInputType.emailAddress,
+                                  keyboardType: TextInputType.text,
                                 ),
                                 if (loginState.emailError != null)
                                   Padding(

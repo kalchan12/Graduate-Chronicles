@@ -74,11 +74,7 @@ class LoginNotifier extends Notifier<LoginState> {
     String? passErr;
 
     if (email.trim().isEmpty) {
-      emailErr = 'Email is required';
-    }
-    // Basic format check
-    else if (!email.contains('@')) {
-      emailErr = 'Invalid email format';
+      emailErr = 'User ID is required';
     }
 
     if (password.trim().isEmpty) {
