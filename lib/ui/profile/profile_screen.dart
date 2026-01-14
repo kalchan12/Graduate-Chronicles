@@ -4,7 +4,7 @@ import 'dart:io';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import '../widgets/custom_app_bar.dart';
-import 'edit_profile_screen.dart';
+import '../../settings/settings_main_screen.dart';
 
 // Profile screen implemented to match the static HTML profile design.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -34,8 +34,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               showLeading: true,
               onLeading: () => Navigator.of(context).pop(),
               trailing: IconButton(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-                onPressed: () {},
+                icon: const Icon(Icons.settings, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SettingsMainScreen(),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -126,23 +133,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const EditProfileScreen(),
+                            // Connect logic placeholder
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Connection Request Sent'),
                               ),
                             );
                           },
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF231B26),
+                              color: DesignSystem.purpleAccent,
                               borderRadius: BorderRadius.circular(25),
-                              border: Border.all(color: Colors.white24),
                             ),
                             child: const Center(
                               child: Text(
-                                'Edit Profile',
+                                'Connect',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -156,13 +162,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Share logic placeholder
+                            // Message logic placeholder
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Share Profile clicked (Simulated)',
-                                ),
-                              ),
+                              const SnackBar(content: Text('Opening Chat...')),
                             );
                           },
                           child: Container(
@@ -170,10 +172,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFF231B26),
                               borderRadius: BorderRadius.circular(25),
+                              border: Border.all(color: Colors.white24),
                             ),
                             child: const Center(
                               child: Text(
-                                'Share Profile',
+                                'Message',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,

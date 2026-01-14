@@ -13,120 +13,142 @@ class PortfolioHubScreen extends StatelessWidget {
       backgroundColor: DesignSystem.scaffoldBg,
       body: Stack(
         children: [
-          // -- Cover Image with Fade --
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 350,
-            child: ShaderMask(
-              shaderCallback: (rect) {
-                return const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black, Colors.transparent],
-                  stops: [0.6, 1.0],
-                ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
-              },
-              blendMode: BlendMode.dstIn,
-              child: Image.asset('assets/images/dog.png', fit: BoxFit.cover),
-            ),
-          ),
-
-          // -- Content --
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 100),
-              child: Column(
-                children: [
-                  _buildTopBar(context),
-
-                  const SizedBox(height: 100), // Spacing for cover
-
-                  _buildAvatar(),
-
-                  const SizedBox(height: 16),
-
-                  const Text(
-                    'Alex Rivera',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Crafting digital experiences @ University',
-                    style: TextStyle(
-                      color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          // -- Main Scrollable Content --
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: Column(
+              children: [
+                // -- Header Area (Image + TopBar + Avatar) --
+                SizedBox(
+                  height: 250, // Reduced height (was 420)
+                  child: Stack(
                     children: [
-                      Text(
-                        'SENIOR YEAR',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
+                      // Cover Image
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 180, // Reduced height (was 350)
+                        child: ShaderMask(
+                          shaderCallback: (rect) {
+                            return const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.black, Colors.transparent],
+                              stops: [0.6, 1.0],
+                            ).createShader(
+                              Rect.fromLTRB(0, 0, rect.width, rect.height),
+                            );
+                          },
+                          blendMode: BlendMode.dstIn,
+                          child: Image.asset(
+                            'assets/images/dog.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          Icons.circle,
-                          size: 4,
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
+
+                      // Top Bar (Wrapped in SafeArea to avoid status bar overlap)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: SafeArea(child: _buildTopBar(context)),
                       ),
-                      Text(
-                        'GLOBAL TECH ACADEMY',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
+
+                      // Avatar (Positioned at bottom center)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Center(child: _buildAvatar()),
                       ),
                     ],
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-                  _buildStatsRow(context),
+                // -- Name & Role --
+                const Text(
+                  'Abebe Kebede',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Crafting digital experiences @ University',
+                  style: TextStyle(
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'SENIOR YEAR',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(
+                        Icons.circle,
+                        size: 4,
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    Text(
+                      'GLOBAL TECH ACADEMY',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
 
-                  const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-                  _buildSectionHeader('ACHIEVEMENTS', '3 items'),
-                  const SizedBox(height: 16),
-                  _buildAchievementsList(),
+                _buildStatsRow(context),
 
-                  const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-                  _buildSectionHeader('RESUMES', ''),
-                  const SizedBox(height: 16),
-                  _buildResumesGrid(),
+                _buildSectionHeader('ACHIEVEMENTS', '3 items'),
+                const SizedBox(height: 16),
+                _buildAchievementsList(),
 
-                  const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-                  _buildSectionHeader('CERTS', ''),
-                  const SizedBox(height: 16),
-                  _buildCertsGrid(),
+                _buildSectionHeader('RESUMES', ''),
+                const SizedBox(height: 16),
+                _buildResumesGrid(),
 
-                  const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-                  _buildSectionHeader('CONNECTED NETWORK', ''),
-                  const SizedBox(height: 16),
-                  _buildNetworkRow(),
-                ],
-              ),
+                _buildSectionHeader('CERTS', ''),
+                const SizedBox(height: 16),
+                _buildCertsGrid(),
+
+                const SizedBox(height: 32),
+
+                _buildSectionHeader('CONNECTED NETWORK', ''),
+                const SizedBox(height: 16),
+                _buildNetworkRow(),
+              ],
             ),
           ),
 

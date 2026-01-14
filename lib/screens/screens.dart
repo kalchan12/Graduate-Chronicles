@@ -12,5 +12,5 @@ export '../ui/messages/message_list_screen.dart';
 export '../ui/notifications/notification_screen.dart';
 export '../ui/batch/batch_screen.dart';
 export '../ui/profile/profile_screen.dart';
-export '../ui/profile/edit_profile_screen.dart';
+
 export '../ui/navigation/bottom_navigation.dart';

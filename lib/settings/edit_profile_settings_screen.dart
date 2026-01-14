@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 
-class EditProfileScreen extends ConsumerStatefulWidget {
-  const EditProfileScreen({super.key});
+class EditProfileSettingsScreen extends ConsumerStatefulWidget {
+  const EditProfileSettingsScreen({super.key});
 
   @override
-  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileSettingsScreen> createState() =>
+      _EditProfileSettingsScreenState();
 }
 
-class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+class _EditProfileSettingsScreenState
+    extends ConsumerState<EditProfileSettingsScreen> {
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
   late TextEditingController _bioController;
@@ -50,7 +53,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (_nameController.text.trim().isEmpty ||
         _usernameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name and username cannot be empty')),
+        SnackBar(
+          content: const Text('Name and username cannot be empty'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
       return;
     }
@@ -66,7 +76,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully')),
+      SnackBar(
+        content: const Text('Profile updated successfully'),
+        backgroundColor: DesignSystem.purpleAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
@@ -75,29 +90,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: DesignSystem.scaffoldBg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: BackButton(color: Colors.white),
         title: const Text(
           'Edit Profile',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          TextButton(
-            onPressed: _saveProfile,
-            child: const Text(
-              'Save',
-              style: TextStyle(
-                color: DesignSystem.purpleAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -118,9 +118,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       color: const Color(0xFF2B1F2E),
                     ),
-                    child: _pickedImagePath != null
-                        ? ClipOval(
-                            child: Image.file(
+                    child: ClipOval(
+                      child: _pickedImagePath != null
+                          ? Image.file(
                               File(_pickedImagePath!),
                               fit: BoxFit.cover,
                               width: 120,
@@ -131,13 +131,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                     size: 60,
                                     color: Colors.white,
                                   ),
+                            )
+                          : const Icon(
+                              Icons.person,
+                              size: 60,
+                              color: Colors.white,
                             ),
-                          )
-                        : const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Colors.white,
-                          ),
+                    ),
                   ),
                   Positioned(
                     bottom: 0,
@@ -163,8 +163,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ),
             const SizedBox(height: 32),
 
-            _buildLabel('Full Name'),
-            _buildTextField(_nameController, 'Enter your full name'),
+            _buildLabel('Display Name'),
+            _buildTextField(_nameController, 'Enter display name'),
             const SizedBox(height: 20),
 
             _buildLabel('Username'),
@@ -176,6 +176,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               _bioController,
               'Write a short bio...',
               maxLines: 4,
+            ),
+
+            const SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _saveProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: DesignSystem.purpleAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ],
         ),
@@ -189,11 +209,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(
-          label,
+          label.toUpperCase(),
           style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            color: Color(0xFFBDB1C9),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
           ),
         ),
       ),
