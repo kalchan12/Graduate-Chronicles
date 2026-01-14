@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
+import '../messages/message_detail_screen.dart';
 
 // Profile screen implemented to match the static HTML profile design.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -250,7 +251,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.pushNamed(context, '/messages');
+                            final conversations = ref.read(
+                              conversationsProvider,
+                            );
+                            // Simple match by name for this mock data environment
+                            final existingConv = conversations.firstWhere(
+                              (c) => c.participantName == profile.name,
+                              orElse: () => Conversation(
+                                id: 'new_${profile.id}',
+                                participantName: profile.name,
+                                participantAvatar: profile.profileImage ?? '',
+                                messages: [],
+                              ),
+                            );
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MessageDetailScreen(
+                                  conversationId: existingConv.id,
+                                  participantName: profile.name,
+                                  participantAvatar: profile.profileImage,
+                                ),
+                              ),
+                            );
                           },
                           child: Container(
                             height: 42, // Reduced height

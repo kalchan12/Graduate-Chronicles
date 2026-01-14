@@ -13,15 +13,26 @@ class PrivacySettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
 
-    void showEnable2FA() {
+    void showTwoFactorSetup() {
+      final codeController = TextEditingController(
+        text: settings.twoFactorCode ?? '',
+      );
+      final isEditing = settings.twoFactorAuth;
+
       showModalBottomSheet(
         context: context,
+        isScrollControlled: true, // Handle keyboard
         backgroundColor: const Color(0xFF1C1022),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         builder: (context) => Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -31,68 +42,130 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 color: DesignSystem.purpleAccent,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Enable Two-Factor Authentication',
-                style: TextStyle(
+              Text(
+                isEditing
+                    ? 'Update Two-Factor Code'
+                    : 'Enable Two-Factor Authentication',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Enter the code sent to your email to verify and enable 2FA.',
+              Text(
+                isEditing
+                    ? 'Enter a new security code to update your settings.'
+                    : 'Enter a security code to enable 2FA protection.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white60),
+                style: const TextStyle(color: Colors.white60),
               ),
               const SizedBox(height: 24),
-              // Mock Passcode Input (Visual only)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(
-                  4,
-                  (index) => Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D2433),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '*',
-                        style: TextStyle(color: Colors.white, fontSize: 24),
-                      ),
+              // Real Input Field
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  letterSpacing: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFF2D2433),
+                  counterText: '',
+                  hintText: '0000',
+                  hintStyle: const TextStyle(
+                    color: Colors.white24,
+                    letterSpacing: 8,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: DesignSystem.purpleAccent,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    notifier.toggleTwoFactorAuth(true);
-                    Navigator.pop(context); // Close modal
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('2FA Enabled Successfully')),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: DesignSystem.purpleAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  if (isEditing) ...[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          notifier.toggleTwoFactorAuth(false);
+                          notifier.setTwoFactorCode(''); // Clear code
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('2FA Disabled Successfully'),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Disable 2FA'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (codeController.text.length < 4) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Code must be at least 4 digits'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                          return;
+                        }
+                        notifier.setTwoFactorCode(codeController.text);
+                        notifier.toggleTwoFactorAuth(true);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isEditing
+                                  ? '2FA Updated Successfully'
+                                  : '2FA Enabled Successfully',
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DesignSystem.purpleAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        isEditing ? 'Save Changes' : 'Verify & Enable',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'Verify & Enable',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
+                ],
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -126,6 +199,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
             TextButton(
               onPressed: () {
                 notifier.toggleTwoFactorAuth(false);
+                notifier.setTwoFactorCode(''); // Clear code on disable
                 Navigator.pop(context);
               },
               child: const Text(
@@ -167,62 +241,75 @@ class PrivacySettingsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           // Custom tile for 2FA with switch
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF231B26),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2D2433),
-                    borderRadius: BorderRadius.circular(8),
+          GestureDetector(
+            onTap: () {
+              // Allow tapping to edit/view if already enabled
+              if (settings.twoFactorAuth) {
+                showTwoFactorSetup();
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF231B26),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D2433),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.security,
+                      color: Color(0xFFBDB1C9),
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.security,
-                    color: Color(0xFFBDB1C9),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Two-Factor Authentication',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Two-Factor Authentication',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Enable 2FA for extra security',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          settings.twoFactorAuth
+                              ? 'Tap to manage code'
+                              : 'Enable 2FA for extra security',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Switch(
-                  value: settings.twoFactorAuth,
-                  onChanged: (v) {
-                    if (v) {
-                      showEnable2FA();
-                    } else {
-                      confirmDisable2FA();
-                    }
-                  },
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: DesignSystem.purpleAccent,
-                  inactiveThumbColor: Colors.white,
-                  inactiveTrackColor: Colors.white24,
-                ),
-              ],
+                  Switch(
+                    value: settings.twoFactorAuth,
+                    onChanged: (v) {
+                      if (v) {
+                        showTwoFactorSetup();
+                      } else {
+                        confirmDisable2FA();
+                      }
+                    },
+                    activeThumbColor: Colors.white,
+                    activeTrackColor: DesignSystem.purpleAccent,
+                    inactiveThumbColor: Colors.white,
+                    inactiveTrackColor: Colors.white24,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),

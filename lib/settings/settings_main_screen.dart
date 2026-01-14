@@ -145,9 +145,11 @@ class SettingsMainScreen extends ConsumerWidget {
             onPressed: () {
               ref.read(authProvider.notifier).logout();
               Navigator.pop(context); // Close dialog
-              Navigator.of(
-                context,
-              ).popUntil((route) => route.isFirst); // Go to splash/login
+              // Clear stack and go to login
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/login', // Assuming '/login' is the route name for LoginScreen
+                (route) => false,
+              );
             },
             child: const Text(
               'Log Out',

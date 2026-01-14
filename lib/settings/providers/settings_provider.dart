@@ -10,6 +10,7 @@ class SettingsState {
   final bool weeklyRecap;
   final bool productUpdates;
   final bool twoFactorAuth;
+  final String? twoFactorCode;
   final bool
   darkMode; // Already exists in theme, kept here for completeness if needed locally
 
@@ -23,6 +24,7 @@ class SettingsState {
     this.weeklyRecap = true,
     this.productUpdates = false,
     this.twoFactorAuth = false,
+    this.twoFactorCode,
     this.darkMode = true,
   });
 
@@ -36,6 +38,7 @@ class SettingsState {
     bool? weeklyRecap,
     bool? productUpdates,
     bool? twoFactorAuth,
+    String? twoFactorCode,
     bool? darkMode,
   }) {
     return SettingsState(
@@ -49,6 +52,7 @@ class SettingsState {
       weeklyRecap: weeklyRecap ?? this.weeklyRecap,
       productUpdates: productUpdates ?? this.productUpdates,
       twoFactorAuth: twoFactorAuth ?? this.twoFactorAuth,
+      twoFactorCode: twoFactorCode ?? this.twoFactorCode,
       darkMode: darkMode ?? this.darkMode,
     );
   }
@@ -94,6 +98,10 @@ class SettingsNotifier extends Notifier<SettingsState> {
 
   void toggleTwoFactorAuth(bool value) {
     state = state.copyWith(twoFactorAuth: value);
+  }
+
+  void setTwoFactorCode(String code) {
+    state = state.copyWith(twoFactorCode: code);
   }
 
   void toggleDarkMode(bool value) {
