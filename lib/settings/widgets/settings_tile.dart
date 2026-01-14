@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback? onTap;
   final Widget? trailing;
   final Color? iconColor;
@@ -12,6 +13,7 @@ class SettingsTile extends StatelessWidget {
     super.key,
     required this.icon,
     required this.title,
+    this.subtitle,
     this.onTap,
     this.trailing,
     this.iconColor,
@@ -50,6 +52,12 @@ class SettingsTile extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
+              )
+            : null,
         trailing:
             trailing ??
             const Icon(Icons.chevron_right, color: Color(0xFFBDB1C9), size: 20),

@@ -35,8 +35,79 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
   void _submit() {
     if (ref.read(forgotProvider.notifier).validateReset()) {
-      Navigator.of(context).pushNamed('/forgot/done');
+      _showSuccessDialog();
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF231B26),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.check_circle,
+              color: DesignSystem.purpleAccent,
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Password Changed!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your password has been successfully updated.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Mock Logout
+                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(
+                    context,
+                  ).popUntil((route) => route.isFirst); // Go to login
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: DesignSystem.purpleAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'Logout & Login Again',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back to settings
+              },
+              child: const Text(
+                'Stay Logged In',
+                style: TextStyle(color: Colors.white60),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

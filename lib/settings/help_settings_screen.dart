@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
-import 'widgets/settings_tile.dart';
 
 class HelpSettingsScreen extends StatelessWidget {
   const HelpSettingsScreen({super.key});
@@ -36,18 +35,92 @@ class HelpSettingsScreen extends StatelessWidget {
             style: TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 32),
-          SettingsTile(icon: Icons.question_answer, title: 'FAQ', onTap: () {}),
-          SettingsTile(
-            icon: Icons.support_agent,
-            title: 'Contact Support',
-            onTap: () {},
+          _buildExpansionTile(
+            title: 'FAQ',
+            icon: Icons.question_answer,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Text(
+                  'Q: How do I reset my password?\nA: Go to Settings > Privacy & Security > Change Password.',
+                  style: TextStyle(color: Colors.white70, height: 1.5),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Text(
+                  'Q: Can I change my username?\nA: Yes, go to Settings > Edit Profile to update your username.',
+                  style: TextStyle(color: Colors.white70, height: 1.5),
+                ),
+              ),
+            ],
           ),
-          SettingsTile(
-            icon: Icons.info_outline,
+          const SizedBox(height: 12),
+          _buildExpansionTile(
+            title: 'Contact Support',
+            icon: Icons.support_agent,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Email: support@graduatechronicles.com\nPhone: +1 (555) 123-4567\nHours: Mon-Fri, 9am - 5pm EST',
+                  style: TextStyle(color: Colors.white70, height: 1.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildExpansionTile(
             title: 'App Info',
-            onTap: () {},
+            icon: Icons.info_outline,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Graduate Chronicles v1.0.0\nBuild Number: 100\n\n© 2026 Graduate Chronicles Inc.',
+                  style: TextStyle(color: Colors.white70, height: 1.5),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildExpansionTile({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF231B26),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Theme(
+        data: ThemeData(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D2433),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: const Color(0xFFE94CFF), size: 20),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          iconColor: Colors.white54,
+          collapsedIconColor: const Color(0xFFBDB1C9),
+          children: children,
+        ),
       ),
     );
   }

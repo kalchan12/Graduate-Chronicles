@@ -13,12 +13,137 @@ class PrivacySettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
 
+    void showEnable2FA() {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: const Color(0xFF1C1022),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (context) => Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.security,
+                size: 48,
+                color: DesignSystem.purpleAccent,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Enable Two-Factor Authentication',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Enter the code sent to your email to verify and enable 2FA.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60),
+              ),
+              const SizedBox(height: 24),
+              // Mock Passcode Input (Visual only)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(
+                  4,
+                  (index) => Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D2433),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '*',
+                        style: TextStyle(color: Colors.white, fontSize: 24),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    notifier.toggleTwoFactorAuth(true);
+                    Navigator.pop(context); // Close modal
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('2FA Enabled Successfully')),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: DesignSystem.purpleAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Verify & Enable',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      );
+    }
+
+    void confirmDisable2FA() {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF231B26),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Disable 2FA?',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Are you sure you want to disable Two-Factor Authentication? Your account will be less secure.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white60),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                notifier.toggleTwoFactorAuth(false);
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Disable',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.white),
+        leading: const BackButton(color: Colors.white),
         title: const Text(
           'Privacy & Security',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -33,8 +158,6 @@ class PrivacySettingsScreen extends ConsumerWidget {
             icon: Icons.lock_outline,
             title: 'Change Password',
             onTap: () {
-              // Navigating to existing SetNewPasswordScreen
-              // In a real app this would likely require current password verification first
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SetNewPasswordScreen()),
@@ -87,8 +210,14 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 ),
                 Switch(
                   value: settings.twoFactorAuth,
-                  onChanged: (v) => notifier.toggleTwoFactorAuth(v),
-                  activeColor: Colors.white,
+                  onChanged: (v) {
+                    if (v) {
+                      showEnable2FA();
+                    } else {
+                      confirmDisable2FA();
+                    }
+                  },
+                  activeThumbColor: Colors.white,
                   activeTrackColor: DesignSystem.purpleAccent,
                   inactiveThumbColor: Colors.white,
                   inactiveTrackColor: Colors.white24,

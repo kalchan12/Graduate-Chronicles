@@ -6,6 +6,7 @@ import 'edit_profile_settings_screen.dart';
 import 'notification_settings_screen.dart';
 import 'privacy_settings_screen.dart';
 import 'help_settings_screen.dart';
+import 'appearance_settings_screen.dart';
 import '../../state/auth_provider.dart';
 
 class SettingsMainScreen extends ConsumerWidget {
@@ -68,6 +69,19 @@ class SettingsMainScreen extends ConsumerWidget {
               );
             },
           ),
+          SettingsTile(
+            icon: Icons.palette,
+            iconColor: Color(0xFFE94CFF),
+            title: 'Appearance',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AppearanceSettingsScreen(),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 24),
           const _SectionHeader(title: 'SUPPORT'),
           SettingsTile(
@@ -95,7 +109,7 @@ class SettingsMainScreen extends ConsumerWidget {
             child: Text(
               'Graduate Chronicles v1.0.0',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 12,
               ),
             ),

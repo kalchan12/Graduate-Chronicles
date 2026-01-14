@@ -16,6 +16,85 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _selectedTab = 0;
+  bool _isConnectionSent = false;
+
+  void _showCustomToast(String message) {
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).viewPadding.top + 60,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E1A36).withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: DesignSystem.purpleAccent.withOpacity(0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: DesignSystem.purpleAccent,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
+  void _showProfileImage(String? imagePath) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: const BackButton(color: Colors.white),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: imagePath != null
+                  ? Image.file(File(imagePath))
+                  : const Icon(Icons.person, size: 150, color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,45 +134,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Column(
                 children: [
                   // Profile Image with handling for local file
-                  Container(
-                    width: 120,
-                    height: 120,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFE94CFF).withValues(alpha: 0.6),
-                        width: 2,
-                      ),
-                    ),
+                  GestureDetector(
+                    onTap: () => _showProfileImage(profile.profileImage),
                     child: Container(
+                      width: 120,
+                      height: 120,
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF2B1F2E),
                         border: Border.all(
-                          color: const Color(0xFFE94CFF),
+                          color: const Color(0xFFE94CFF).withValues(alpha: 0.6),
                           width: 2,
                         ),
                       ),
-                      child: ClipOval(
-                        child: profile.profileImage != null
-                            ? Image.file(
-                                File(profile.profileImage!),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 60,
-                                    ),
-                              )
-                            : const Center(
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 60,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF2B1F2E),
+                          border: Border.all(
+                            color: const Color(0xFFE94CFF),
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: profile.profileImage != null
+                              ? Image.file(
+                                  File(profile.profileImage!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 60,
+                                      ),
+                                )
+                              : const Center(
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 60,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                     ),
                   ),
@@ -133,25 +215,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Connect logic placeholder
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Connection Request Sent'),
-                              ),
-                            );
+                            setState(() {
+                              _isConnectionSent = !_isConnectionSent;
+                            });
+                            if (_isConnectionSent) {
+                              _showCustomToast('Connection Request Sent');
+                            }
                           },
                           child: Container(
-                            height: 50,
+                            height: 42, // Reduced height
                             decoration: BoxDecoration(
-                              color: DesignSystem.purpleAccent,
-                              borderRadius: BorderRadius.circular(25),
+                              color: _isConnectionSent
+                                  ? const Color(0xFF2D2433)
+                                  : DesignSystem.purpleAccent,
+                              borderRadius: BorderRadius.circular(21),
+                              border: _isConnectionSent
+                                  ? Border.all(color: Colors.white24)
+                                  : null,
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Text(
-                                'Connect',
-                                style: TextStyle(
+                                _isConnectionSent ? 'Sent' : 'Connect',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 15,
                                 ),
                               ),
                             ),
@@ -162,16 +250,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Message logic placeholder
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Opening Chat...')),
-                            );
+                            Navigator.pushNamed(context, '/messages');
                           },
                           child: Container(
-                            height: 50,
+                            height: 42, // Reduced height
                             decoration: BoxDecoration(
                               color: const Color(0xFF231B26),
-                              borderRadius: BorderRadius.circular(25),
+                              borderRadius: BorderRadius.circular(21),
                               border: Border.all(color: Colors.white24),
                             ),
                             child: const Center(
@@ -180,6 +265,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 15,
                                 ),
                               ),
                             ),
