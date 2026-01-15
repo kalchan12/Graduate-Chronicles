@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
+import '../../widgets/global_background.dart';
 
 class ReunionCreateScreen extends StatefulWidget {
   const ReunionCreateScreen({super.key});
@@ -21,9 +22,10 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: DesignSystem.scaffoldBg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -35,164 +37,175 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildLabel('Event Title'),
-            _buildTextField(_titleController, 'e.g. Class of 2024 Gala Night'),
-            const SizedBox(height: 24),
-
-            Row(
+      body: GlobalBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('Date'),
-                      _buildDateTimePicker(
-                        Icons.calendar_today,
-                        _date,
-                        _pickDate,
+                _buildLabel('Event Title'),
+                _buildTextField(
+                  _titleController,
+                  'e.g. Class of 2024 Gala Night',
+                ),
+                const SizedBox(height: 24),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Date'),
+                          _buildDateTimePicker(
+                            Icons.calendar_today,
+                            _date,
+                            _pickDate,
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Time'),
+                          _buildDateTimePicker(
+                            Icons.access_time,
+                            _time,
+                            _pickTime,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                _buildLabel('Location'),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF24122E),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTypeOption(0, 'Physical'),
+                      _buildTypeOption(1, 'Virtual'),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('Time'),
-                      _buildDateTimePicker(Icons.access_time, _time, _pickTime),
-                    ],
+                const SizedBox(height: 12),
+                _buildTextField(
+                  _locationController,
+                  'Add location or paste meeting link',
+                  icon: Icons.location_on,
+                ),
+
+                const SizedBox(height: 24),
+
+                _buildLabel('Description'),
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF24122E),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TextField(
+                    controller: _descriptionController,
+                    maxLines: 5,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText:
+                          'Tell everyone what\'s happening! Agenda, dress code, etc.',
+                      hintStyle: TextStyle(color: Colors.white30),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(16),
+                    ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
 
-            _buildLabel('Location'),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF24122E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  _buildTypeOption(0, 'Physical'),
-                  _buildTypeOption(1, 'Virtual'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              _locationController,
-              'Add location or paste meeting link',
-              icon: Icons.location_on,
-            ),
+                const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
-
-            _buildLabel('Description'),
-            Container(
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF24122E),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: TextField(
-                controller: _descriptionController,
-                maxLines: 5,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText:
-                      'Tell everyone what\'s happening! Agenda, dress code, etc.',
-                  hintStyle: TextStyle(color: Colors.white30),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.visibility,
-                  color: DesignSystem.purpleAccent,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Visible to',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildVisibilityOption(0, 'Everyone'),
-                const SizedBox(width: 12),
-                _buildVisibilityOption(1, 'My Batch Only'),
-              ],
-            ),
-
-            const SizedBox(height: 40),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.visibility,
+                      color: DesignSystem.purpleAccent,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Visible to',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _createEvent,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: DesignSystem.purpleAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Create Event',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildVisibilityOption(0, 'Everyone'),
+                    const SizedBox(width: 12),
+                    _buildVisibilityOption(1, 'My Batch Only'),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white24),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward),
-                      ],
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _createEvent,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: DesignSystem.purpleAccent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Create Event',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

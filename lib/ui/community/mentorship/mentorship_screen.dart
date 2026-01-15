@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
+import '../../widgets/global_background.dart';
 
 class MentorshipScreen extends StatefulWidget {
   const MentorshipScreen({super.key});
@@ -124,9 +125,10 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: DesignSystem.scaffoldBg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -138,142 +140,148 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2A1727),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                onChanged: (val) => setState(() => _searchQuery = val),
-                decoration: const InputDecoration(
-                  hintText: 'Search by name, role, or company...',
-                  hintStyle: TextStyle(color: Colors.white30),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.white30),
-                  suffixIcon: Icon(Icons.tune, color: Colors.white30),
-                  contentPadding: EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters.map((filter) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _FilterChip(
-                      label: filter,
-                      isSelected: _selectedFilter == filter,
-                      onTap: () => setState(() => _selectedFilter = filter),
+      body: GlobalBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Search Bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A1727),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    decoration: const InputDecoration(
+                      hintText: 'Search by name, role, or company...',
+                      hintStyle: TextStyle(color: Colors.white30),
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: Colors.white30),
+                      suffixIcon: Icon(Icons.tune, color: Colors.white30),
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Active Requests
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Active Requests',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  'View History',
-                  style: TextStyle(
-                    color: DesignSystem.purpleAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const _RequestCard(
-              name: 'James Chen',
-              role: 'Startup Funding',
-              status: 'Pending',
-              date: 'Oct 28 • 10:00 AM',
-            ),
+                const SizedBox(height: 24),
 
-            const SizedBox(height: 32),
-
-            // Suggested Mentors
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Suggested Mentors',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Icon(Icons.filter_list, color: Colors.white54),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            if (filteredMentors.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: Center(
-                  child: Text(
-                    "No mentors found.",
-                    style: TextStyle(color: Colors.white54),
-                  ),
-                ),
-              )
-            else
-              ...filteredMentors.map(
-                (mentor) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _MentorCard(
-                    name: mentor['name'],
-                    role: mentor['role'],
-                    tags: List<String>.from(mentor['tags']),
-                    available: mentor['available'],
-                    isTopRated: mentor['isTopRated'],
-                    responseTime: mentor['responseTime'],
-                    isSaved: mentor['isSaved'],
-                    requestSent: mentor['requestSent'],
-                    onSave: () {
-                      setState(() {
-                        mentor['isSaved'] = !mentor['isSaved'];
-                      });
-                      _showToast(
-                        mentor['isSaved'] ? 'Mentor saved' : 'Mentor removed',
+                // Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _filters.map((filter) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _FilterChip(
+                          label: filter,
+                          isSelected: _selectedFilter == filter,
+                          onTap: () => setState(() => _selectedFilter = filter),
+                        ),
                       );
-                    },
-                    onRequest: () {
-                      setState(() {
-                        mentor['requestSent'] = true;
-                      });
-                      _showToast('Request sent to ${mentor['name']}');
-                    },
+                    }).toList(),
                   ),
                 ),
-              ),
-          ],
+                const SizedBox(height: 32),
+
+                // Active Requests
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Active Requests',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'View History',
+                      style: TextStyle(
+                        color: DesignSystem.purpleAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const _RequestCard(
+                  name: 'James Chen',
+                  role: 'Startup Funding',
+                  status: 'Pending',
+                  date: 'Oct 28 • 10:00 AM',
+                ),
+
+                const SizedBox(height: 32),
+
+                // Suggested Mentors
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Suggested Mentors',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Icon(Icons.filter_list, color: Colors.white54),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (filteredMentors.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Center(
+                      child: Text(
+                        "No mentors found.",
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredMentors.map(
+                    (mentor) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _MentorCard(
+                        name: mentor['name'],
+                        role: mentor['role'],
+                        tags: List<String>.from(mentor['tags']),
+                        available: mentor['available'],
+                        isTopRated: mentor['isTopRated'],
+                        responseTime: mentor['responseTime'],
+                        isSaved: mentor['isSaved'],
+                        requestSent: mentor['requestSent'],
+                        onSave: () {
+                          setState(() {
+                            mentor['isSaved'] = !mentor['isSaved'];
+                          });
+                          _showToast(
+                            mentor['isSaved']
+                                ? 'Mentor saved'
+                                : 'Mentor removed',
+                          );
+                        },
+                        onRequest: () {
+                          setState(() {
+                            mentor['requestSent'] = true;
+                          });
+                          _showToast('Request sent to ${mentor['name']}');
+                        },
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

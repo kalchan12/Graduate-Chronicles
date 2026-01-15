@@ -6,6 +6,8 @@ import 'dart:io';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 
+import '../../ui/widgets/global_background.dart';
+
 class EditProfileSettingsScreen extends ConsumerStatefulWidget {
   const EditProfileSettingsScreen({super.key});
 
@@ -140,7 +142,8 @@ class _EditProfileSettingsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -151,105 +154,112 @@ class _EditProfileSettingsScreenState
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Image Picker
-            Center(
-              child: Stack(
-                children: [
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: DesignSystem.purpleAccent,
-                        width: 2,
-                      ),
-                      color: const Color(0xFF2B1F2E),
-                    ),
-                    child: ClipOval(
-                      child: _pickedImagePath != null
-                          ? Image.file(
-                              File(_pickedImagePath!),
-                              fit: BoxFit.cover,
-                              width: 120,
-                              height: 120,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: Colors.white,
-                                  ),
-                            )
-                          : const Icon(
-                              Icons.person,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: DesignSystem.purpleAccent,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // Image Picker
+                Center(
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: DesignSystem.purpleAccent,
+                            width: 2,
+                          ),
+                          color: const Color(0xFF2B1F2E),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 20,
+                        child: ClipOval(
+                          child: _pickedImagePath != null
+                              ? Image.file(
+                                  File(_pickedImagePath!),
+                                  fit: BoxFit.cover,
+                                  width: 120,
+                                  height: 120,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: Colors.white,
+                                      ),
+                                )
+                              : const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.white,
+                                ),
                         ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: DesignSystem.purpleAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                _buildLabel('Display Name'),
+                _buildTextField(_nameController, 'Enter display name'),
+                const SizedBox(height: 20),
+
+                _buildLabel('Username'),
+                _buildTextField(_usernameController, 'Enter username'),
+                const SizedBox(height: 20),
+
+                _buildLabel('Bio'),
+                _buildTextField(
+                  _bioController,
+                  'Write a short bio...',
+                  maxLines: 4,
+                ),
+
+                const SizedBox(height: 40),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _saveProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DesignSystem.purpleAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save Changes',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            _buildLabel('Display Name'),
-            _buildTextField(_nameController, 'Enter display name'),
-            const SizedBox(height: 20),
-
-            _buildLabel('Username'),
-            _buildTextField(_usernameController, 'Enter username'),
-            const SizedBox(height: 20),
-
-            _buildLabel('Bio'),
-            _buildTextField(
-              _bioController,
-              'Write a short bio...',
-              maxLines: 4,
-            ),
-
-            const SizedBox(height: 40),
-
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: DesignSystem.purpleAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

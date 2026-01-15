@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
+import '../widgets/global_background.dart';
 import 'portfolio_viewed_screen.dart';
 import 'portfolio_liked_screen.dart';
 import 'portfolio_select_screen.dart';
@@ -10,167 +11,169 @@ class PortfolioHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
-      body: Stack(
-        children: [
-          // -- Main Scrollable Content --
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: Column(
-              children: [
-                // -- Header Area (Image + TopBar + Avatar) --
-                SizedBox(
-                  height: 250, // Reduced height (was 420)
-                  child: Stack(
-                    children: [
-                      // Cover Image
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 180, // Reduced height (was 350)
-                        child: ShaderMask(
-                          shaderCallback: (rect) {
-                            return const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.black, Colors.transparent],
-                              stops: [0.6, 1.0],
-                            ).createShader(
-                              Rect.fromLTRB(0, 0, rect.width, rect.height),
-                            );
-                          },
-                          blendMode: BlendMode.dstIn,
-                          child: Image.asset(
-                            'assets/images/dog.png',
-                            fit: BoxFit.cover,
+      backgroundColor: Colors.transparent,
+      body: GlobalBackground(
+        child: Stack(
+          children: [
+            // -- Main Scrollable Content --
+            SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
+                children: [
+                  // -- Header Area (Image + TopBar + Avatar) --
+                  SizedBox(
+                    height: 250, // Reduced height (was 420)
+                    child: Stack(
+                      children: [
+                        // Cover Image
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 180, // Reduced height (was 350)
+                          child: ShaderMask(
+                            shaderCallback: (rect) {
+                              return const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Colors.black, Colors.transparent],
+                                stops: [0.6, 1.0],
+                              ).createShader(
+                                Rect.fromLTRB(0, 0, rect.width, rect.height),
+                              );
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: Image.asset(
+                              'assets/images/dog.png',
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
-                      ),
 
-                      // Top Bar (Wrapped in SafeArea to avoid status bar overlap)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: SafeArea(child: _buildTopBar(context)),
-                      ),
+                        // Top Bar (Wrapped in SafeArea to avoid status bar overlap)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(child: _buildTopBar(context)),
+                        ),
 
-                      // Avatar (Positioned at bottom center)
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Center(child: _buildAvatar()),
+                        // Avatar (Positioned at bottom center)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Center(child: _buildAvatar()),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // -- Name & Role --
+                  const Text(
+                    'Abebe Kebede',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Crafting digital experiences @ University',
+                    style: TextStyle(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'SENIOR YEAR',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(
+                          Icons.circle,
+                          size: 4,
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      Text(
+                        'GLOBAL TECH ACADEMY',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                // -- Name & Role --
-                const Text(
-                  'Abebe Kebede',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Crafting digital experiences @ University',
-                  style: TextStyle(
-                    color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'SENIOR YEAR',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(
-                        Icons.circle,
-                        size: 4,
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    Text(
-                      'GLOBAL TECH ACADEMY',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ),
+                  _buildStatsRow(context),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                _buildStatsRow(context),
+                  _buildSectionHeader('ACHIEVEMENTS', '3 items'),
+                  const SizedBox(height: 16),
+                  _buildAchievementsList(),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                _buildSectionHeader('ACHIEVEMENTS', '3 items'),
-                const SizedBox(height: 16),
-                _buildAchievementsList(),
+                  _buildSectionHeader('RESUMES', ''),
+                  const SizedBox(height: 16),
+                  _buildResumesGrid(),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                _buildSectionHeader('RESUMES', ''),
-                const SizedBox(height: 16),
-                _buildResumesGrid(),
+                  _buildSectionHeader('CERTS', ''),
+                  const SizedBox(height: 16),
+                  _buildCertsGrid(),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                _buildSectionHeader('CERTS', ''),
-                const SizedBox(height: 16),
-                _buildCertsGrid(),
-
-                const SizedBox(height: 32),
-
-                _buildSectionHeader('CONNECTED NETWORK', ''),
-                const SizedBox(height: 16),
-                _buildNetworkRow(),
-              ],
+                  _buildSectionHeader('CONNECTED NETWORK', ''),
+                  const SizedBox(height: 16),
+                  _buildNetworkRow(),
+                ],
+              ),
             ),
-          ),
 
-          // -- Floating Add Button --
-          Positioned(
-            bottom: 24,
-            right: 24,
-            child: FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PortfolioSelectScreen(),
-                  ),
-                );
-              },
-              backgroundColor: DesignSystem.purpleAccent,
-              elevation: 8,
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            // -- Floating Add Button --
+            Positioned(
+              bottom: 24,
+              right: 24,
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PortfolioSelectScreen(),
+                    ),
+                  );
+                },
+                backgroundColor: DesignSystem.purpleAccent,
+                elevation: 8,
+                child: const Icon(Icons.add, color: Colors.white, size: 28),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

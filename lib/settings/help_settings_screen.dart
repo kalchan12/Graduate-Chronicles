@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../theme/design_system.dart';
+
+import '../../ui/widgets/global_background.dart';
 
 class HelpSettingsScreen extends StatelessWidget {
   const HelpSettingsScreen({super.key});
@@ -7,7 +8,8 @@ class HelpSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -18,72 +20,82 @@ class HelpSettingsScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Text(
-            'How can we help you?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Browse our FAQ or contact our support team.',
-            style: TextStyle(color: Colors.white54, fontSize: 14),
-          ),
-          const SizedBox(height: 32),
-          _buildExpansionTile(
-            title: 'FAQ',
-            icon: Icons.question_answer,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  'Q: How do I reset my password?\nA: Go to Settings > Privacy & Security > Change Password.',
-                  style: TextStyle(color: Colors.white70, height: 1.5),
+              const Text(
+                'How can we help you?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  'Q: Can I change my username?\nA: Yes, go to Settings > Edit Profile to update your username.',
-                  style: TextStyle(color: Colors.white70, height: 1.5),
-                ),
+              const SizedBox(height: 8),
+              const Text(
+                'Browse our FAQ or contact our support team.',
+                style: TextStyle(color: Colors.white54, fontSize: 14),
+              ),
+              const SizedBox(height: 32),
+              _buildExpansionTile(
+                title: 'FAQ',
+                icon: Icons.question_answer,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: Text(
+                      'Q: How do I reset my password?\nA: Go to Settings > Privacy & Security > Change Password.',
+                      style: TextStyle(color: Colors.white70, height: 1.5),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: Text(
+                      'Q: Can I change my username?\nA: Yes, go to Settings > Edit Profile to update your username.',
+                      style: TextStyle(color: Colors.white70, height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildExpansionTile(
+                title: 'Contact Support',
+                icon: Icons.support_agent,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'Email: support@graduatechronicles.com\nPhone: +1 (555) 123-4567\nHours: Mon-Fri, 9am - 5pm EST',
+                      style: TextStyle(color: Colors.white70, height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildExpansionTile(
+                title: 'App Info',
+                icon: Icons.info_outline,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'Graduate Chronicles v1.0.0\nBuild Number: 100\n\n© 2026 Graduate Chronicles Inc.',
+                      style: TextStyle(color: Colors.white70, height: 1.5),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildExpansionTile(
-            title: 'Contact Support',
-            icon: Icons.support_agent,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Email: support@graduatechronicles.com\nPhone: +1 (555) 123-4567\nHours: Mon-Fri, 9am - 5pm EST',
-                  style: TextStyle(color: Colors.white70, height: 1.5),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildExpansionTile(
-            title: 'App Info',
-            icon: Icons.info_outline,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Graduate Chronicles v1.0.0\nBuild Number: 100\n\n© 2026 Graduate Chronicles Inc.',
-                  style: TextStyle(color: Colors.white70, height: 1.5),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

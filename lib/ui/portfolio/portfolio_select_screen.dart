@@ -4,6 +4,7 @@ import 'add_cv_screen.dart';
 import 'add_certificate_screen.dart';
 import 'add_link_screen.dart';
 import '../../theme/design_system.dart';
+import '../../ui/widgets/global_background.dart';
 
 class PortfolioSelectScreen extends StatelessWidget {
   const PortfolioSelectScreen({super.key});
@@ -11,7 +12,8 @@ class PortfolioSelectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -27,64 +29,66 @@ class PortfolioSelectScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildOptionCard(
-                context,
-                'Achievement',
-                'Showcase your wins',
-                Icons.emoji_events_rounded,
-                Colors.amberAccent,
-                () => Navigator.push(
+      body: GlobalBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildOptionCard(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddAchievementScreen(),
+                  'Achievement',
+                  'Showcase your wins',
+                  Icons.emoji_events_rounded,
+                  Colors.amberAccent,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AddAchievementScreen(),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionCard(
-                context,
-                'CV / Resume',
-                'Upload your latest CV',
-                Icons.picture_as_pdf_rounded,
-                Colors.redAccent,
-                () => Navigator.push(
+                const SizedBox(height: 16),
+                _buildOptionCard(
                   context,
-                  MaterialPageRoute(builder: (_) => const AddCvScreen()),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionCard(
-                context,
-                'Certificate',
-                'Add professional proofs',
-                Icons.workspace_premium_rounded,
-                Colors.blueAccent,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddCertificateScreen(),
+                  'CV / Resume',
+                  'Upload your latest CV',
+                  Icons.picture_as_pdf_rounded,
+                  Colors.redAccent,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddCvScreen()),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionCard(
-                context,
-                'Link',
-                'Connect your work',
-                Icons.link_rounded,
-                Colors.cyanAccent,
-                () => Navigator.push(
+                const SizedBox(height: 16),
+                _buildOptionCard(
                   context,
-                  MaterialPageRoute(builder: (_) => const AddLinkScreen()),
+                  'Certificate',
+                  'Add professional proofs',
+                  Icons.workspace_premium_rounded,
+                  Colors.blueAccent,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AddCertificateScreen(),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                _buildOptionCard(
+                  context,
+                  'Link',
+                  'Connect your work',
+                  Icons.link_rounded,
+                  Colors.cyanAccent,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddLinkScreen()),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

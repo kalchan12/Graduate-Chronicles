@@ -4,6 +4,7 @@ import '../../theme/design_system.dart';
 import 'providers/settings_provider.dart';
 import 'widgets/settings_tile.dart';
 import '../../ui/auth/forgot/set_new_password_screen.dart'; // Direct import or use named route
+import '../../ui/widgets/global_background.dart';
 
 class PrivacySettingsScreen extends ConsumerWidget {
   const PrivacySettingsScreen({super.key});
@@ -213,7 +214,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -224,107 +226,113 @@ class PrivacySettingsScreen extends ConsumerWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const _SectionHeader(title: 'SECURITY'),
-          SettingsTile(
-            icon: Icons.lock_outline,
-            title: 'Change Password',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SetNewPasswordScreen()),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
+      body: GlobalBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const _SectionHeader(title: 'SECURITY'),
+              SettingsTile(
+                icon: Icons.lock_outline,
+                title: 'Change Password',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SetNewPasswordScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
 
-          // Custom tile for 2FA with switch
-          GestureDetector(
-            onTap: () {
-              // Allow tapping to edit/view if already enabled
-              if (settings.twoFactorAuth) {
-                showTwoFactorSetup();
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF231B26),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D2433),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.security,
-                      color: Color(0xFFBDB1C9),
-                      size: 20,
-                    ),
+              // Custom tile for 2FA with switch
+              GestureDetector(
+                onTap: () {
+                  // Allow tapping to edit/view if already enabled
+                  if (settings.twoFactorAuth) {
+                    showTwoFactorSetup();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF231B26),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Two-Factor Authentication',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2D2433),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          settings.twoFactorAuth
-                              ? 'Tap to manage code'
-                              : 'Enable 2FA for extra security',
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 12,
-                          ),
+                        child: const Icon(
+                          Icons.security,
+                          color: Color(0xFFBDB1C9),
+                          size: 20,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Two-Factor Authentication',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              settings.twoFactorAuth
+                                  ? 'Tap to manage code'
+                                  : 'Enable 2FA for extra security',
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: settings.twoFactorAuth,
+                        onChanged: (v) {
+                          if (v) {
+                            showTwoFactorSetup();
+                          } else {
+                            confirmDisable2FA();
+                          }
+                        },
+                        activeThumbColor: Colors.white,
+                        activeTrackColor: DesignSystem.purpleAccent,
+                        inactiveThumbColor: Colors.white,
+                        inactiveTrackColor: Colors.white24,
+                      ),
+                    ],
                   ),
-                  Switch(
-                    value: settings.twoFactorAuth,
-                    onChanged: (v) {
-                      if (v) {
-                        showTwoFactorSetup();
-                      } else {
-                        confirmDisable2FA();
-                      }
-                    },
-                    activeThumbColor: Colors.white,
-                    activeTrackColor: DesignSystem.purpleAccent,
-                    inactiveThumbColor: Colors.white,
-                    inactiveTrackColor: Colors.white24,
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+              const _SectionHeader(title: 'DATA PRIVACY'),
+              // Placeholder for Data Privacy items if needed
+              SettingsTile(
+                icon: Icons.policy,
+                title: 'Privacy Policy',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Opening Privacy Policy...')),
+                  );
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          const _SectionHeader(title: 'DATA PRIVACY'),
-          // Placeholder for Data Privacy items if needed
-          SettingsTile(
-            icon: Icons.policy,
-            title: 'Privacy Policy',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening Privacy Policy...')),
-              );
-            },
-          ),
-        ],
+        ),
       ),
     );
   }

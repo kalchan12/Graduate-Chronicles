@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
+import '../widgets/global_background.dart';
 
 class AddCvScreen extends StatefulWidget {
   const AddCvScreen({super.key});
@@ -22,7 +23,8 @@ class _AddCvScreenState extends State<AddCvScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -38,72 +40,80 @@ class _AddCvScreenState extends State<AddCvScreen> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildUploadArea(),
+      body: GlobalBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildUploadArea(),
 
-                  const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                  _buildLabel('File Name'),
-                  _buildTextField(
-                    controller: _nameCtrl,
-                    hint: "e.g., My_Design_CV_2024.pdf",
-                  ),
+                      _buildLabel('File Name'),
+                      _buildTextField(
+                        controller: _nameCtrl,
+                        hint: "e.g., My_Design_CV_2024.pdf",
+                      ),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  _buildLabel('Notes (Optional)'),
-                  _buildTextField(
-                    controller: _notesCtrl,
-                    hint: 'Brief description for this version...',
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            decoration: BoxDecoration(
-              color: DesignSystem.scaffoldBg,
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: DesignSystem.purpleAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  elevation: 4,
-                  shadowColor: DesignSystem.purpleAccent.withValues(alpha: 0.4),
-                ),
-                child: const Text(
-                  'Save CV',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                      _buildLabel('Notes (Optional)'),
+                      _buildTextField(
+                        controller: _notesCtrl,
+                        hint: 'Brief description for this version...',
+                        maxLines: 3,
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
+
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DesignSystem.purpleAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      elevation: 4,
+                      shadowColor: DesignSystem.purpleAccent.withValues(
+                        alpha: 0.4,
+                      ),
+                    ),
+                    child: const Text(
+                      'Save CV',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

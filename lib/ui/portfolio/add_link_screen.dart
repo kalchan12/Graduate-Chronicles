@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
+import '../widgets/global_background.dart';
 
 class AddLinkScreen extends StatefulWidget {
   const AddLinkScreen({super.key});
@@ -24,7 +25,8 @@ class _AddLinkScreenState extends State<AddLinkScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -40,75 +42,83 @@ class _AddLinkScreenState extends State<AddLinkScreen> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildLabel('Link Title'),
-                  _buildTextField(
-                    controller: _titleCtrl,
-                    hint: "e.g., Personal Website",
-                  ),
-                  const SizedBox(height: 24),
+      body: GlobalBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildLabel('Link Title'),
+                      _buildTextField(
+                        controller: _titleCtrl,
+                        hint: "e.g., Personal Website",
+                      ),
+                      const SizedBox(height: 24),
 
-                  _buildLabel('URL'),
-                  _buildTextField(
-                    controller: _urlCtrl,
-                    hint: "https://",
-                    isUrl: true,
-                  ),
+                      _buildLabel('URL'),
+                      _buildTextField(
+                        controller: _urlCtrl,
+                        hint: "https://",
+                        isUrl: true,
+                      ),
 
-                  const SizedBox(height: 24),
-                  _buildLabel('Description (Optional)'),
-                  _buildTextField(
-                    controller: _descCtrl,
-                    hint: 'Short description...',
-                    maxLines: 2,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            decoration: BoxDecoration(
-              color: DesignSystem.scaffoldBg,
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: DesignSystem.purpleAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  elevation: 4,
-                  shadowColor: DesignSystem.purpleAccent.withValues(alpha: 0.4),
-                ),
-                child: const Text(
-                  'Save Link',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                      const SizedBox(height: 24),
+                      _buildLabel('Description (Optional)'),
+                      _buildTextField(
+                        controller: _descCtrl,
+                        hint: 'Short description...',
+                        maxLines: 2,
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
+
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DesignSystem.purpleAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      elevation: 4,
+                      shadowColor: DesignSystem.purpleAccent.withValues(
+                        alpha: 0.4,
+                      ),
+                    ),
+                    child: const Text(
+                      'Save Link',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

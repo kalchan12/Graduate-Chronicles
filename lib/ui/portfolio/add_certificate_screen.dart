@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
+import '../widgets/global_background.dart';
 
 class AddCertificateScreen extends StatefulWidget {
   const AddCertificateScreen({super.key});
@@ -51,7 +52,8 @@ class _AddCertificateScreenState extends State<AddCertificateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -67,108 +69,116 @@ class _AddCertificateScreenState extends State<AddCertificateScreen> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildLabel('Certificate Name'),
-                  _buildTextField(
-                    controller: _nameCtrl,
-                    hint: "e.g., Google UX Design",
-                  ),
-                  const SizedBox(height: 24),
-
-                  _buildLabel('Issuing Organization'),
-                  _buildTextField(
-                    controller: _issuerCtrl,
-                    hint: "e.g., Coursera, Udemy",
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  _buildLabel('Date Issued'),
-                  InkWell(
-                    onTap: _pickDate,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildLabel('Certificate Name'),
+                      _buildTextField(
+                        controller: _nameCtrl,
+                        hint: "e.g., Google UX Design",
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                      const SizedBox(height: 24),
+
+                      _buildLabel('Issuing Organization'),
+                      _buildTextField(
+                        controller: _issuerCtrl,
+                        hint: "e.g., Coursera, Udemy",
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      _buildLabel('Date Issued'),
+                      InkWell(
+                        onTap: _pickDate,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today_rounded,
-                            color: Colors.white54,
-                            size: 20,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "${_selectedDate.toLocal()}".split(' ')[0],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
                             ),
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_rounded,
+                                color: Colors.white54,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                "${_selectedDate.toLocal()}".split(' ')[0],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                      _buildLabel('Certificate File (Optional)'),
+                      _buildUploadArea(),
+                    ],
+                  ),
+                ),
+              ),
+
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                decoration: BoxDecoration(
+                  color: Colors.transparent, // Transparent for gradient
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DesignSystem.purpleAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      elevation: 4,
+                      shadowColor: DesignSystem.purpleAccent.withValues(
+                        alpha: 0.4,
+                      ),
+                    ),
+                    child: const Text(
+                      'Save Certificate',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
-                  _buildLabel('Certificate File (Optional)'),
-                  _buildUploadArea(),
-                ],
-              ),
-            ),
-          ),
-
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            decoration: BoxDecoration(
-              color: DesignSystem.scaffoldBg,
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: DesignSystem.purpleAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  elevation: 4,
-                  shadowColor: DesignSystem.purpleAccent.withValues(alpha: 0.4),
-                ),
-                child: const Text(
-                  'Save Certificate',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

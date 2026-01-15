@@ -7,6 +7,8 @@ import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
 import '../messages/message_detail_screen.dart';
 
+import '../widgets/global_background.dart';
+
 // Profile screen implemented to match the static HTML profile design.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -31,10 +33,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF2E1A36).withOpacity(0.85),
+              color: const Color(0xFF2E1A36).withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: DesignSystem.purpleAccent.withOpacity(0.3),
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
               ),
               boxShadow: [
                 BoxShadow(
@@ -107,311 +109,317 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final achievements = ref.watch(profileAchievementsProvider);
 
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 40),
-          children: [
-            // App Bar matching design
-            CustomAppBar(
-              title: 'Profile',
-              showLeading: true,
-              onLeading: () => Navigator.of(context).pop(),
-              trailing: IconButton(
-                icon: const Icon(Icons.settings, color: Colors.white),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SettingsMainScreen(),
-                    ),
-                  );
-                },
+      backgroundColor: Colors.transparent,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 40),
+            children: [
+              // App Bar matching design
+              CustomAppBar(
+                title: 'Profile',
+                showLeading: true,
+                onLeading: () => Navigator.of(context).pop(),
+                trailing: IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsMainScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
 
-            // Profile header
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10,
-              ),
-              child: Column(
-                children: [
-                  // Profile Image with handling for local file
-                  GestureDetector(
-                    onTap: () => _showProfileImage(profile.profileImage),
-                    child: Hero(
-                      tag: 'profile_image',
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(
-                              0xFFE94CFF,
-                            ).withValues(alpha: 0.6),
-                            width: 2,
-                          ),
-                        ),
+              // Profile header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10,
+                ),
+                child: Column(
+                  children: [
+                    // Profile Image with handling for local file
+                    GestureDetector(
+                      onTap: () => _showProfileImage(profile.profileImage),
+                      child: Hero(
+                        tag: 'profile_image',
                         child: Container(
+                          width: 120,
+                          height: 120,
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF2B1F2E),
                             border: Border.all(
-                              color: const Color(0xFFE94CFF),
+                              color: const Color(
+                                0xFFE94CFF,
+                              ).withValues(alpha: 0.6),
                               width: 2,
                             ),
                           ),
-                          child: ClipOval(
-                            child: profile.profileImage != null
-                                ? Image.file(
-                                    File(profile.profileImage!),
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Icon(
-                                              Icons.person,
-                                              color: Colors.white,
-                                              size: 60,
-                                            ),
-                                  )
-                                : const Center(
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 60,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF2B1F2E),
+                              border: Border.all(
+                                color: const Color(0xFFE94CFF),
+                                width: 2,
+                              ),
+                            ),
+                            child: ClipOval(
+                              child: profile.profileImage != null
+                                  ? Image.file(
+                                      File(profile.profileImage!),
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.person,
+                                                color: Colors.white,
+                                                size: 60,
+                                              ),
+                                    )
+                                  : const Center(
+                                      child: Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 60,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        profile.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Colors.greenAccent,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: Colors.greenAccent, blurRadius: 4),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (profile.username.isNotEmpty) ...[
-                    Text(
-                      profile.username,
-                      style: const TextStyle(
-                        color: DesignSystem.purpleAccent,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  Text(
-                    '${profile.degree} | ${profile.year}',
-                    style: const TextStyle(
-                      color: Color(0xFFBDB1C9),
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28.0),
-                    child: Row(
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isConnectionSent = !_isConnectionSent;
-                              });
-                              if (_isConnectionSent) {
-                                _showCustomToast('Connection Request Sent');
-                              } else {
-                                _showCustomToast(
-                                  'Connection Request Cancelled',
-                                );
-                              }
-                            },
-                            child: Container(
-                              height: 42, // Reduced height
-                              decoration: BoxDecoration(
-                                color: _isConnectionSent
-                                    ? const Color(0xFF2D2433)
-                                    : DesignSystem.purpleAccent,
-                                borderRadius: BorderRadius.circular(21),
-                                border: _isConnectionSent
-                                    ? Border.all(color: Colors.white24)
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  _isConnectionSent ? 'Sent' : 'Connect',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                            ),
+                        Text(
+                          profile.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              final conversations = ref.read(
-                                conversationsProvider,
-                              );
-                              // Simple match by name for this mock data environment
-                              final existingConv = conversations.firstWhere(
-                                (c) => c.participantName == profile.name,
-                                orElse: () => Conversation(
-                                  id: 'new_${profile.id}',
-                                  participantName: profile.name,
-                                  participantAvatar: profile.profileImage ?? '',
-                                  messages: [],
-                                ),
-                              );
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MessageDetailScreen(
-                                    conversationId: existingConv.id,
-                                    participantName: profile.name,
-                                    participantAvatar: profile.profileImage,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              height: 42, // Reduced height
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF231B26),
-                                borderRadius: BorderRadius.circular(21),
-                                border: Border.all(color: Colors.white24),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Colors.greenAccent,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.greenAccent,
+                                blurRadius: 4,
                               ),
-                              child: const Center(
-                                child: Text(
-                                  'Message',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 4),
+                    if (profile.username.isNotEmpty) ...[
+                      Text(
+                        profile.username,
+                        style: const TextStyle(
+                          color: DesignSystem.purpleAccent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    Text(
+                      '${profile.degree} | ${profile.year}',
+                      style: const TextStyle(
+                        color: Color(0xFFBDB1C9),
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-            // Bio Section
-            if (profile.bio.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B141E),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    profile.bio,
-                    style: const TextStyle(
-                      color: Color(0xFFD6C9E6),
-                      height: 1.5,
-                      fontSize: 14,
+                    // Action buttons
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isConnectionSent = !_isConnectionSent;
+                                });
+                                if (_isConnectionSent) {
+                                  _showCustomToast('Connection Request Sent');
+                                } else {
+                                  _showCustomToast(
+                                    'Connection Request Cancelled',
+                                  );
+                                }
+                              },
+                              child: Container(
+                                height: 42, // Reduced height
+                                decoration: BoxDecoration(
+                                  color: _isConnectionSent
+                                      ? const Color(0xFF2D2433)
+                                      : DesignSystem.purpleAccent,
+                                  borderRadius: BorderRadius.circular(21),
+                                  border: _isConnectionSent
+                                      ? Border.all(color: Colors.white24)
+                                      : null,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _isConnectionSent ? 'Sent' : 'Connect',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                final conversations = ref.read(
+                                  conversationsProvider,
+                                );
+                                // Simple match by name for this mock data environment
+                                final existingConv = conversations.firstWhere(
+                                  (c) => c.participantName == profile.name,
+                                  orElse: () => Conversation(
+                                    id: 'new_${profile.id}',
+                                    participantName: profile.name,
+                                    participantAvatar:
+                                        profile.profileImage ?? '',
+                                    messages: [],
+                                  ),
+                                );
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => MessageDetailScreen(
+                                      conversationId: existingConv.id,
+                                      participantName: profile.name,
+                                      participantAvatar: profile.profileImage,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                height: 42, // Reduced height
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF231B26),
+                                  borderRadius: BorderRadius.circular(21),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Message',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Bio Section
+              if (profile.bio.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B141E),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      profile.bio,
+                      style: const TextStyle(
+                        color: Color(0xFFD6C9E6),
+                        height: 1.5,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-            // Interests Chips
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  _interestChip('SwiftUI'),
-                  const SizedBox(width: 8),
-                  _interestChip('React Native'),
-                  const SizedBox(width: 8),
-                  _interestChip('UX/UI Design'),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Tabs
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFF2D2433), width: 1),
+              // Interests Chips
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    _interestChip('SwiftUI'),
+                    const SizedBox(width: 8),
+                    _interestChip('React Native'),
+                    const SizedBox(width: 8),
+                    _interestChip('UX/UI Design'),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  _tabItem(0, 'Achievements'),
-                  _tabItem(1, 'Projects'),
-                  _tabItem(2, 'Memories'),
-                ],
+
+              const SizedBox(height: 32),
+
+              // Tabs
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFF2D2433), width: 1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _tabItem(0, 'Achievements'),
+                    _tabItem(1, 'Projects'),
+                    _tabItem(2, 'Memories'),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Content based on tab
-            if (_selectedTab == 0)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  children: achievements
-                      .map(
-                        (a) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _AchievementCard(
-                            title: a['title']!,
-                            subtitle: a['subtitle']!,
+              // Content based on tab
+              if (_selectedTab == 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    children: achievements
+                        .map(
+                          (a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _AchievementCard(
+                              title: a['title']!,
+                              subtitle: a['subtitle']!,
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
+                        )
+                        .toList(),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/design_system.dart';
 import 'providers/settings_provider.dart';
+import '../../ui/widgets/global_background.dart';
 
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
@@ -12,7 +13,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -23,79 +25,83 @@ class NotificationSettingsScreen extends ConsumerWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const _SectionHeader(title: 'PUSH NOTIFICATIONS'),
-          _SwitchTile(
-            title: 'Pause All',
-            subtitle: 'Temporarily disable push alerts',
-            icon: Icons.do_not_disturb_on,
-            iconColor: settings.pauseAllNotifications
-                ? DesignSystem.purpleAccent
-                : Colors.white54,
-            value: settings.pauseAllNotifications,
-            onChanged: (v) => notifier.togglePauseAll(v),
-          ),
-          _SwitchTile(
-            title: 'Yearbook Signatures',
-            icon: Icons.edit_note,
-            value: settings.yearbookSignatures,
-            onChanged: (v) => notifier.toggleYearbookSignatures(v),
-          ),
-          _SwitchTile(
-            title: 'Event Reminders',
-            icon: Icons.event,
-            value: settings.eventReminders,
-            onChanged: (v) => notifier.toggleEventReminders(v),
-          ),
+      body: GlobalBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const _SectionHeader(title: 'PUSH NOTIFICATIONS'),
+              _SwitchTile(
+                title: 'Pause All',
+                subtitle: 'Temporarily disable push alerts',
+                icon: Icons.do_not_disturb_on,
+                iconColor: settings.pauseAllNotifications
+                    ? DesignSystem.purpleAccent
+                    : Colors.white54,
+                value: settings.pauseAllNotifications,
+                onChanged: (v) => notifier.togglePauseAll(v),
+              ),
+              _SwitchTile(
+                title: 'Yearbook Signatures',
+                icon: Icons.edit_note,
+                value: settings.yearbookSignatures,
+                onChanged: (v) => notifier.toggleYearbookSignatures(v),
+              ),
+              _SwitchTile(
+                title: 'Event Reminders',
+                icon: Icons.event,
+                value: settings.eventReminders,
+                onChanged: (v) => notifier.toggleEventReminders(v),
+              ),
 
-          const SizedBox(height: 24),
-          const _SectionHeader(title: 'ACTIVITY MENTIONS'),
-          _SwitchTile(
-            title: 'Comments',
-            icon: Icons.comment,
-            value: settings.comments,
-            onChanged: (v) => notifier.toggleComments(v),
-          ),
-          _SwitchTile(
-            title: 'Tags & Mentions',
-            icon: Icons.alternate_email,
-            value: settings.tagsMentions,
-            onChanged: (v) => notifier.toggleTagsMentions(v),
-          ),
-          _SwitchTile(
-            title: 'New Likes',
-            icon: Icons.favorite,
-            value: settings.newLikes,
-            onChanged: (v) => notifier.toggleNewLikes(v),
-          ),
+              const SizedBox(height: 24),
+              const _SectionHeader(title: 'ACTIVITY MENTIONS'),
+              _SwitchTile(
+                title: 'Comments',
+                icon: Icons.comment,
+                value: settings.comments,
+                onChanged: (v) => notifier.toggleComments(v),
+              ),
+              _SwitchTile(
+                title: 'Tags & Mentions',
+                icon: Icons.alternate_email,
+                value: settings.tagsMentions,
+                onChanged: (v) => notifier.toggleTagsMentions(v),
+              ),
+              _SwitchTile(
+                title: 'New Likes',
+                icon: Icons.favorite,
+                value: settings.newLikes,
+                onChanged: (v) => notifier.toggleNewLikes(v),
+              ),
 
-          const SizedBox(height: 24),
-          const _SectionHeader(title: 'EMAIL ALERTS'),
-          _SwitchTile(
-            title: 'Weekly Recap',
-            subtitle: 'Summary of profile activity',
-            icon: Icons.email,
-            value: settings.weeklyRecap,
-            onChanged: (v) => notifier.toggleWeeklyRecap(v),
-          ),
-          _SwitchTile(
-            title: 'Product Updates',
-            icon: Icons.campaign,
-            value: settings.productUpdates,
-            onChanged: (v) => notifier.toggleProductUpdates(v),
-          ),
+              const SizedBox(height: 24),
+              const _SectionHeader(title: 'EMAIL ALERTS'),
+              _SwitchTile(
+                title: 'Weekly Recap',
+                subtitle: 'Summary of profile activity',
+                icon: Icons.email,
+                value: settings.weeklyRecap,
+                onChanged: (v) => notifier.toggleWeeklyRecap(v),
+              ),
+              _SwitchTile(
+                title: 'Product Updates',
+                icon: Icons.campaign,
+                value: settings.productUpdates,
+                onChanged: (v) => notifier.toggleProductUpdates(v),
+              ),
 
-          const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              'Email preferences are managed separately from push notifications.',
-              style: TextStyle(color: Colors.white30, fontSize: 12),
-            ),
+              const SizedBox(height: 20),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Email preferences are managed separately from push notifications.',
+                  style: TextStyle(color: Colors.white30, fontSize: 12),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
