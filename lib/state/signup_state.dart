@@ -22,11 +22,13 @@ class SignupState {
 
   // Step 2 Data
   final String? role;
+  final String? userId;
   final String? department;
   final String? graduationYear;
 
   // Step 2 Errors
   final String? roleError;
+  final String? userIdError;
   final String? departmentError;
   final String? yearError;
 
@@ -52,9 +54,11 @@ class SignupState {
     this.passwordError,
     this.confirmPasswordError,
     this.role,
+    this.userId,
     this.department,
     this.graduationYear,
     this.roleError,
+    this.userIdError,
     this.departmentError,
     this.yearError,
     this.avatar,
@@ -75,9 +79,11 @@ class SignupState {
     String? Function()? passwordError,
     String? Function()? confirmPasswordError,
     String? role,
+    String? userId,
     String? department,
     String? graduationYear,
     String? Function()? roleError,
+    String? Function()? userIdError,
     String? Function()? departmentError,
     String? Function()? yearError,
     Uint8List? avatar,
@@ -105,9 +111,11 @@ class SignupState {
           ? confirmPasswordError()
           : this.confirmPasswordError,
       role: role ?? this.role,
+      userId: userId ?? this.userId,
       department: department ?? this.department,
       graduationYear: graduationYear ?? this.graduationYear,
       roleError: roleError != null ? roleError() : this.roleError,
+      userIdError: userIdError != null ? userIdError() : this.userIdError,
       departmentError: departmentError != null
           ? departmentError()
           : this.departmentError,
@@ -146,6 +154,9 @@ class SignupNotifier extends Notifier<SignupState> {
     }
     if (key == 'department') {
       state = state.copyWith(department: value, departmentError: () => null);
+    }
+    if (key == 'userId') {
+      state = state.copyWith(userId: value, userIdError: () => null);
     }
     if (key == 'graduationYear') {
       state = state.copyWith(graduationYear: value, yearError: () => null);
@@ -218,10 +229,18 @@ class SignupNotifier extends Notifier<SignupState> {
   }
 
   bool validateStep2() {
-    String? rErr, dErr, yErr;
+    String? rErr, uErr, dErr, yErr;
     if (state.role == null) {
       rErr = "Role is required";
     }
+
+    // User ID validation if role is Student or Graduate
+    if (state.role == 'Student' || state.role == 'Graduate') {
+      if (state.userId?.trim().isEmpty ?? true) {
+        uErr = "ID is required";
+      }
+    }
+
     if (state.department?.trim().isEmpty ?? true) {
       dErr = "Department is required";
     }
@@ -231,11 +250,12 @@ class SignupNotifier extends Notifier<SignupState> {
 
     state = state.copyWith(
       roleError: () => rErr,
+      userIdError: () => uErr,
       departmentError: () => dErr,
       yearError: () => yErr,
     );
 
-    return rErr == null && dErr == null && yErr == null;
+    return rErr == null && uErr == null && dErr == null && yErr == null;
   }
 
   Future<void> submitSignup(BuildContext context) async {

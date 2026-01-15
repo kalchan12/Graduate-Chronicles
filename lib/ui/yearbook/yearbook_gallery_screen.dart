@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
+import '../widgets/global_background.dart';
+
 class YearbookGalleryScreen extends StatefulWidget {
   final String studentName;
   const YearbookGalleryScreen({super.key, required this.studentName});
@@ -47,171 +49,179 @@ class _YearbookGalleryScreenState extends State<YearbookGalleryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  if (_isSearching)
-                    Expanded(
-                      child: Container(
-                        height: 40,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: TextField(
-                          autofocus: true,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'Search gallery...',
-                            hintStyle: TextStyle(color: Colors.white38),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            isDense: true,
+      backgroundColor: Colors.transparent,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    if (_isSearching)
+                      Expanded(
+                        child: Container(
+                          height: 40,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          onChanged: (v) => setState(() => _searchQuery = v),
-                        ),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Class Gallery',
-                          style: DesignSystem.theme.textTheme.titleMedium
-                              ?.copyWith(fontSize: 18),
-                        ),
-                      ),
-                    ),
-                  IconButton(
-                    icon: Icon(
-                      _isSearching ? Icons.close : Icons.search,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isSearching = !_isSearching;
-                        if (!_isSearching) _searchQuery = '';
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Filter chips row
-            SizedBox(
-              height: 48,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _chip('All'),
-                  const SizedBox(width: 8),
-                  _chip('Graduation Day'),
-                  const SizedBox(width: 8),
-                  _chip('Formal'),
-                  const SizedBox(width: 8),
-                  _chip('Sports'),
-                  const SizedBox(width: 8),
-                  _chip('Candids'),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // Image grid
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _filteredPhotos.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No photos found',
-                          style: TextStyle(color: Colors.white54),
+                          child: TextField(
+                            autofocus: true,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              hintText: 'Search gallery...',
+                              hintStyle: TextStyle(color: Colors.white38),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              isDense: true,
+                            ),
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                          ),
                         ),
                       )
-                    : GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 1,
-                            ),
-                        itemCount: _filteredPhotos.length,
-                        itemBuilder: (context, i) {
-                          final photo = _filteredPhotos[i];
-                          final index = photo['id'] as int;
-                          // Make a couple of tiles visually larger by changing internal aspect (simulation)
-                          final isLarge = index % 7 == 0 || index % 9 == 0;
+                    else
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'Class Gallery',
+                            style: DesignSystem.theme.textTheme.titleMedium
+                                ?.copyWith(fontSize: 18),
+                          ),
+                        ),
+                      ),
+                    IconButton(
+                      icon: Icon(
+                        _isSearching ? Icons.close : Icons.search,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isSearching = !_isSearching;
+                          if (!_isSearching) _searchQuery = '';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
 
-                          return GestureDetector(
-                            onTap: () =>
-                                _showPreview(context, index, photo['category']),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                // Placeholder gradient
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.white.withValues(alpha: 0.05),
-                                    Colors.white.withValues(alpha: 0.1),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                ),
+              // Filter chips row
+              SizedBox(
+                height: 48,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _chip('All'),
+                    const SizedBox(width: 8),
+                    _chip('Graduation Day'),
+                    const SizedBox(width: 8),
+                    _chip('Formal'),
+                    const SizedBox(width: 8),
+                    _chip('Sports'),
+                    const SizedBox(width: 8),
+                    _chip('Candids'),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Image grid
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _filteredPhotos.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No photos found',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        )
+                      : GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 1,
                               ),
-                              child: Stack(
-                                children: [
-                                  Center(
-                                    child: Icon(
-                                      Icons.image,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      size: 48,
-                                    ),
+                          itemCount: _filteredPhotos.length,
+                          itemBuilder: (context, i) {
+                            final photo = _filteredPhotos[i];
+                            final index = photo['id'] as int;
+                            // Make a couple of tiles visually larger by changing internal aspect (simulation)
+                            final isLarge = index % 7 == 0 || index % 9 == 0;
+
+                            return GestureDetector(
+                              onTap: () => _showPreview(
+                                context,
+                                index,
+                                photo['category'],
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  // Placeholder gradient
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.white.withValues(alpha: 0.05),
+                                      Colors.white.withValues(alpha: 0.1),
+                                    ],
                                   ),
-                                  if (isLarge)
-                                    Positioned.fill(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                  ),
+                                ),
+                                child: Stack(
+                                  children: [
+                                    Center(
+                                      child: Icon(
+                                        Icons.image,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        size: 48,
+                                      ),
+                                    ),
+                                    if (isLarge)
+                                      Positioned.fill(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            );
+                          },
+                        ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -12,6 +12,7 @@ class SignupStep2 extends ConsumerStatefulWidget {
 
 class _SignupStep2State extends ConsumerState<SignupStep2> {
   final TextEditingController _deptController = TextEditingController();
+  final TextEditingController _userIdController = TextEditingController();
   // Roles updated as per requirements: Student, Graduate, Alumni, Staff
   final List<String> _roles = ['Student', 'Graduate', 'Alumni', 'Staff'];
   final List<String> _years = List.generate(16, (i) => '${2020 + i}');
@@ -21,11 +22,13 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     super.initState();
     final state = ref.read(signupFormProvider);
     _deptController.text = state.department ?? '';
+    _userIdController.text = state.userId ?? '';
   }
 
   @override
   void dispose() {
     _deptController.dispose();
+    _userIdController.dispose();
     super.dispose();
   }
 
@@ -111,16 +114,44 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                   ),
                   child: Column(
                     children: [
-                      _buildOverlayDropdown(
-                        context,
-                        label: 'I am a...',
-                        hint: state.role ?? 'Select your role',
-                        value: state.role,
-                        items: _roles,
-                        onChanged: (val) => notifier.setRole(val),
-                        errorText: state.roleError,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _buildOverlayDropdown(
+                              context,
+                              label: 'Role',
+                              hint: state.role ?? 'Select',
+                              value: state.role,
+                              items: _roles,
+                              onChanged: (val) {
+                                notifier.setRole(val);
+                                // Clear user ID if role doesn't require it, optional UX choice
+                                // but for now we keep it simple.
+                              },
+                              errorText: state.roleError,
+                            ),
+                          ),
+                          if (state.role == 'Student' ||
+                              state.role == 'Graduate') ...[
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: _buildField(
+                                label: 'User ID',
+                                hint: 'ID #',
+                                icon: Icons.badge_outlined,
+                                controller: _userIdController,
+                                errorText: state.userIdError,
+                                onChanged: (val) =>
+                                    notifier.setField('userId', val),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       _buildField(
                         label: 'Department / Major',
@@ -131,7 +162,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                         onChanged: (val) =>
                             notifier.setField('department', val),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       _buildYearPicker(
                         context,
@@ -396,67 +427,85 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
+              isScrollControlled: true,
               builder: (ctx) {
-                return Container(
-                  height: 350,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Select Graduation Year',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 24),
-                      Expanded(
-                        child: ListWheelScrollView(
-                          itemExtent: 50,
-                          physics: const FixedExtentScrollPhysics(),
-                          perspective: 0.005,
-                          onSelectedItemChanged: (index) {
-                            onChanged(_years[index]);
-                          },
-                          children: _years.map((year) {
-                            final isSelected = year == value;
-                            return Container(
-                              alignment: Alignment.center,
-                              decoration: isSelected
-                                  ? BoxDecoration(
-                                      color: DesignSystem.purpleAccent
-                                          .withValues(alpha: 0.15),
+                return DraggableScrollableSheet(
+                  initialChildSize: 0.5,
+                  minChildSize: 0.4,
+                  maxChildSize: 0.8,
+                  expand: false,
+                  builder: (_, controller) {
+                    return Container(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Select Graduation Year',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 24),
+                          Expanded(
+                            child: GridView.builder(
+                              controller: controller,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 12,
+                                    childAspectRatio: 2.0,
+                                  ),
+                              itemCount: _years.length,
+                              itemBuilder: (context, index) {
+                                final year = _years[index];
+                                final isSelected = year == value;
+                                return GestureDetector(
+                                  onTap: () {
+                                    onChanged(year);
+                                    Navigator.pop(context);
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? DesignSystem.purpleAccent
+                                          : Colors.white.withValues(
+                                              alpha: 0.05,
+                                            ),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: DesignSystem.purpleAccent
-                                            .withValues(alpha: 0.3),
+                                        color: isSelected
+                                            ? Colors.transparent
+                                            : Colors.white10,
                                       ),
-                                    )
-                                  : null,
-                              child: Text(
-                                year,
-                                style: TextStyle(
-                                  fontSize: isSelected ? 22 : 20,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isSelected
-                                      ? DesignSystem.purpleAccent
-                                      : Colors.white38,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      year,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.white70,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 );
               },
             );

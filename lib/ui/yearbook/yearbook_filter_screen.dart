@@ -4,6 +4,8 @@ import '../../theme/design_system.dart';
 import '../profile/profile_screen.dart';
 import 'yearbook_gallery_screen.dart';
 
+import '../widgets/global_background.dart';
+
 class YearbookFilterScreen extends StatefulWidget {
   final String batchTitle;
   const YearbookFilterScreen({super.key, required this.batchTitle});
@@ -50,114 +52,116 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CustomAppBar(
-              title: widget.batchTitle,
-              showLeading: true,
-              onLeading: () => Navigator.of(context).pop(),
-            ),
+      backgroundColor: Colors.transparent,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomAppBar(
+                title: widget.batchTitle,
+                showLeading: true,
+                onLeading: () => Navigator.of(context).pop(),
+              ),
 
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.search,
+                        color: Colors.white.withValues(
+                          alpha: 0.5,
+                        ), // consistent icon color
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          onChanged: (v) => setState(() => _query = v),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'Search by name or degree...',
+                            hintStyle: TextStyle(color: Colors.white38),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          cursorColor: DesignSystem.purpleAccent,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
+              ),
+
+              // Filter Chips
+              SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.search,
-                      color: Colors.white.withValues(
-                        alpha: 0.5,
-                      ), // consistent icon color
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        onChanged: (v) => setState(() => _query = v),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: 'Search by name or degree...',
-                          hintStyle: TextStyle(color: Colors.white38),
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                        cursorColor: DesignSystem.purpleAccent,
-                      ),
-                    ),
+                    _navChip('All'),
+                    const SizedBox(width: 8),
+                    _navChip('Major'),
+                    const SizedBox(width: 8),
+                    _navChip('Club'),
+                    const SizedBox(width: 8),
+                    _navChip('Achievement'),
+                    const SizedBox(width: 8),
+                    _navChip('Location'),
                   ],
                 ),
               ),
-            ),
 
-            // Filter Chips
-            SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
+              const SizedBox(height: 16),
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _navChip('All'),
-                  const SizedBox(width: 8),
-                  _navChip('Major'),
-                  const SizedBox(width: 8),
-                  _navChip('Club'),
-                  const SizedBox(width: 8),
-                  _navChip('Achievement'),
-                  const SizedBox(width: 8),
-                  _navChip('Location'),
-                ],
+                child: Text(
+                  'Showing ${_filtered.length} students',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
 
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Showing ${_filtered.length} students',
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  itemCount: _filtered.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.75,
+                  ),
+                  itemBuilder: (context, i) {
+                    final s = _filtered[i];
+                    return _StudentCard(
+                      student: s,
+                      onTap: () => _showStudentDetail(s),
+                    );
+                  },
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                itemCount: _filtered.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.75,
-                ),
-                itemBuilder: (context, i) {
-                  final s = _filtered[i];
-                  return _StudentCard(
-                    student: s,
-                    onTap: () => _showStudentDetail(s),
-                  );
-                },
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

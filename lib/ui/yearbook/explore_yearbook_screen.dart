@@ -3,6 +3,8 @@ import '../widgets/custom_app_bar.dart';
 import '../../theme/design_system.dart';
 import 'yearbook_filter_screen.dart';
 
+import '../widgets/global_background.dart';
+
 class ExploreYearbookScreen extends StatefulWidget {
   const ExploreYearbookScreen({super.key});
 
@@ -57,85 +59,90 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.scaffoldBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const CustomAppBar(title: 'Explore Yearbooks', showLeading: false),
-            const SizedBox(height: 8),
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+      backgroundColor: Colors.transparent,
+      body: GlobalBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              const CustomAppBar(
+                title: 'Explore Yearbooks',
+                showLeading: false,
+              ),
+              const SizedBox(height: 8),
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, color: Colors.white54),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          onChanged: (v) => setState(() => _searchQuery = v),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'Search yearbooks',
+                            hintStyle: TextStyle(color: Colors.white38),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          cursorColor: DesignSystem.purpleAccent,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
+              ),
+              const SizedBox(height: 16),
+              // Filters
+              SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    const Icon(Icons.search, color: Colors.white54),
+                    _filterChip('All'),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        onChanged: (v) => setState(() => _searchQuery = v),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: 'Search yearbooks',
-                          hintStyle: TextStyle(color: Colors.white38),
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                        cursorColor: DesignSystem.purpleAccent,
-                      ),
-                    ),
+                    _filterChip('Regular'),
+                    const SizedBox(width: 8),
+                    _filterChip('Extension'),
+                    const SizedBox(width: 8),
+                    _filterChip('Weekend'),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Filters
-            SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _filterChip('All'),
-                  const SizedBox(width: 8),
-                  _filterChip('Regular'),
-                  const SizedBox(width: 8),
-                  _filterChip('Extension'),
-                  const SizedBox(width: 8),
-                  _filterChip('Weekend'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+              const SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.85,
+                  ),
+                  itemCount: _filteredBatches.length,
+                  itemBuilder: (context, i) {
+                    final batch = _filteredBatches[i];
+                    return _BatchGridItem(batch: batch);
+                  },
                 ),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: _filteredBatches.length,
-                itemBuilder: (context, i) {
-                  final batch = _filteredBatches[i];
-                  return _BatchGridItem(batch: batch);
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
