@@ -23,22 +23,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     late OverlayEntry overlayEntry;
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        top: MediaQuery.of(context).viewPadding.top + 60,
-        left: 20,
-        right: 20,
+        bottom: 30,
+        left: 40,
+        right: 40,
         child: Material(
           color: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF2E1A36).withOpacity(0.9),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFF2E1A36).withOpacity(0.85),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: DesignSystem.purpleAccent.withOpacity(0.3),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -85,11 +85,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             elevation: 0,
             leading: const BackButton(color: Colors.white),
           ),
-          body: Center(
-            child: InteractiveViewer(
-              child: imagePath != null
-                  ? Image.file(File(imagePath))
-                  : const Icon(Icons.person, size: 150, color: Colors.white),
+          body: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Center(
+              child: Hero(
+                tag: 'profile_image',
+                child: imagePath != null
+                    ? Image.file(File(imagePath))
+                    : const Icon(Icons.person, size: 150, color: Colors.white),
+              ),
             ),
           ),
         ),
@@ -137,57 +141,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   // Profile Image with handling for local file
                   GestureDetector(
                     onTap: () => _showProfileImage(profile.profileImage),
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFE94CFF).withValues(alpha: 0.6),
-                          width: 2,
-                        ),
-                      ),
+                    child: Hero(
+                      tag: 'profile_image',
                       child: Container(
+                        width: 120,
+                        height: 120,
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFF2B1F2E),
                           border: Border.all(
-                            color: const Color(0xFFE94CFF),
+                            color: const Color(
+                              0xFFE94CFF,
+                            ).withValues(alpha: 0.6),
                             width: 2,
                           ),
                         ),
-                        child: ClipOval(
-                          child: profile.profileImage != null
-                              ? Image.file(
-                                  File(profile.profileImage!),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
-                                        Icons.person,
-                                        color: Colors.white,
-                                        size: 60,
-                                      ),
-                                )
-                              : const Center(
-                                  child: Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                    size: 60,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF2B1F2E),
+                            border: Border.all(
+                              color: const Color(0xFFE94CFF),
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipOval(
+                            child: profile.profileImage != null
+                                ? Image.file(
+                                    File(profile.profileImage!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                              Icons.person,
+                                              color: Colors.white,
+                                              size: 60,
+                                            ),
+                                  )
+                                : const Center(
+                                    child: Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: 60,
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    profile.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        profile.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.greenAccent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.greenAccent, blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   if (profile.username.isNotEmpty) ...[
@@ -211,92 +238,99 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 24),
 
                   // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isConnectionSent = !_isConnectionSent;
-                            });
-                            if (_isConnectionSent) {
-                              _showCustomToast('Connection Request Sent');
-                            }
-                          },
-                          child: Container(
-                            height: 42, // Reduced height
-                            decoration: BoxDecoration(
-                              color: _isConnectionSent
-                                  ? const Color(0xFF2D2433)
-                                  : DesignSystem.purpleAccent,
-                              borderRadius: BorderRadius.circular(21),
-                              border: _isConnectionSent
-                                  ? Border.all(color: Colors.white24)
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                _isConnectionSent ? 'Sent' : 'Connect',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isConnectionSent = !_isConnectionSent;
+                              });
+                              if (_isConnectionSent) {
+                                _showCustomToast('Connection Request Sent');
+                              } else {
+                                _showCustomToast(
+                                  'Connection Request Cancelled',
+                                );
+                              }
+                            },
+                            child: Container(
+                              height: 42, // Reduced height
+                              decoration: BoxDecoration(
+                                color: _isConnectionSent
+                                    ? const Color(0xFF2D2433)
+                                    : DesignSystem.purpleAccent,
+                                borderRadius: BorderRadius.circular(21),
+                                border: _isConnectionSent
+                                    ? Border.all(color: Colors.white24)
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _isConnectionSent ? 'Sent' : 'Connect',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            final conversations = ref.read(
-                              conversationsProvider,
-                            );
-                            // Simple match by name for this mock data environment
-                            final existingConv = conversations.firstWhere(
-                              (c) => c.participantName == profile.name,
-                              orElse: () => Conversation(
-                                id: 'new_${profile.id}',
-                                participantName: profile.name,
-                                participantAvatar: profile.profileImage ?? '',
-                                messages: [],
-                              ),
-                            );
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => MessageDetailScreen(
-                                  conversationId: existingConv.id,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              final conversations = ref.read(
+                                conversationsProvider,
+                              );
+                              // Simple match by name for this mock data environment
+                              final existingConv = conversations.firstWhere(
+                                (c) => c.participantName == profile.name,
+                                orElse: () => Conversation(
+                                  id: 'new_${profile.id}',
                                   participantName: profile.name,
-                                  participantAvatar: profile.profileImage,
+                                  participantAvatar: profile.profileImage ?? '',
+                                  messages: [],
                                 ),
+                              );
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MessageDetailScreen(
+                                    conversationId: existingConv.id,
+                                    participantName: profile.name,
+                                    participantAvatar: profile.profileImage,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 42, // Reduced height
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF231B26),
+                                borderRadius: BorderRadius.circular(21),
+                                border: Border.all(color: Colors.white24),
                               ),
-                            );
-                          },
-                          child: Container(
-                            height: 42, // Reduced height
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF231B26),
-                              borderRadius: BorderRadius.circular(21),
-                              border: Border.all(color: Colors.white24),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Message',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                              child: const Center(
+                                child: Text(
+                                  'Message',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

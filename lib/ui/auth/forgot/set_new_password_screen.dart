@@ -12,8 +12,10 @@ class SetNewPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
+  final TextEditingController _currentCtrl = TextEditingController();
   final TextEditingController _newCtrl = TextEditingController();
   final TextEditingController _confirmCtrl = TextEditingController();
+  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
@@ -28,6 +30,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
   @override
   void dispose() {
+    _currentCtrl.dispose();
     _newCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
@@ -143,33 +146,33 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            const SizedBox(width: 140, height: 140),
+                            const SizedBox(width: 120, height: 120),
                             Positioned(
                               child: Container(
-                                width: 112,
-                                height: 112,
+                                width: 96,
+                                height: 96,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF2A1830),
-                                  borderRadius: BorderRadius.circular(28),
+                                  borderRadius: BorderRadius.circular(24),
                                   boxShadow: [
                                     BoxShadow(
                                       color: DesignSystem.purpleAccent
                                           .withValues(alpha: 0.14),
-                                      blurRadius: 40,
-                                      spreadRadius: 6,
+                                      blurRadius: 30,
+                                      spreadRadius: 4,
                                     ),
                                   ],
                                 ),
                                 child: const Icon(
                                   Icons.lock,
-                                  size: 48,
+                                  size: 40,
                                   color: DesignSystem.purpleAccent,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 12),
                         const Text(
                           'Secure Your Account',
                           style: TextStyle(
@@ -185,6 +188,45 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Current Password',
+                            style: TextStyle(color: Color(0xFFD6C9E6)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _currentCtrl,
+                          obscureText: _obscureCurrent,
+                          decoration: InputDecoration(
+                            hintText: 'Enter current password',
+                            filled: true,
+                            fillColor: const Color(0xFF241228),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              color: Color(0xFFBDB1C9),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureCurrent
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white54,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscureCurrent = !_obscureCurrent,
+                              ),
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 14),
+
                         const Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
