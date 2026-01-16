@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 
+/*
+  Add Link Screen.
+
+  Form to add external links to the portfolio (e.g., GitHub, Website).
+  Inputs:
+  - Link Title
+  - URL (with validation)
+  - Optional Description
+*/
 class AddLinkScreen extends StatefulWidget {
   const AddLinkScreen({super.key});
 

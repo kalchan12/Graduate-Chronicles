@@ -8,6 +8,16 @@ import '../../theme/design_system.dart';
 
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Edit Profile Screen.
+  
+  Allows users to update their personal information.
+  Features:
+  - Profile image picker
+  - Name, Username, Bio text fields
+  - Validation (required fields)
+  - Updates global profile state on save
+*/
 class EditProfileSettingsScreen extends ConsumerStatefulWidget {
   const EditProfileSettingsScreen({super.key});
 

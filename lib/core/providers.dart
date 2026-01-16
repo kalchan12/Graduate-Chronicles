@@ -2,6 +2,10 @@
 // Import both flutter_riverpod and riverpod to ensure provider types are available.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/*
+  Data model representing a single item in the Home Feed.
+  Used to display news, announcements, and updates.
+*/
 // Simple feed item model used by the home feed provider.
 class FeedItem {
   final String id;
@@ -10,6 +14,12 @@ class FeedItem {
   FeedItem({required this.id, required this.title, required this.subtitle});
 }
 
+/*
+  Core user profile model.
+  
+  Contains personal and academic details.
+  Includes a `copyWith` method to support immutable state updates.
+*/
 // Simple profile model used by the profile provider.
 class Profile {
   final String id;
@@ -296,6 +306,16 @@ class ConversationsNotifier extends Notifier<List<Conversation>> {
   }
 }
 
+/*
+  Provider for managing the list of conversations.
+  
+  Capabilities:
+  - Stores the state of all active chats
+  - Handles sending new messages (updates local state)
+  - Marks conversations as read
+  
+  Note: This is currently using in-memory mock data.
+*/
 final conversationsProvider =
     NotifierProvider<ConversationsNotifier, List<Conversation>>(
       ConversationsNotifier.new,

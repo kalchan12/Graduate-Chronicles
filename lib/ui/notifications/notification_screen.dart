@@ -3,6 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Notification Screen.
+
+  Central hub for user notifications.
+  Features:
+  - Tabbed filtering (All, Mentions, System, Requests).
+  - Chronological grouping (New vs Earlier).
+  - Rich notification cards with badges and actions.
+*/
 class NotificationScreen extends ConsumerWidget {
   const NotificationScreen({super.key});
 

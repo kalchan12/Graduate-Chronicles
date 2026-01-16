@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
 import '../../widgets/global_background.dart';
 
+/*
+  Create Reunion Event Screen.
+  
+  Form to organize a new reunion.
+  Inputs:
+  - Event Title & Description
+  - Date & Time selectors
+  - Location (Physical vs Virtual)
+  - Visibility settings (Everyone vs Batch only)
+*/
 class ReunionCreateScreen extends StatefulWidget {
   const ReunionCreateScreen({super.key});
 

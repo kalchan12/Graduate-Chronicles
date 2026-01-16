@@ -3,6 +3,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:graduate_chronicles/theme/design_system.dart';
 import '../onboarding/onboarding1_screen.dart';
 
+/*
+  Splash Screen.
+
+  The initial screen displayed on app launch.
+  Features:
+  - Animated Logo (Scale & Fade).
+  - Sliding Text Animation.
+  - Navigates to Onboarding after a set duration.
+*/
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 

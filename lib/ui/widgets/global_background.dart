@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Global Background Widget.
+
+  Applies the application's standard gradient background to the child widget.
+  - Uses specific brand colors defined in existing designs.
+  - Ensures visual consistency across the app.
+*/
 class GlobalBackground extends StatelessWidget {
   final Widget child;
 

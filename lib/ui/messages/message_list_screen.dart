@@ -4,6 +4,15 @@ import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import 'message_detail_screen.dart';
 
+/*
+  Messages List Screen.
+  
+  Shows all active conversations and active users.
+  Features:
+  - "Active Now" horizontal list (stories style)
+  - Recent conversations list with unread counts
+  - Search bar for finding classmates
+*/
 class MessageListScreen extends ConsumerWidget {
   const MessageListScreen({super.key});
 

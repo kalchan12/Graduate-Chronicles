@@ -3,6 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
 
+/*
+  Signup Step 1: Basic Account Information.
+  
+  Captures:
+  - Username
+  - Full Name
+  - Email
+  - Password
+  
+  Validates input before allowing navigation to Step 2.
+*/
 class SignupStep1 extends ConsumerStatefulWidget {
   const SignupStep1({super.key});
 

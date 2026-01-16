@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Onboarding Screen 1.
+
+  The first step in the onboarding flow.
+  Features:
+  - Motivational artwork and text ("Your Legacy Starts Here").
+  - Navigation controls (Skip, Next).
+*/
 class Onboarding1Screen extends StatelessWidget {
   const Onboarding1Screen({super.key});
 

@@ -5,6 +5,15 @@ import 'yearbook_filter_screen.dart';
 
 import '../widgets/global_background.dart';
 
+/*
+  Explore Yearbook Screen.
+
+  Main entry point for browsing yearbooks.
+  Features:
+  - Search functionality (by batch name).
+  - Filter by batch type (Regular, Weekend, etc.).
+  - Grid display of available yearbooks/batches.
+*/
 class ExploreYearbookScreen extends StatefulWidget {
   const ExploreYearbookScreen({super.key});
 

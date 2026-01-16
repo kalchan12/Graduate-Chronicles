@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+/*
+  The central hub for Administrators.
+  
+  Provides an overview of:
+  - Total user statistics
+  - Recent activity and alerts
+  
+  Navigation to:
+  - User Directory/Management
+  - Content Monitoring
+  - System Logs
+*/
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 

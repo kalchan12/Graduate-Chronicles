@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 
+/*
+  Community Hub Screen.
+  
+  The central landing page for the Community module.
+  Features:
+  - Navigation cards for Reunions and Mentorship
+  - Quick action buttons (Create Event, Update Profile etc.)
+  - User greeting and notification entry
+*/
 class CommunityHomeScreen extends StatelessWidget {
   const CommunityHomeScreen({super.key});
 

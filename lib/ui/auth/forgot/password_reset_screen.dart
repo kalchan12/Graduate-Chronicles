@@ -3,6 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/forgot_password_state.dart';
 
+/*
+  Forgot Password Step 2: Verification Code.
+  
+  User enters the 4-digit OTP sent to their email.
+  - 4-digit PIN input with auto-focus
+  - Countdown timer for resending code
+  - Validates OTP before proceeding
+*/
 class PasswordResetScreen extends ConsumerStatefulWidget {
   const PasswordResetScreen({super.key});
 

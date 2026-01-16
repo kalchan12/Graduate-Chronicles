@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Onboarding Screen 2.
+
+  The second step in the onboarding flow.
+  Features:
+  - Focuses on networking ("Connect, Share, Thrive").
+  - Navigation controls (Back, Next).
+*/
 class Onboarding2Screen extends StatelessWidget {
   const Onboarding2Screen({super.key});
 

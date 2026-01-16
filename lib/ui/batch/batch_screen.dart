@@ -4,7 +4,15 @@ import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 import '../widgets/custom_app_bar.dart';
 
-// Batch / Directory screen implemented to match provided HTML design.
+/*
+  Batch Directory Screen.
+
+  Displays a directory of classmates and alumni.
+  Features:
+  - Search bar for filtering users.
+  - Category chips for filtering by major, year, etc.
+  - List view of users with basic details.
+*/
 class BatchScreen extends ConsumerWidget {
   const BatchScreen({super.key});
 

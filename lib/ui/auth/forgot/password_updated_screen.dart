@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
 
+/*
+  Success Screen for Password Reset.
+  
+  Displays a confirmation animation and directs the user
+  back to the Login screen.
+*/
 class PasswordUpdatedScreen extends StatefulWidget {
   const PasswordUpdatedScreen({super.key});
 

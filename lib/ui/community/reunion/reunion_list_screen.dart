@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
 import '../../widgets/global_background.dart';
 
+/*
+  Reunion Events List Screen.
+  
+  Displays upcoming alumni gatherings.
+  Features:
+  - Featured Events carousel (horizontal scroll)
+  - Vertical list of upcoming reunions
+  - Filtering by Batch, Year, or Major
+  - Floating action button to create new events
+*/
 class ReunionListScreen extends StatefulWidget {
   const ReunionListScreen({super.key});
 

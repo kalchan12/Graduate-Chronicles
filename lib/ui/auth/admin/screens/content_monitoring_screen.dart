@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+/*
+  Admin: Content Monitoring Screen.
+  
+  Dashboard for reviewing flagged content and approvals.
+  Features:
+  - Reported content cards (with sensitive overlay)
+  - Community Event approval queue
+  - Visual separation of "Reported" vs "Recent" (UI tab)
+*/
 class ContentMonitoringScreen extends StatelessWidget {
   const ContentMonitoringScreen({super.key});
 

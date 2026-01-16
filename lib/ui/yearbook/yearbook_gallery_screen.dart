@@ -3,6 +3,15 @@ import '../../theme/design_system.dart';
 
 import '../widgets/global_background.dart';
 
+/*
+  Yearbook Gallery Screen.
+
+  Displays a photo gallery for a specific student or batch.
+  Features:
+  - Masonry-style grid layout.
+  - Filter by photo category (Graduation Day, Formal, etc.).
+  - Full-screen photo preview.
+*/
 class YearbookGalleryScreen extends StatefulWidget {
   final String studentName;
   const YearbookGalleryScreen({super.key, required this.studentName});

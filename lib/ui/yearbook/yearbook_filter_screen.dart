@@ -6,6 +6,15 @@ import 'yearbook_gallery_screen.dart';
 
 import '../widgets/global_background.dart';
 
+/*
+  Yearbook Filter Screen.
+
+  Displays students within a specific batch/yearbook.
+  Features:
+  - Search students by name or degree.
+  - Filter by category (Major, Club, Achievement, etc.).
+  - Navigates to student details modal.
+*/
 class YearbookFilterScreen extends StatefulWidget {
   final String batchTitle;
   const YearbookFilterScreen({super.key, required this.batchTitle});

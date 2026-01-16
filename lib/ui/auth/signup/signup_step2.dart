@@ -4,6 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
 
+/*
+  Signup Step 2: Academic Details.
+  
+  Captures:
+  - Role (Student, Graduate, etc.)
+  - Student/User ID
+  - Major/Department (with Autocomplete)
+  - Graduation Year
+  
+  Adapts UI based on selected Role.
+*/
 class SignupStep2 extends ConsumerStatefulWidget {
   const SignupStep2({super.key});
 

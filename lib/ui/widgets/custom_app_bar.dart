@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
-// Reusable app bar widget matching the visual style in the HTML designs.
-// Purely visual — no business logic inside. Use this at the top of screens.
+/*
+  Custom Application Bar.
+
+  A reusable AppBar widget that matches the design system.
+  - Purely visual; requires manual navigation handling if not using default back.
+  - Supports title, optional leading widget (defaulting to back arrow), and trailing actions.
+  - Transparent background to blend with the global gradient.
+*/
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showLeading;

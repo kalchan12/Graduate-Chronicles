@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
 import '../../widgets/global_background.dart';
 
+/*
+  Mentorship Screen.
+  
+  Connects students/alumni with mentors.
+  Features:
+  - Scrollable list of mentors with filtering (Career, Design, etc.)
+  - Search functionality (by name or role)
+  - Action cards to 'Request' mentorship or 'Save' profiles
+  - Status tracking (Active requests vs Suggested)
+*/
 class MentorshipScreen extends StatefulWidget {
   const MentorshipScreen({super.key});
 

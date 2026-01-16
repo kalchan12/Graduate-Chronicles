@@ -3,6 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Chat Detail Screen.
+  
+  Individual conversation view.
+  Features:
+  - Real-time message list (local state)
+  - Message input with send button
+  - Auto-scroll to latest message
+  - Header with audio/video call placeholders
+*/
 class MessageDetailScreen extends ConsumerStatefulWidget {
   final String conversationId;
   final String? participantName;

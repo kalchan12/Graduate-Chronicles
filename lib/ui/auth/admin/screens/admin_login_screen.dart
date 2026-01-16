@@ -3,6 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/admin_auth_state.dart';
 
+/*
+  Admin Portal Login Screen.
+  
+  Secure entry point for administrators.
+  Features:
+  - Distinct dark UI theme to differentiate from student app
+  - Credential validation against Admin Auth Provider
+  - Link to request admin access
+*/
 class AdminLoginScreen extends ConsumerStatefulWidget {
   const AdminLoginScreen({super.key});
 

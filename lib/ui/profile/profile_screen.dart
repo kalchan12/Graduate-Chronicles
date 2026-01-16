@@ -10,6 +10,16 @@ import '../messages/message_detail_screen.dart';
 import '../widgets/global_background.dart';
 
 // Profile screen implemented to match the static HTML profile design.
+/*
+  User Profile Screen.
+  
+  Displays the user's personal information and portfolio.
+  Features:
+  - Header with Profile Picture, Name, Degree
+  - Action buttons: Connect (toggle) and Message
+  - Tabbed content: Achievements, Projects, Memories
+  - Custom toast notification for actions
+*/
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 

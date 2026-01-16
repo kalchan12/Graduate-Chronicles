@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 
+/*
+  Add Certificate Screen.
+
+  Form allows users to add a new professional certificate.
+  Inputs:
+  - Certificate Name
+  - Issuing Organization
+  - Date Issued
+  - File/Certificate upload area
+*/
 class AddCertificateScreen extends StatefulWidget {
   const AddCertificateScreen({super.key});
 

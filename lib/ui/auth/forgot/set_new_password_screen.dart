@@ -3,6 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/forgot_password_state.dart';
 
+/*
+  Forgot Password Step 3: Set New Password.
+  
+  Final step to reset access.
+  - Collects new password and confirmation
+  - Validates password strength and match
+  - Updates password via provider
+*/
 class SetNewPasswordScreen extends ConsumerStatefulWidget {
   const SetNewPasswordScreen({super.key});
 

@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Portfolio Visitors Screen.
+
+  Displays a history of users who have viewed the portfolio.
+  Features:
+  - List of recent visitors.
+  - Option to view visitor profiles.
+*/
 class PortfolioViewedScreen extends StatelessWidget {
   const PortfolioViewedScreen({super.key});
 

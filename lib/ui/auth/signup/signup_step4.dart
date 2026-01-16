@@ -3,6 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
 
+/*
+  Signup Step 4: Interests & Finalization.
+  
+  Features:
+  - Multi-select interest chips
+  - Final confirmation dialog
+  - Submission of the entire signup form
+*/
 class SignupStep4 extends ConsumerStatefulWidget {
   const SignupStep4({super.key});
 

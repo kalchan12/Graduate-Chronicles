@@ -4,6 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/stories_state.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Full Screen Story Viewer.
+  
+  Displays a story for a limited time (10s) with a progress bar.
+  Features:
+  - Auto-advance timer
+  - Full screen image
+  - Like interaction
+  - Swipe down to close
+*/
 class StoryViewerScreen extends ConsumerStatefulWidget {
   final String storyId;
   const StoryViewerScreen({super.key, required this.storyId});

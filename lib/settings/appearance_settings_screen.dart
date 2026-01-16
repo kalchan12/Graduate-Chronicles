@@ -3,6 +3,14 @@ import '../../theme/design_system.dart';
 import '../../ui/widgets/global_background.dart';
 import 'widgets/settings_tile.dart';
 
+/*
+  Appearance Settings Screen.
+  
+  Theme customization.
+  Features:
+  - Dark Mode (Default/Active)
+  - Light Mode (Placeholder/Coming Soon)
+*/
 class AppearanceSettingsScreen extends StatelessWidget {
   const AppearanceSettingsScreen({super.key});
 

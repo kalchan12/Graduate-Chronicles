@@ -4,6 +4,16 @@ import '../../theme/design_system.dart';
 import 'providers/settings_provider.dart';
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Notification Settings Screen.
+  
+  Granular control over app notifications.
+  Options:
+  - Global pause switch
+  - Push notifications (Events, Yearbook)
+  - Activity alerts (Comments, Likes)
+  - Email preferences
+*/
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
 

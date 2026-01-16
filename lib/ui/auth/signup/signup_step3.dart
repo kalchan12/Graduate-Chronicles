@@ -5,6 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
 
+/*
+  Signup Step 3: Profile Picture.
+  
+  Features:
+  - Image selection from gallery
+  - Permission handling (Photos/Storage)
+  - Preview of selected image
+  
+  Allows skipping this step if the user prefers.
+*/
 class SignupStep3 extends ConsumerStatefulWidget {
   const SignupStep3({super.key});
 

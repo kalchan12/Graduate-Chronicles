@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 
+/*
+  Add CV/Resume Screen.
+
+  Form to upload a PDF resume.
+  Inputs:
+  - File upload area (PDF only usually)
+  - Custom file name
+  - Optional notes
+*/
 class AddCvScreen extends StatefulWidget {
   const AddCvScreen({super.key});
 

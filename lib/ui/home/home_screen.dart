@@ -11,6 +11,16 @@ import 'story_viewer_screen.dart';
 import '../profile/profile_screen.dart';
 
 // Home feed screen implemented to match the provided static HTML layout.
+/*
+  Main Home Screen.
+  
+  The landing page after login.
+  Features:
+  - Stories Carousel (top)
+  - Featured Graduate Spotlight
+  - Batch Highlights (horizontal scroll)
+  - Main News Feed (vertical scroll)
+*/
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 

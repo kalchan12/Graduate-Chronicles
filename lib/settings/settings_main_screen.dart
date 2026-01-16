@@ -11,6 +11,15 @@ import '../../state/auth_provider.dart';
 
 import '../ui/widgets/global_background.dart';
 
+/*
+  Settings Main Screen.
+  
+  Central hub for app configuration.
+  Sections:
+  - General: Edit Profile, Notifications, Privacy, Appearance
+  - Support: Help Center
+  - Account: Logout
+*/
 class SettingsMainScreen extends ConsumerWidget {
   const SettingsMainScreen({super.key});
 

@@ -3,6 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/forgot_password_state.dart';
 
+/*
+  Forgot Password Step 1: Email Entry.
+  
+  Initiates the password reset flow.
+  - Collects user email
+  - Validates format
+  - Transitions to Verification Step
+*/
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 

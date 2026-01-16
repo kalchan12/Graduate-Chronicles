@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 
+/*
+  Add Achievement Screen.
+
+  Form allows users to add a new achievement to their portfolio.
+  Inputs:
+  - Title & Description
+  - Date picker
+  - Evidence/Photo upload area
+*/
 class AddAchievementScreen extends StatefulWidget {
   const AddAchievementScreen({super.key});
 

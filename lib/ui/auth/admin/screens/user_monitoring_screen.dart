@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+/*
+  Admin: User Directory Screen.
+  
+  Allows admins to:
+  - View list of all registered users
+  - Filter by Role (Student, Alumni, Faculty)
+  - Search (UI visual only, mock data)
+  - See status indicators (Active, Inactive, Blocked)
+*/
 class UserMonitoringScreen extends StatefulWidget {
   const UserMonitoringScreen({super.key});
 

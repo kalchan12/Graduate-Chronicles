@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Portfolio Liked Screen.
+
+  Displays a list of users who have liked the current user's portfolio.
+  Features:
+  - List of avatars and names.
+  - Option to connect with admirers.
+*/
 class PortfolioLikedScreen extends StatelessWidget {
   const PortfolioLikedScreen({super.key});
 

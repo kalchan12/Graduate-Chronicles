@@ -4,6 +4,14 @@ import '../../../theme/design_system.dart';
 import '../../../state/auth_provider.dart';
 import '../../../state/login_state.dart';
 
+/*
+  The main Login Screen.
+  
+  Features:
+  - User ID and Password authentication
+  - Navigation to Signup, Forgot Password, and Admin Portal
+  - Form validation and error handling via Riverpod state
+*/
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 

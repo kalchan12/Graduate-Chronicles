@@ -6,6 +6,16 @@ import 'add_link_screen.dart';
 import '../../theme/design_system.dart';
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Portfolio Selection Screen.
+
+  A menu screen allowing users to choose what type of content to add to their portfolio.
+  Options:
+  - Achievement
+  - CV / Resume
+  - Certificate
+  - Link
+*/
 class PortfolioSelectScreen extends StatelessWidget {
   const PortfolioSelectScreen({super.key});
 

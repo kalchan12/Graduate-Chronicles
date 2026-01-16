@@ -5,6 +5,16 @@ import 'portfolio_viewed_screen.dart';
 import 'portfolio_liked_screen.dart';
 import 'portfolio_select_screen.dart';
 
+/*
+  Portfolio Hub Screen.
+
+  The main profile/portfolio showcase for the user.
+  Features:
+  - Custom visual design with overlapping avatar and cover image.
+  - Stats display (Views, Likes).
+  - Sections for Achievements, Resumes, Certificates, and Social Links.
+  - Floating action button to add new portfolio items.
+*/
 class PortfolioHubScreen extends StatelessWidget {
   const PortfolioHubScreen({super.key});
 

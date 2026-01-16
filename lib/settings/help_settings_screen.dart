@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Help Center Screen.
+  
+  Support resources for the user.
+  Features:
+  - FAQ collapsible sections
+  - Contact Support details
+  - App Version Information
+*/
 class HelpSettingsScreen extends StatelessWidget {
   const HelpSettingsScreen({super.key});
 

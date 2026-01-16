@@ -5,10 +5,15 @@ import '../community/community_home_screen.dart';
 import '../portfolio/portfolio_hub_screen.dart';
 import '../profile/profile_screen.dart';
 
-// Bottom navigation scaffold driven by Riverpod's `currentIndexProvider`.
-// Bottom navigation implemented as a local StatefulWidget to keep tab state
-// without relying on a provider for the index. This keeps tabs persistent
-// using an IndexedStack while remaining UI-first.
+/*
+  Bottom Navigation Scaffold.
+
+  The main shell of the application after login.
+  Features:
+  - Persistent bottom navigation bar.
+  - Manages main screens: Home, Yearbook, Community, Portfolio, Profile.
+  - Preserves state using IndexedStack.
+*/
 class BottomNavigationScaffold extends StatefulWidget {
   const BottomNavigationScaffold({super.key});
 

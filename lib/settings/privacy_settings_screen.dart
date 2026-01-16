@@ -6,6 +6,15 @@ import 'widgets/settings_tile.dart';
 import '../../ui/auth/forgot/set_new_password_screen.dart'; // Direct import or use named route
 import '../../ui/widgets/global_background.dart';
 
+/*
+  Privacy & Security Settings.
+  
+  Manage account security.
+  Features:
+  - Change Password navigation
+  - Two-Factor Authentication (2FA) setup & toggle
+  - Privacy Policy link
+*/
 class PrivacySettingsScreen extends ConsumerWidget {
   const PrivacySettingsScreen({super.key});
 

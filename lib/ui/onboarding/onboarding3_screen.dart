@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
+/*
+  Onboarding Screen 3.
+
+  The final step in the onboarding flow.
+  Features:
+  - Focuses on memories ("Relive Your Uni Days").
+  - 'Get Started' button to proceed to Login.
+*/
 class Onboarding3Screen extends StatelessWidget {
   const Onboarding3Screen({super.key});
 

@@ -14,6 +14,14 @@ import '../ui/auth/admin/screens/admin_dashboard_screen.dart';
 import '../ui/auth/admin/screens/user_monitoring_screen.dart';
 import '../ui/auth/admin/screens/content_monitoring_screen.dart'; // Will add later
 
+/*
+  The root widget of the application.
+  
+  Responsible for:
+  - Initializing the MaterialApp
+  - Applying global theme settings
+  - Defining the routing map for navigation
+*/
 class App extends StatelessWidget {
   const App({super.key});
 

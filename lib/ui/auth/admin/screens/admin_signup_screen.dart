@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/admin_auth_state.dart';
 
+/*
+  Admin Access Request Screen.
+  
+  Allows staff/faculty to request access to the Admin Portal.
+  
+  Collects:
+  - Full Name & University Credentials
+  - Admin ID (for verification)
+  - Secure Password creation
+  
+  Note: This is a request flow, not instant access.
+*/
 class AdminSignupScreen extends ConsumerStatefulWidget {
   const AdminSignupScreen({super.key});
 
