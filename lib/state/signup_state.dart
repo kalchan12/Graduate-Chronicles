@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'auth_provider.dart';
+import '../core/supabase_service.dart';
 
 class SignupState {
   final int currentStep;
@@ -269,21 +269,43 @@ class SignupNotifier extends Notifier<SignupState> {
   Future<void> submitSignup(BuildContext context) async {
     state = state.copyWith(isSubmitting: true);
 
-    // Finalize via main auth provider
-    final authFn = ref.read(authProvider.notifier);
-    await authFn.signup(
-      email: state.email,
-      password: state.password,
-      username: state.username,
-    );
-    // Ideally we also store other fields, but authProvider.signup() is simple in this demo.
-    // In real app we'd send all data.
+    try {
+      final supabase = ref.read(supabaseServiceProvider);
+      await supabase.signUp(
+        email: state.email,
+        password: state.password,
+        username: state.username,
+        fullName: state.fullName,
+        role: state.role!, // Validated by step 2
+        institutionalId: state.userId,
+        majorName: state.department,
+        graduationYear: int.tryParse(state.graduationYear ?? ''),
+        interests: state.interests,
+      );
 
-    state = state.copyWith(isSubmitting: false);
+      // Reset draft
+      state = const SignupState();
 
-    // reset draft
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/app', (r) => false);
+      if (context.mounted) {
+        // Navigate to app home (or login if email confirmation needed)
+        // Usually Supabase requires email confirmation by default.
+        // We might want to show a success screen instead if email confirmation is on.
+        // For now, assuming direct login or standard flow.
+        Navigator.of(context).pushNamedAndRemoveUntil('/app', (r) => false);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Signup Failed: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      state = state.copyWith(isSubmitting: false);
     }
   }
 }

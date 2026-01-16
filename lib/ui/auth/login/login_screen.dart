@@ -370,7 +370,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ref
                                           .read(loginFormProvider.notifier)
                                           .validateAndSubmit(
-                                            email: _idCtrl.text,
+                                            identifier: _idCtrl.text,
                                             password: _pwCtrl.text,
                                             context: context,
                                           );

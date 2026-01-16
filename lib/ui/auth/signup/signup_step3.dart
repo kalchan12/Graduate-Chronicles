@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
@@ -54,8 +55,20 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
       );
 
       if (image != null) {
-        final bytes = await image.readAsBytes();
-        ref.read(signupFormProvider.notifier).setAvatar(bytes);
+        // Compress/Convert to JPEG
+        // This handles HEIC issues on iOS/Android automatically if supported by OS,
+        // or effectively converts formats to JPEG for consistency.
+        final compressedBytes = await FlutterImageCompress.compressWithFile(
+          image.path,
+          minWidth: 800,
+          minHeight: 800,
+          quality: 85,
+          format: CompressFormat.jpeg,
+        );
+
+        if (compressedBytes != null) {
+          ref.read(signupFormProvider.notifier).setAvatar(compressedBytes);
+        }
       }
     } catch (e) {
       // Handle picker errors

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/supabase_service.dart';
 import 'auth_provider.dart';
 
 class LoginState {
@@ -63,7 +64,7 @@ class LoginNotifier extends Notifier<LoginState> {
   }
 
   void validateAndSubmit({
-    required String email,
+    required String identifier,
     required String password,
     required BuildContext context,
   }) async {
@@ -73,7 +74,7 @@ class LoginNotifier extends Notifier<LoginState> {
     String? emailErr;
     String? passErr;
 
-    if (email.trim().isEmpty) {
+    if (identifier.trim().isEmpty) {
       emailErr = 'User ID is required';
     }
 
@@ -90,19 +91,23 @@ class LoginNotifier extends Notifier<LoginState> {
       return;
     }
 
-    // Call main auth provider
-    final authNotifier = ref.read(authProvider.notifier);
-    final success = await authNotifier.login(email: email, password: password);
+    try {
+      final supabase = ref.read(supabaseServiceProvider);
+      await supabase.signInWithInstitutionalId(identifier, password);
 
-    if (!success) {
+      // Success
       state = state.copy(isSubmitting: false);
-      return;
-    }
-
-    // Success
-    state = state.copy(isSubmitting: false);
-    if (context.mounted) {
-      Navigator.of(context).pushReplacementNamed('/app');
+      if (context.mounted) {
+        Navigator.of(context).pushReplacementNamed('/app');
+      }
+    } catch (e) {
+      state = state.copy(isSubmitting: false);
+      // We could set a global error in authProvider or just show snackbar here?
+      // For now, let's update global auth state's error message if possible or just log.
+      // Better yet, update authProvider to show error.
+      ref
+          .read(authProvider.notifier)
+          .setError(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
