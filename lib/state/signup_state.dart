@@ -234,18 +234,26 @@ class SignupNotifier extends Notifier<SignupState> {
       rErr = "Role is required";
     }
 
-    // User ID validation if role is Student or Graduate
-    if (state.role == 'Student' || state.role == 'Graduate') {
-      if (state.userId?.trim().isEmpty ?? true) {
-        uErr = "ID is required";
-      }
+    // User ID validation - required for all roles
+    if (state.userId?.trim().isEmpty ?? true) {
+      uErr = "ID is required";
     }
 
     if (state.department?.trim().isEmpty ?? true) {
       dErr = "Department is required";
     }
-    if (state.graduationYear?.trim().isEmpty ?? true) {
+
+    // Graduation Year Validation
+    final yStr = state.graduationYear?.trim();
+    if (yStr == null || yStr.isEmpty) {
       yErr = "Year is required";
+    } else {
+      final yInt = int.tryParse(yStr);
+      if (yInt == null || yStr.length != 4) {
+        yErr = "Enter a valid 4-digit year";
+      } else if (yInt < 2026) {
+        yErr = "Year must be 2026 or later";
+      }
     }
 
     state = state.copyWith(

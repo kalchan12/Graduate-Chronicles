@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
@@ -11,23 +12,44 @@ class SignupStep2 extends ConsumerStatefulWidget {
 }
 
 class _SignupStep2State extends ConsumerState<SignupStep2> {
-  final TextEditingController _deptController = TextEditingController();
+  final TextEditingController _otherMajorController = TextEditingController();
   final TextEditingController _userIdController = TextEditingController();
   // Roles updated as per requirements: Student, Graduate, Alumni, Staff
   final List<String> _roles = ['Student', 'Graduate', 'Alumni', 'Staff'];
-  final List<String> _years = List.generate(16, (i) => '${2020 + i}');
+
+  static const List<String> _majors = [
+    'Computer Science',
+    'Software Engineering',
+    'Computer Engineering',
+    'Electrical Engineering',
+    'Electronics Engineering',
+    'Civil Engineering',
+    'Architectural Engineering',
+    'Mechanical Engineering',
+    'Industrial Engineering',
+    'Mechatronics Engineering',
+    'Chemical Engineering',
+    'Materials Engineering',
+    'Environmental Engineering',
+    'Renewable Energy Engineering',
+    'Other',
+  ];
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(signupFormProvider);
-    _deptController.text = state.department ?? '';
+    if (state.department != null &&
+        state.department!.isNotEmpty &&
+        !_majors.contains(state.department)) {
+      _otherMajorController.text = state.department!;
+    }
     _userIdController.text = state.userId ?? '';
   }
 
   @override
   void dispose() {
-    _deptController.dispose();
+    _otherMajorController.dispose();
     _userIdController.dispose();
     super.dispose();
   }
@@ -133,45 +155,60 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                               errorText: state.roleError,
                             ),
                           ),
-                          if (state.role == 'Student' ||
-                              state.role == 'Graduate') ...[
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
-                              child: _buildField(
-                                label: 'User ID',
-                                hint: 'ID #',
-                                icon: Icons.badge_outlined,
-                                controller: _userIdController,
-                                errorText: state.userIdError,
-                                onChanged: (val) =>
-                                    notifier.setField('userId', val),
-                              ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: _buildField(
+                              label: switch (state.role) {
+                                'Graduate' => 'Graduate Student ID',
+                                'Staff' => 'Staff ID',
+                                'Alumni' => 'Alumni ID',
+                                _ => 'Student ID',
+                              },
+                              hint: 'ID #',
+                              icon: Icons.badge_outlined,
+                              controller: _userIdController,
+                              errorText: state.userIdError,
+                              onChanged: (val) =>
+                                  notifier.setField('userId', val),
                             ),
-                          ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
 
-                      _buildField(
-                        label: 'Department / Major',
-                        hint: 'e.g. Computer Science',
-                        icon: Icons.school_outlined,
-                        controller: _deptController,
-                        errorText: state.departmentError,
-                        onChanged: (val) =>
-                            notifier.setField('department', val),
-                      ),
+                      _buildMajorsAutocomplete(context, state, notifier),
+                      if (state.department != null &&
+                          state.department!.isNotEmpty &&
+                          (state.department == 'Other' ||
+                              !_majors.contains(state.department))) ...[
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: 'Specify Major',
+                          hint: 'Enter your major',
+                          icon: Icons.edit_outlined,
+                          controller: _otherMajorController,
+                          errorText: state.departmentError,
+                          onChanged: (val) =>
+                              notifier.setField('department', val),
+                        ),
+                      ],
+
                       const SizedBox(height: 16),
 
-                      _buildYearPicker(
-                        context,
+                      _buildField(
                         label: 'Graduation Year',
-                        hint: state.graduationYear ?? 'Select your year',
-                        value: state.graduationYear,
+                        hint: 'YYYY (e.g. 2026)',
+                        icon: Icons.calendar_today_outlined,
+                        errorText: state.yearError,
+                        inputType: TextInputType.number,
+                        maxLength: 4,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         onChanged: (val) =>
                             notifier.setField('graduationYear', val),
-                        errorText: state.yearError,
+                        initialValue: state.graduationYear,
                       ),
 
                       const SizedBox(height: 48),
@@ -225,7 +262,16 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     TextEditingController? controller,
     String? errorText,
     ValueChanged<String>? onChanged,
+    TextInputType? inputType,
+    int? maxLength,
+    String? initialValue,
+    List<TextInputFormatter>? inputFormatters,
   }) {
+    // If controller is null, we can use initialValue.
+    // Ideally we shouldn't mix controller and initialValue.
+    // If no controller provided, we can't use TextEditingController.
+    // But TextField needs one for initialValue? No, it has `controller` OR `initialValue` (not both).
+    // So we update the logic.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -249,13 +295,18 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               Icon(icon, color: Colors.white38, size: 20),
               const SizedBox(width: 12),
               Expanded(
-                child: TextField(
+                child: TextFormField(
                   controller: controller,
+                  initialValue: controller == null ? initialValue : null,
                   onChanged: onChanged,
+                  keyboardType: inputType,
+                  maxLength: maxLength,
+                  inputFormatters: inputFormatters,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: hint,
+                    counterText: "", // Hide counter
                     hintStyle: const TextStyle(color: Colors.white38),
                     contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
@@ -276,6 +327,156 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
               ),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildMajorsAutocomplete(
+    BuildContext context,
+    SignupState state,
+    SignupNotifier notifier,
+  ) {
+    // Determine initial text
+    // If state.department is in _majors, use it.
+    // If it's "Other" (or not in list but not empty), use "Other".
+    String initialText = '';
+    if (state.department != null && state.department!.isNotEmpty) {
+      if (_majors.contains(state.department)) {
+        initialText = state.department!;
+      } else {
+        initialText = 'Other';
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Department / Major',
+          style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return Autocomplete<String>(
+              initialValue: TextEditingValue(text: initialText),
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text == '') {
+                  return const Iterable<String>.empty();
+                }
+                return _majors.where((String option) {
+                  return option.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase(),
+                  );
+                });
+              },
+              onSelected: (String selection) {
+                if (selection == 'Other') {
+                  // If Other, we might want to clear department so user types in next box?
+                  // Or set it to empty so "Other" is selected logic kicks in (not in list)
+                  // Actually, if we set 'department' to 'Other' ? No, 'Other' is in the list.
+                  // So state.department becomes 'Other'.
+                  // If state.department is 'Other', _majors.contains checks true.
+                  // So my logic: `!_majors.contains(state.department)` would be FALSE.
+                  // So the text field wouldn't show.
+                  // FIX: Treat 'Other' specifically.
+                  // setField('department', 'Other')?
+                  // I need a way to show the Other text field.
+                  notifier.setField('department', 'Other');
+                  // But wait, if I set 'Other', then it IS in the list.
+                  // I need the extra field to show if (val == 'Other' OR !inList).
+                  // Let's adjust the Condition in build.
+                } else {
+                  notifier.setField('department', selection);
+                }
+              },
+              fieldViewBuilder:
+                  (
+                    BuildContext context,
+                    TextEditingController fieldTextEditingController,
+                    FocusNode fieldFocusNode,
+                    VoidCallback onFieldSubmitted,
+                  ) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.school_outlined,
+                            color: Colors.white38,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: fieldTextEditingController,
+                              focusNode: fieldFocusNode,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Search Major',
+                                hintStyle: TextStyle(color: Colors.white38),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: constraints.maxWidth,
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2E1A3C),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final String option = options.elementAt(index);
+                          return InkWell(
+                            onTap: () {
+                              onSelected(option);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                option,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ],
     );
   }
@@ -393,165 +594,6 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                 color: Colors.orangeAccent,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildYearPicker(
-    BuildContext context, {
-    required String label,
-    required String hint,
-    required String? value,
-    required ValueChanged<String> onChanged,
-    String? errorText,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: const Color(0xFF1F0C24),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              isScrollControlled: true,
-              builder: (ctx) {
-                return DraggableScrollableSheet(
-                  initialChildSize: 0.5,
-                  minChildSize: 0.4,
-                  maxChildSize: 0.8,
-                  expand: false,
-                  builder: (_, controller) {
-                    return Container(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.white24,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Select Graduation Year',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 24),
-                          Expanded(
-                            child: GridView.builder(
-                              controller: controller,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    mainAxisSpacing: 12,
-                                    crossAxisSpacing: 12,
-                                    childAspectRatio: 2.0,
-                                  ),
-                              itemCount: _years.length,
-                              itemBuilder: (context, index) {
-                                final year = _years[index];
-                                final isSelected = year == value;
-                                return GestureDetector(
-                                  onTap: () {
-                                    onChanged(year);
-                                    Navigator.pop(context);
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? DesignSystem.purpleAccent
-                                          : Colors.white.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? Colors.transparent
-                                            : Colors.white10,
-                                      ),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      year,
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : Colors.white70,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            );
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  color: Colors.white38,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    value ?? hint,
-                    style: TextStyle(
-                      color: value == null ? Colors.white38 : Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.unfold_more_rounded,
-                  color: Colors.white38,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (errorText != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 4),
-            child: Text(
-              errorText,
-              style: const TextStyle(
-                color: Colors.orangeAccent,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
