@@ -266,7 +266,7 @@ class _UserCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: (user['color'] as Color).withOpacity(0.2),
+            backgroundColor: (user['color'] as Color).withValues(alpha: 0.2),
             child: Text(
               (user['name'] as String)[0],
               style: TextStyle(

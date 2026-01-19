@@ -20,10 +20,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _idCtrl = TextEditingController(
-    text: 'UGE/24170/13',
-  );
-  final TextEditingController _pwCtrl = TextEditingController(text: '12345678');
+  final TextEditingController _idCtrl = TextEditingController();
+  final TextEditingController _pwCtrl = TextEditingController();
 
   @override
   void dispose() {

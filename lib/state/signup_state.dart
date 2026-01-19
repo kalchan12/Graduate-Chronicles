@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/supabase/supabase_service.dart';
 
 class SignupState {
   final int currentStep;
@@ -23,17 +24,17 @@ class SignupState {
   // Step 2 Data
   final String? role;
   final String? userId;
-  final String? department;
+  final String? major;
   final String? graduationYear;
 
   // Step 2 Errors
   final String? roleError;
   final String? userIdError;
-  final String? departmentError;
+  final String? majorError;
   final String? yearError;
 
   // Step 3 Data
-  final Uint8List? avatar;
+  final Uint8List? profileImage;
 
   // Step 4 Data
   final List<String> interests;
@@ -55,13 +56,13 @@ class SignupState {
     this.confirmPasswordError,
     this.role,
     this.userId,
-    this.department,
+    this.major,
     this.graduationYear,
     this.roleError,
     this.userIdError,
-    this.departmentError,
+    this.majorError,
     this.yearError,
-    this.avatar,
+    this.profileImage,
     this.interests = const [],
     this.isSubmitting = false,
   });
@@ -80,13 +81,13 @@ class SignupState {
     String? Function()? confirmPasswordError,
     String? role,
     String? userId,
-    String? department,
+    String? major,
     String? graduationYear,
     String? Function()? roleError,
     String? Function()? userIdError,
-    String? Function()? departmentError,
+    String? Function()? majorError,
     String? Function()? yearError,
-    Uint8List? avatar,
+    Uint8List? profileImage,
     List<String>? interests,
     bool? isSubmitting,
   }) {
@@ -112,15 +113,13 @@ class SignupState {
           : this.confirmPasswordError,
       role: role ?? this.role,
       userId: userId ?? this.userId,
-      department: department ?? this.department,
+      major: major ?? this.major,
       graduationYear: graduationYear ?? this.graduationYear,
       roleError: roleError != null ? roleError() : this.roleError,
       userIdError: userIdError != null ? userIdError() : this.userIdError,
-      departmentError: departmentError != null
-          ? departmentError()
-          : this.departmentError,
+      majorError: majorError != null ? majorError() : this.majorError,
       yearError: yearError != null ? yearError() : this.yearError,
-      avatar: avatar ?? this.avatar,
+      profileImage: profileImage ?? this.profileImage,
       interests: interests ?? this.interests,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
@@ -152,12 +151,13 @@ class SignupNotifier extends Notifier<SignupState> {
         confirmPasswordError: () => null,
       );
     }
-    if (key == 'department') {
-      state = state.copyWith(department: value, departmentError: () => null);
+    if (key == 'major') {
+      state = state.copyWith(major: value, majorError: () => null);
     }
     if (key == 'userId') {
       state = state.copyWith(userId: value, userIdError: () => null);
     }
+    // majorNameOther removed
     if (key == 'graduationYear') {
       state = state.copyWith(graduationYear: value, yearError: () => null);
     }
@@ -167,8 +167,8 @@ class SignupNotifier extends Notifier<SignupState> {
     state = state.copyWith(role: val, roleError: () => null);
   }
 
-  void setAvatar(Uint8List? data) {
-    state = state.copyWith(avatar: data);
+  void setProfileImage(Uint8List? data) {
+    state = state.copyWith(profileImage: data);
   }
 
   void toggleInterest(String interest) {
@@ -229,7 +229,7 @@ class SignupNotifier extends Notifier<SignupState> {
   }
 
   bool validateStep2() {
-    String? rErr, uErr, dErr, yErr;
+    String? rErr, uErr, mErr, yErr;
     if (state.role == null) {
       rErr = "Role is required";
     }
@@ -239,8 +239,8 @@ class SignupNotifier extends Notifier<SignupState> {
       uErr = "ID is required";
     }
 
-    if (state.department?.trim().isEmpty ?? true) {
-      dErr = "Department is required";
+    if (state.major?.trim().isEmpty ?? true) {
+      mErr = "Major is required";
     }
 
     // Graduation Year Validation
@@ -259,11 +259,11 @@ class SignupNotifier extends Notifier<SignupState> {
     state = state.copyWith(
       roleError: () => rErr,
       userIdError: () => uErr,
-      departmentError: () => dErr,
+      majorError: () => mErr,
       yearError: () => yErr,
     );
 
-    return rErr == null && uErr == null && dErr == null && yErr == null;
+    return rErr == null && uErr == null && mErr == null && yErr == null;
   }
 
   Future<void> submitSignup(BuildContext context) async {
@@ -278,28 +278,76 @@ class SignupNotifier extends Notifier<SignupState> {
         fullName: state.fullName,
         role: state.role!, // Validated by step 2
         institutionalId: state.userId,
-        majorName: state.department,
-        graduationYear: int.tryParse(state.graduationYear ?? ''),
+        major: state.major,
+        graduationYear: int.tryParse(
+          state.graduationYear ?? '',
+        ), // Fixed duplicate
         interests: state.interests,
       );
 
       // Reset draft
       state = const SignupState();
 
+      // 3. Navigate to Profile Upload (Step 4)
       if (context.mounted) {
-        // Navigate to app home (or login if email confirmation needed)
-        // Usually Supabase requires email confirmation by default.
-        // We might want to show a success screen instead if email confirmation is on.
-        // For now, assuming direct login or standard flow.
+        Navigator.of(context).pushReplacementNamed('/signup4');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        String msg =
+            'Signup Failed: ${e.toString().replaceAll('Exception: ', '')}';
+
+        // Attempt to parse known Supabase/Postgres errors (e.g. via string message if not typed)
+        // Ideally we catch AuthException or PostgrestException, but 'e' is dynamic here.
+        final s = e.toString().toLowerCase();
+        if (s.contains('23505') || s.contains('duplicate key')) {
+          if (s.contains('institutional_id') || s.contains('user_id')) {
+            // Assuming constraint name or field
+            msg = 'This User ID is already registered.';
+          } else if (s.contains('email')) {
+            msg = 'This Email is already in use.';
+          } else if (s.contains('username')) {
+            msg = 'This Username is already taken.';
+          } else {
+            msg = 'Account already exists (Duplicate info).';
+          }
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
+  }
+
+  Future<void> uploadProfilePicture(BuildContext context) async {
+    // Only proceed if we have an image
+    if (state.profileImage == null) return;
+
+    state = state.copyWith(isSubmitting: true);
+
+    try {
+      final supabase = ref.read(supabaseServiceProvider);
+      // We need the current user ID.
+      // Since we just logged in (in submitSignup), fetching currentUser should work.
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+
+      if (userId == null) {
+        throw Exception("No authenticated user found.");
+      }
+
+      await supabase.uploadProfilePicture(userId, state.profileImage!);
+
+      if (context.mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/app', (r) => false);
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Signup Failed: ${e.toString().replaceAll('Exception: ', '')}',
-            ),
+            content: Text('Upload failed: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );

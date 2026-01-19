@@ -46,3 +46,5 @@ app.*.map.json
 # Personal planning file
 plan.md
 .env
+# Database setup
+supabase/setup.sql

@@ -8,7 +8,7 @@ class SignupDraft {
   final String email;
   final String password;
   final String? role;
-  final String? department;
+  final String? majorId;
   final String? graduationYear;
   final Uint8List? avatar;
   final List<String> interests;
@@ -19,7 +19,7 @@ class SignupDraft {
     this.email = '',
     this.password = '',
     this.role,
-    this.department,
+    this.majorId,
     this.graduationYear,
     this.avatar,
     this.interests = const [],
@@ -31,7 +31,7 @@ class SignupDraft {
     String? email,
     String? password,
     String? role,
-    String? department,
+    String? majorId,
     String? graduationYear,
     Uint8List? avatar,
     List<String>? interests,
@@ -42,7 +42,7 @@ class SignupDraft {
       email: email ?? this.email,
       password: password ?? this.password,
       role: role ?? this.role,
-      department: department ?? this.department,
+      majorId: majorId ?? this.majorId,
       graduationYear: graduationYear ?? this.graduationYear,
       avatar: avatar ?? this.avatar,
       interests: interests ?? this.interests,
@@ -178,7 +178,7 @@ class AuthNotifier extends Notifier<AuthState> {
     String? email,
     String? password,
     String? role,
-    String? department,
+    String? majorId,
     String? graduationYear,
     Uint8List? avatar,
     List<String>? interests,
@@ -189,7 +189,7 @@ class AuthNotifier extends Notifier<AuthState> {
       email: email,
       password: password,
       role: role,
-      department: department,
+      majorId: majorId,
       graduationYear: graduationYear,
       avatar: avatar,
       interests: interests,

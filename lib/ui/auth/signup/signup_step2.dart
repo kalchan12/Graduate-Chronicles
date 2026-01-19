@@ -23,44 +23,22 @@ class SignupStep2 extends ConsumerStatefulWidget {
 }
 
 class _SignupStep2State extends ConsumerState<SignupStep2> {
-  final TextEditingController _otherMajorController = TextEditingController();
   final TextEditingController _userIdController = TextEditingController();
   // Roles updated as per requirements: Student, Graduate, Alumni, Staff
   final List<String> _roles = ['Student', 'Graduate', 'Alumni', 'Staff'];
 
-  static const List<String> _majors = [
-    'Computer Science',
-    'Software Engineering',
-    'Computer Engineering',
-    'Electrical Engineering',
-    'Electronics Engineering',
-    'Civil Engineering',
-    'Architectural Engineering',
-    'Mechanical Engineering',
-    'Industrial Engineering',
-    'Mechatronics Engineering',
-    'Chemical Engineering',
-    'Materials Engineering',
-    'Environmental Engineering',
-    'Renewable Energy Engineering',
-    'Other',
-  ];
+  // Placeholder list removed. We use dynamic data from majorsProvider.
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(signupFormProvider);
-    if (state.department != null &&
-        state.department!.isNotEmpty &&
-        !_majors.contains(state.department)) {
-      _otherMajorController.text = state.department!;
-    }
     _userIdController.text = state.userId ?? '';
+    // We handle the 'Other' logic in the build or as part of the dynamic fetch
   }
 
   @override
   void dispose() {
-    _otherMajorController.dispose();
     _userIdController.dispose();
     super.dispose();
   }
@@ -189,21 +167,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                       const SizedBox(height: 16),
 
                       _buildMajorsAutocomplete(context, state, notifier),
-                      if (state.department != null &&
-                          state.department!.isNotEmpty &&
-                          (state.department == 'Other' ||
-                              !_majors.contains(state.department))) ...[
-                        const SizedBox(height: 16),
-                        _buildField(
-                          label: 'Specify Major',
-                          hint: 'Enter your major',
-                          icon: Icons.edit_outlined,
-                          controller: _otherMajorController,
-                          errorText: state.departmentError,
-                          onChanged: (val) =>
-                              notifier.setField('department', val),
-                        ),
-                      ],
+                      const SizedBox(height: 16),
 
                       const SizedBox(height: 16),
 
@@ -281,7 +245,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     // If controller is null, we can use initialValue.
     // Ideally we shouldn't mix controller and initialValue.
     // If no controller provided, we can't use TextEditingController.
-    // But TextField needs one for initialValue? No, it has `controller` OR `initialValue` (not both).
+    // But TextField needs one for `controller` OR `initialValue` (not both).
     // So we update the logic.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,17 +311,19 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     SignupState state,
     SignupNotifier notifier,
   ) {
-    // Determine initial text
-    // If state.department is in _majors, use it.
-    // If it's "Other" (or not in list but not empty), use "Other".
-    String initialText = '';
-    if (state.department != null && state.department!.isNotEmpty) {
-      if (_majors.contains(state.department)) {
-        initialText = state.department!;
-      } else {
-        initialText = 'Other';
-      }
-    }
+    // Hardcoded major suggestions (no database needed)
+    final List<String> majorSuggestions = [
+      'Computer Science',
+      'Software Engineering',
+      'Mechanical Engineering',
+      'Electrical Engineering',
+      'Civil Engineering',
+      'Architectural Engineering',
+      'Chemical Engineering',
+      'Mechatronics Engineering',
+      'Industrial Engineering',
+      'Other',
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,36 +336,20 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
         LayoutBuilder(
           builder: (context, constraints) {
             return Autocomplete<String>(
-              initialValue: TextEditingValue(text: initialText),
+              initialValue: TextEditingValue(text: state.major ?? ''),
               optionsBuilder: (TextEditingValue textEditingValue) {
                 if (textEditingValue.text == '') {
                   return const Iterable<String>.empty();
                 }
-                return _majors.where((String option) {
+                return majorSuggestions.where((String option) {
                   return option.toLowerCase().contains(
                     textEditingValue.text.toLowerCase(),
                   );
                 });
               },
               onSelected: (String selection) {
-                if (selection == 'Other') {
-                  // If Other, we might want to clear department so user types in next box?
-                  // Or set it to empty so "Other" is selected logic kicks in (not in list)
-                  // Actually, if we set 'department' to 'Other' ? No, 'Other' is in the list.
-                  // So state.department becomes 'Other'.
-                  // If state.department is 'Other', _majors.contains checks true.
-                  // So my logic: `!_majors.contains(state.department)` would be FALSE.
-                  // So the text field wouldn't show.
-                  // FIX: Treat 'Other' specifically.
-                  // setField('department', 'Other')?
-                  // I need a way to show the Other text field.
-                  notifier.setField('department', 'Other');
-                  // But wait, if I set 'Other', then it IS in the list.
-                  // I need the extra field to show if (val == 'Other' OR !inList).
-                  // Let's adjust the Condition in build.
-                } else {
-                  notifier.setField('department', selection);
-                }
+                // Directly store the selected major name
+                notifier.setField('major', selection);
               },
               fieldViewBuilder:
                   (

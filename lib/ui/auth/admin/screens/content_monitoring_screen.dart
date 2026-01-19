@@ -430,9 +430,11 @@ class _EventCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.2),
+                            color: color.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: color.withOpacity(0.3)),
+                            border: Border.all(
+                              color: color.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             status,

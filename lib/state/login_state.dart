@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/supabase_service.dart';
+import '../services/supabase/supabase_service.dart';
 import 'auth_provider.dart';
 
 class LoginState {

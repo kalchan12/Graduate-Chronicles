@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
 
 /*
-  Signup Step 3: Profile Picture.
+  Signup Step 3: Interests.
   
   Features:
-  - Image selection from gallery
-  - Permission handling (Photos/Storage)
-  - Preview of selected image
-  
-  Allows skipping this step if the user prefers.
+  - Multi-select interest chips
+  - Triggers Account Creation on Finish
 */
 class SignupStep3 extends ConsumerStatefulWidget {
   const SignupStep3({super.key});
@@ -24,66 +18,124 @@ class SignupStep3 extends ConsumerStatefulWidget {
 }
 
 class _SignupStep3State extends ConsumerState<SignupStep3> {
-  final ImagePicker _picker = ImagePicker();
+  final List<String> _allInterests = [
+    'Code',
+    'Math',
+    'Science',
+    'Literature',
+    'History',
+    'Design',
+    'Arts',
+    'Music',
+    'Photography',
+    'Writing',
+    'Sports',
+    'Gaming',
+    'Travel',
+    'Fitness',
+    'Movies',
+  ];
 
-  Future<void> _pickImage() async {
-    // Request permission first
-    // Note: On Android 13+, READ_MEDIA_IMAGES is used, but library handles details mostly.
-    // For simplicity, we check photos.
-    var status = await Permission.photos.status;
-    if (!status.isGranted) {
-      status = await Permission.photos.request();
-    }
-
-    // Some Android versions (standard storage) or iOS behavior nuances:
-    // If still denied, try 'storage' or just proceed to picker which might handle it or fail gracefully.
-    if (status.isPermanentlyDenied) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permission denied. Please enable access in settings.'),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800, // Reasonable max width for avatars
-        maxHeight: 800,
-      );
-
-      if (image != null) {
-        // Compress/Convert to JPEG
-        // This handles HEIC issues on iOS/Android automatically if supported by OS,
-        // or effectively converts formats to JPEG for consistency.
-        final compressedBytes = await FlutterImageCompress.compressWithFile(
-          image.path,
-          minWidth: 800,
-          minHeight: 800,
-          quality: 85,
-          format: CompressFormat.jpeg,
+  Future<void> _onFinish() async {
+    // Confirm and Signup
+    final confirmed = await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Confirm',
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      pageBuilder: (context, a1, a2) => Container(),
+      transitionBuilder: (ctx, anim, secondaryAnim, child) {
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+          child: FadeTransition(
+            opacity: anim,
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF261230),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              titlePadding: const EdgeInsets.only(top: 24, left: 24, right: 24),
+              contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              title: const Text(
+                'Create Account?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'We will create your account with these details.',
+                    style: TextStyle(color: Color(0xFFD6C9E6), fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Colors.white10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.white60),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: DesignSystem.purpleAccent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Create',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
+      },
+    );
 
-        if (compressedBytes != null) {
-          ref.read(signupFormProvider.notifier).setAvatar(compressedBytes);
-        }
-      }
-    } catch (e) {
-      // Handle picker errors
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+    if (confirmed == true && mounted) {
+      // Trigger Signup + DB Insert
+      ref.read(signupFormProvider.notifier).submitSignup(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(signupFormProvider);
+    final notifier = ref.read(signupFormProvider.notifier);
 
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -98,160 +150,168 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 16,
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.of(
                         context,
                       ).pushReplacementNamed('/signup2'),
                     ),
-                    const Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 48),
-                        child: Center(
-                          child: Text(
-                            'Step 3 of 4',
-                            style: TextStyle(color: Colors.white70),
-                          ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Step 3 of 4',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
+
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Text(
+                  'What are you into?',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ),
               const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 28),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Text(
-                  'Set up your profile',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  'Select a few interests.',
+                  style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 36),
-                child: Text(
-                  'Add a photo so your friends can find you.',
-                  style: TextStyle(color: Color(0xFFBEB2DF), fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 18),
+
+              const SizedBox(height: 24),
+
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
+                    horizontal: 16,
                     vertical: 8,
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 12),
-                        height: 160,
-                        width: 160,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(80),
-                          border: Border.all(color: Colors.white24, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: state.avatar == null
-                            ? const Center(
-                                child: Icon(
-                                  Icons.account_circle,
-                                  color: Colors.white12,
-                                  size: 120,
-                                ),
-                              )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(80),
-                                child: Image.memory(
-                                  state.avatar!,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _pickImage,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white12,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: const BorderSide(color: Colors.white24),
-                          ),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.center,
+                    children: _allInterests.map((k) {
+                      final active = state.interests.contains(k);
+                      return GestureDetector(
+                        onTap: () => notifier.toggleInterest(k),
+                        child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
+                            horizontal: 20,
                             vertical: 12,
                           ),
+                          decoration: BoxDecoration(
+                            color: active
+                                ? DesignSystem.purpleAccent
+                                : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: active
+                                  ? DesignSystem.purpleAccent
+                                  : Colors.white.withValues(alpha: 0.15),
+                              width: 1.5,
+                            ),
+                            boxShadow: active
+                                ? [
+                                    BoxShadow(
+                                      color: DesignSystem.purpleAccent
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      spreadRadius: 0,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (active)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 6),
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              Text(
+                                k,
+                                style: TextStyle(
+                                  color: active ? Colors.white : Colors.white70,
+                                  fontWeight: active
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  fontSize: 14,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              state.avatar == null
-                                  ? Icons.add_a_photo
-                                  : Icons.edit,
-                              size: 18,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: state.isSubmitting ? null : _onFinish,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DesignSystem.purpleAccent,
+                      elevation: 8,
+                      shadowColor: DesignSystem.purpleAccent.withValues(
+                        alpha: 0.4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: state.isSubmitting
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Finish Signup',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              state.avatar == null
-                                  ? 'Upload Photo'
-                                  : 'Change Photo',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => Navigator.of(
-                          context,
-                        ).pushReplacementNamed('/signup4'),
-                        child: const Text(
-                          'Skip for now',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.of(
-                            context,
-                          ).pushReplacementNamed('/signup4'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: DesignSystem.purpleAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
                           ),
-                          child: const Text(
-                            'Next',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),

@@ -14,6 +14,12 @@ Future<void> main() async {
   // Load environment variables
   await dotenv.load(fileName: ".env");
 
+  // DEBUG: Print to verify correct credentials (REMOVE after debugging)
+  print('🔍 DEBUG - Supabase URL: ${dotenv.env['SUPABASE_URL']}');
+  print(
+    '🔍 DEBUG - Anon Key: ${dotenv.env['SUPABASE_ANON_KEY']?.substring(0, 20)}...',
+  );
+
   // Initialize Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
