@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
-import '../../state/profile_state.dart'; // New Provider Import
+import '../../state/profile_state.dart';
+import '../../state/portfolio_state.dart'; // Added Import
 import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
 import '../messages/message_detail_screen.dart';
@@ -85,8 +86,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _isLoading = false;
         });
 
-        // Also refresh provider for other components if they rely on it
-        // ref.read(profileProvider.notifier).refresh();
+        // Load Portfolio Data
+        if (userData['user_id'] != null) {
+          ref
+              .read(portfolioProvider.notifier)
+              .loadPortfolio(userData['user_id']);
+        }
       }
     } catch (e) {
       print('Error loading profile in screen: $e');
@@ -184,7 +189,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // We still watch the provider for other fields (name, degree, bio)
     // BUT we use local state for the image to guarantee freshness.
     final profile = ref.watch(profileProvider);
-    final achievements = ref.watch(profileAchievementsProvider);
 
     if (_isLoading) {
       return const Scaffold(
@@ -479,8 +483,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Row(
                   children: [
                     _tabItem(0, 'Achievements'),
-                    _tabItem(1, 'Projects'),
-                    _tabItem(2, 'Memories'),
+                    _tabItem(1, 'Resumes'),
+                    _tabItem(2, 'Certificates'),
+                    _tabItem(3, 'Links'),
                   ],
                 ),
               ),
@@ -488,23 +493,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 24),
 
               // Content based on tab
-              if (_selectedTab == 0)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Column(
-                    children: achievements
-                        .map(
-                          (a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _AchievementCard(
-                              title: a['title']!,
-                              subtitle: a['subtitle']!,
-                            ),
+              // Use portfolioProvider state
+              Builder(
+                builder: (context) {
+                  final portfolio = ref.watch(portfolioProvider);
+
+                  if (portfolio.isLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: DesignSystem.purpleAccent,
+                        ),
+                      ),
+                    );
+                  }
+
+                  List<Map<String, dynamic>> items = [];
+                  if (_selectedTab == 0)
+                    items = portfolio.achievements;
+                  else if (_selectedTab == 1)
+                    items = portfolio.resumes;
+                  else if (_selectedTab == 2)
+                    items = portfolio.certificates;
+                  else if (_selectedTab == 3)
+                    items = portfolio.links;
+
+                  if (items.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Text(
+                          'No items found.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
                           ),
-                        )
-                        .toList(),
-                  ),
-                ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: items.map((item) {
+                        // Map fields based on type
+                        String title = '';
+                        String subtitle = '';
+
+                        if (_selectedTab == 0) {
+                          title = item['title'] ?? 'Untitled';
+                          subtitle = item['description'] ?? 'No description';
+                        } else if (_selectedTab == 1) {
+                          title = item['file_name'] ?? 'Resume';
+                          subtitle = item['notes'] ?? '';
+                        } else if (_selectedTab == 2) {
+                          title = item['certificate_name'] ?? 'Certificate';
+                          subtitle = item['issuing_organization'] ?? '';
+                        } else if (_selectedTab == 3) {
+                          title = item['title'] ?? 'Link';
+                          subtitle = item['url'] ?? '';
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _AchievementCard(
+                            title: title,
+                            subtitle: subtitle,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),

@@ -299,6 +299,34 @@ class _EditProfileSettingsScreenState
                   maxLines: 4,
                 ),
 
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      // Navigate to Portfolio Management
+                      // We will create this route next
+                      Navigator.pushNamed(context, '/portfolio_management');
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: DesignSystem.purpleAccent.withValues(alpha: 0.5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Manage Portfolio',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 40),
 
                 SizedBox(

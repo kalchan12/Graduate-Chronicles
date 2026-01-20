@@ -13,6 +13,7 @@ import '../ui/auth/admin/screens/admin_signup_screen.dart';
 import '../ui/auth/admin/screens/admin_dashboard_screen.dart';
 import '../ui/auth/admin/screens/user_monitoring_screen.dart';
 import '../ui/auth/admin/screens/content_monitoring_screen.dart'; // Will add later
+import '../ui/portfolio/portfolio_management_screen.dart';
 
 /*
   The root widget of the application.
@@ -57,6 +58,7 @@ class App extends StatelessWidget {
         '/admin/monitoring': (_) => const ContentMonitoringScreen(),
         '/notifications': (_) => const NotificationScreen(),
         '/messages': (_) => const MessageListScreen(),
+        '/portfolio_management': (_) => const PortfolioManagementScreen(),
       },
       home: const SplashScreen(),
     );

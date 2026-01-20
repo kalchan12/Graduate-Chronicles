@@ -309,4 +309,137 @@ class SupabaseService {
 
     return res?['user_id'];
   }
+
+  // --- Portfolio System Methods ---
+
+  /*
+    Get Auth ID from Public User ID.
+    Required because Portfolio tables use Auth ID (UUID) as key,
+    but the app primarily uses Public User ID (UUID) for navigation.
+  */
+  Future<String?> getAuthIdFromPublicId(String publicUserId) async {
+    final res = await _client
+        .from('users')
+        .select('auth_user_id')
+        .eq('user_id', publicUserId)
+        .maybeSingle();
+
+    return res?['auth_user_id'];
+  }
+
+  /*
+    Fetch Portfolio for a User.
+    Fetches all items grouped by type.
+  */
+  Future<Map<String, List<Map<String, dynamic>>>> fetchPortfolio(
+    String authUserId,
+  ) async {
+    // 1. Fetch Parent Rows
+    final portItems = await _client
+        .from('portfolio')
+        .select()
+        .eq('user_id', authUserId)
+        .order('created_at', ascending: false);
+
+    final Map<String, List<Map<String, dynamic>>> result = {
+      'achievement': [],
+      'resume': [],
+      'certificate': [],
+      'link': [],
+    };
+
+    if (portItems.isEmpty) return result;
+
+    // 2. Fetch Children based on type
+    // We could do this with joins if we had foreign keys set up nicely in standard PostgREST way,
+    // but separate queries are often cleaner for heterogeneous types.
+
+    for (var item in portItems) {
+      final pid = item['portfolio_id'];
+      final type = item['type'] as String;
+
+      if (type == 'achievement') {
+        final child = await _client
+            .from('portfolio_achievements')
+            .select()
+            .eq('portfolio_id', pid)
+            .maybeSingle();
+        if (child != null) result['achievement']!.add(child);
+      } else if (type == 'resume') {
+        final child = await _client
+            .from('portfolio_resumes')
+            .select()
+            .eq('portfolio_id', pid)
+            .maybeSingle();
+        if (child != null) result['resume']!.add(child);
+      } else if (type == 'certificate') {
+        final child = await _client
+            .from('portfolio_certificates')
+            .select()
+            .eq('portfolio_id', pid)
+            .maybeSingle();
+        if (child != null) result['certificate']!.add(child);
+      } else if (type == 'link') {
+        final child = await _client
+            .from('portfolio_links')
+            .select()
+            .eq('portfolio_id', pid)
+            .maybeSingle();
+        if (child != null) result['link']!.add(child);
+      }
+    }
+
+    return result;
+  }
+
+  /*
+    Add Portfolio Item.
+    Creates parent 'portfolio' row and child specific row transactionally-ish.
+  */
+  Future<void> addPortfolioItem({
+    required String type,
+    required Map<String, dynamic> data,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // 1. Insert Parent
+    final parentRes = await _client
+        .from('portfolio')
+        .insert({'user_id': userId, 'type': type})
+        .select('portfolio_id')
+        .single();
+
+    final portfolioId = parentRes['portfolio_id'];
+
+    // 2. Insert Child
+    final childData = Map<String, dynamic>.from(data);
+    childData['portfolio_id'] = portfolioId;
+
+    String tableName;
+    switch (type) {
+      case 'achievement':
+        tableName = 'portfolio_achievements';
+        break;
+      case 'resume':
+        tableName = 'portfolio_resumes';
+        break;
+      case 'certificate':
+        tableName = 'portfolio_certificates';
+        break;
+      case 'link':
+        tableName = 'portfolio_links';
+        break;
+      default:
+        throw Exception('Invalid portfolio type');
+    }
+
+    await _client.from(tableName).insert(childData);
+  }
+
+  Future<void> deletePortfolioItem(String portfolioId, String type) async {
+    // Cascade delete on DB handles children, so just delete parent.
+    // Extra safety: Verify ownership via RLS (automatic).
+    await _client.from('portfolio').delete().eq('portfolio_id', portfolioId);
+  }
 }
