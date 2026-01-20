@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import '../../core/providers.dart';
 import '../../theme/design_system.dart';
+import '../../state/profile_state.dart';
 
 import '../../ui/widgets/global_background.dart';
 
@@ -41,6 +41,18 @@ class _EditProfileSettingsScreenState
     _usernameController = TextEditingController(text: profile.username);
     _bioController = TextEditingController(text: profile.bio);
     _pickedImagePath = profile.profileImage;
+
+    // PART 5: Edit Profile MUST Refetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(profileProvider.notifier).refresh();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Watch for changes to update controllers when data comes in
+    // This handles the async fetch completion
   }
 
   @override
@@ -151,6 +163,33 @@ class _EditProfileSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Listen to profile updates to sync controllers (specifically for the initial fetch)
+    ref.listen<UserProfile>(profileProvider, (previous, next) {
+      if (previous != next) {
+        // Only update if the values are different to avoid cursor jumping if user is typing
+        // Ideally we only do this once on load, but checking for difference helps.
+        // Since we refresh on mount, this brings in the DB values.
+        if (_nameController.text != next.name) _nameController.text = next.name;
+        if (_usernameController.text != next.username) {
+          _usernameController.text = next.username;
+        }
+        if (_bioController.text != next.bio) _bioController.text = next.bio;
+        if (_pickedImagePath != next.profileImage &&
+            _pickedImagePath == previous?.profileImage) {
+          // Only update image path if it wasn't validly changed by user picking a file
+          // Actually, if we just loaded, we should overwrite.
+          // Because _pickedImagePath is initialized to old state.
+          // If user hasn't picked a new image (which would be local file), we accept the new network image.
+          if (_pickedImagePath == null ||
+              _pickedImagePath!.startsWith('http')) {
+            setState(() {
+              _pickedImagePath = next.profileImage;
+            });
+          }
+        }
+      }
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -187,18 +226,33 @@ class _EditProfileSettingsScreenState
                         ),
                         child: ClipOval(
                           child: _pickedImagePath != null
-                              ? Image.file(
-                                  File(_pickedImagePath!),
-                                  fit: BoxFit.cover,
-                                  width: 120,
-                                  height: 120,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
-                                        Icons.person,
-                                        size: 60,
-                                        color: Colors.white,
-                                      ),
-                                )
+                              ? (_pickedImagePath!.startsWith('http')
+                                    ? Image.network(
+                                        _pickedImagePath!,
+                                        fit: BoxFit.cover,
+                                        width: 120,
+                                        height: 120,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                                  Icons.person,
+                                                  size: 60,
+                                                  color: Colors.white,
+                                                ),
+                                      )
+                                    : Image.file(
+                                        File(_pickedImagePath!),
+                                        fit: BoxFit.cover,
+                                        width: 120,
+                                        height: 120,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                                  Icons.person,
+                                                  size: 60,
+                                                  color: Colors.white,
+                                                ),
+                                      ))
                               : const Icon(
                                   Icons.person,
                                   size: 60,

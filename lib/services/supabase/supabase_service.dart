@@ -85,8 +85,8 @@ class SupabaseService {
             ),
           );
 
-      // 5. Return public URL
-      return _client.storage.from('avatar').getPublicUrl(path);
+      // 5. Return Storage Path (NOT URL)
+      return path;
     } catch (e) {
       print('Profile upload error: $e');
       if (e.toString().contains('400') || e.toString().contains('404')) {
@@ -179,5 +179,134 @@ class SupabaseService {
         .eq('username', username)
         .maybeSingle();
     return data != null;
+  }
+
+  // --- Profile System Methods ---
+
+  /*
+    Upsert Profile (Insert or Update).
+    Used during setup or editing.
+  */
+  Future<void> upsertProfile({
+    required String userId,
+    String? bio,
+    String? profilePictureUrl,
+  }) async {
+    // We strictly use the user_id to map to profile.
+    // Ideally we fetch the internal user_id first if we only have auth_user_id,
+    // but typically we pass the PUBLIC user_id here.
+
+    // Check if profile exists
+    final existing = await _client
+        .from('profile')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (existing == null) {
+      // Insert
+      await _client.from('profile').insert({
+        'user_id': userId,
+        'bio': bio,
+        'profile_picture': profilePictureUrl,
+      });
+    } else {
+      // Update - Only updated non-null fields
+      final Map<String, dynamic> updates = {
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (bio != null) updates['bio'] = bio;
+      if (profilePictureUrl != null) {
+        updates['profile_picture'] = profilePictureUrl;
+      }
+
+      await _client.from('profile').update(updates).eq('user_id', userId);
+    }
+  }
+
+  /*
+    Get Full Profile (User + Profile).
+    Returns a Map with joined data.
+  */
+  Future<Map<String, dynamic>?> getFullProfile(String userId) async {
+    // Fetch users table data
+    final userRes = await _client
+        .from('users')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (userRes == null) return null;
+
+    // Fetch profile table data
+    final profileRes = await _client
+        .from('profile')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    // Merge logic
+    final Map<String, dynamic> data = Map.from(userRes);
+    if (profileRes != null) {
+      data['bio'] = profileRes['bio'];
+
+      // Convert Storage Path -> Public URL
+      final path = profileRes['profile_picture'];
+      if (path != null && path.toString().isNotEmpty) {
+        data['profile_picture'] = _client.storage
+            .from('avatar')
+            .getPublicUrl(path);
+      } else {
+        data['profile_picture'] = null;
+      }
+    }
+
+    return data;
+  }
+
+  /*
+    Update Profile Settings (Split update).
+    Updates 'users' table (Identity) AND 'profile' table (Rich content).
+  */
+  Future<void> updateProfileSettings({
+    required String userId,
+    String? fullName,
+    String? username,
+    String? bio,
+    String? profileImage,
+  }) async {
+    // 1. Update Users Table (Identity)
+    if (fullName != null || username != null) {
+      final Map<String, dynamic> userUpdates = {};
+      if (fullName != null) userUpdates['full_name'] = fullName;
+      if (username != null) userUpdates['username'] = username;
+      // Add other allowed user fields here (e.g. major)
+
+      await _client.from('users').update(userUpdates).eq('user_id', userId);
+    }
+
+    // 2. Update Profile Table (Content)
+    if (bio != null || profileImage != null) {
+      // Use upsert logic to ensure row exists
+      await upsertProfile(
+        userId: userId,
+        bio: bio,
+        profilePictureUrl: profileImage,
+      );
+    }
+  }
+
+  // Get current public user ID based on Auth ID (Session)
+  Future<String?> getCurrentUserId() async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) return null;
+
+    final res = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .maybeSingle();
+
+    return res?['user_id'];
   }
 }

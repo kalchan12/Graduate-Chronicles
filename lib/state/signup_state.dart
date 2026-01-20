@@ -37,6 +37,7 @@ class SignupState {
   final Uint8List? profileImage;
 
   // Step 4 Data
+  final String? bio; // New Bio field
   final List<String> interests;
 
   // Loading
@@ -62,6 +63,7 @@ class SignupState {
     this.userIdError,
     this.majorError,
     this.yearError,
+    this.bio,
     this.profileImage,
     this.interests = const [],
     this.isSubmitting = false,
@@ -87,6 +89,7 @@ class SignupState {
     String? Function()? userIdError,
     String? Function()? majorError,
     String? Function()? yearError,
+    String? bio,
     Uint8List? profileImage,
     List<String>? interests,
     bool? isSubmitting,
@@ -119,6 +122,7 @@ class SignupState {
       userIdError: userIdError != null ? userIdError() : this.userIdError,
       majorError: majorError != null ? majorError() : this.majorError,
       yearError: yearError != null ? yearError() : this.yearError,
+      bio: bio ?? this.bio,
       profileImage: profileImage ?? this.profileImage,
       interests: interests ?? this.interests,
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -169,6 +173,10 @@ class SignupNotifier extends Notifier<SignupState> {
 
   void setProfileImage(Uint8List? data) {
     state = state.copyWith(profileImage: data);
+  }
+
+  void setBio(String val) {
+    state = state.copyWith(bio: val);
   }
 
   void toggleInterest(String interest) {
@@ -285,8 +293,8 @@ class SignupNotifier extends Notifier<SignupState> {
         interests: state.interests,
       );
 
-      // Reset draft
-      state = const SignupState();
+      // DO NOT Reset draft yet - we need it for Step 4
+      // state = const SignupState();
 
       // 3. Navigate to Profile Upload (Step 4)
       if (context.mounted) {
@@ -338,7 +346,22 @@ class SignupNotifier extends Notifier<SignupState> {
         throw Exception("No authenticated user found.");
       }
 
-      await supabase.uploadProfilePicture(userId, state.profileImage!);
+      // map auth ID to internal user ID if needed, or if uploadProfilePicture uses auth ID.
+      // setup.sql uses auth.uid() checks, so internal ID usage is safer.
+      final internalUserId = await supabase.getCurrentUserId();
+      if (internalUserId == null) throw Exception("User record not found.");
+
+      final imagePath = await supabase.uploadProfilePicture(
+        internalUserId,
+        state.profileImage!,
+      );
+
+      // Create/Update Profile Entry with Path and Bio
+      await supabase.upsertProfile(
+        userId: internalUserId,
+        profilePictureUrl: imagePath,
+        bio: state.bio,
+      );
 
       if (context.mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/app', (r) => false);
@@ -354,6 +377,29 @@ class SignupNotifier extends Notifier<SignupState> {
       }
     } finally {
       state = state.copyWith(isSubmitting: false);
+      // Reset state after success
+      state = const SignupState();
+    }
+  }
+
+  Future<void> skipProfile(BuildContext context) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final supabase = ref.read(supabaseServiceProvider);
+      final internalUserId = await supabase.getCurrentUserId();
+      if (internalUserId != null && state.bio != null) {
+        // Save bio even if skipping image
+        await supabase.upsertProfile(userId: internalUserId, bio: state.bio);
+      }
+
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/app', (r) => false);
+      }
+    } catch (e) {
+      print("Skip error: $e");
+    } finally {
+      // Reset final
+      state = const SignupState();
     }
   }
 }

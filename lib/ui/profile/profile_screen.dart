@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
+import '../../state/profile_state.dart'; // New Provider Import
 import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
 import '../messages/message_detail_screen.dart';
@@ -31,7 +32,72 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _selectedTab = 0;
   bool _isConnectionSent = false;
 
+  // PART 2: State variables
+  String? _profileImageUrl;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // PART 2: initState MUST call _loadProfile
+    _loadProfile();
+  }
+
+  // PART 2: _loadProfile MUST do proper fetching
+  Future<void> _loadProfile() async {
+    final supabase = Supabase.instance.client;
+    final authUser = supabase.auth.currentUser;
+
+    if (authUser == null) return;
+
+    try {
+      // Fetch User Data (Identity)
+      final userData = await supabase
+          .from('users')
+          .select('user_id, full_name, username, major')
+          .eq('auth_user_id', authUser.id)
+          .single();
+
+      // Fetch Profile Data (Content)
+      final profileData = await supabase
+          .from('profile')
+          .select('profile_picture, bio')
+          .eq('user_id', userData['user_id'])
+          .maybeSingle();
+
+      String? newImageUrl;
+      if (profileData != null && profileData['profile_picture'] != null) {
+        final path = profileData['profile_picture'];
+        // Check if it's already a full URL (legacy safety) or a path
+        if (path.startsWith('http')) {
+          newImageUrl = path;
+        } else {
+          final rawUrl = supabase.storage.from('avatar').getPublicUrl(path);
+
+          // cache-bust to force refresh
+          newImageUrl = '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = newImageUrl;
+          _isLoading = false;
+        });
+
+        // Also refresh provider for other components if they rely on it
+        // ref.read(profileProvider.notifier).refresh();
+      }
+    } catch (e) {
+      print('Error loading profile in screen: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _showCustomToast(String message) {
+    // ... existing toast code ...
     late OverlayEntry overlayEntry;
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -87,7 +153,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
   }
 
-  void _showProfileImage(String? imagePath) {
+  void _showProfileImage() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
@@ -102,8 +168,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Center(
               child: Hero(
                 tag: 'profile_image',
-                child: imagePath != null
-                    ? Image.file(File(imagePath))
+                child: _profileImageUrl != null
+                    ? Image.network(_profileImageUrl!)
                     : const Icon(Icons.person, size: 150, color: Colors.white),
               ),
             ),
@@ -115,8 +181,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // We still watch the provider for other fields (name, degree, bio)
+    // BUT we use local state for the image to guarantee freshness.
     final profile = ref.watch(profileProvider);
     final achievements = ref.watch(profileAchievementsProvider);
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(color: DesignSystem.purpleAccent),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -151,9 +228,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Profile Image with handling for local file
+                    // PART 3: UI Rendering (Local State)
                     GestureDetector(
-                      onTap: () => _showProfileImage(profile.profileImage),
+                      onTap: _showProfileImage,
                       child: Hero(
                         tag: 'profile_image',
                         child: Container(
@@ -179,9 +256,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ),
                             child: ClipOval(
-                              child: profile.profileImage != null
-                                  ? Image.file(
-                                      File(profile.profileImage!),
+                              child: _profileImageUrl != null
+                                  ? Image.network(
+                                      _profileImageUrl!,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) =>

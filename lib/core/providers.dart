@@ -165,40 +165,6 @@ final feedProvider = Provider<List<FeedItem>>((ref) {
   ];
 });
 
-// Profile Notifier for editing
-class ProfileNotifier extends Notifier<Profile> {
-  @override
-  Profile build() {
-    return Profile(
-      id: 'u1',
-      name: 'Alex Doe',
-      degree: 'B.Sc. in Computer Science',
-      year: '2024',
-      username: '@alex_doe',
-      bio:
-          "Passionate about building intuitive software that solves real-world problems. When I'm not coding, you can find me on the basketball court or exploring new hiking trails. Excited to start my journey as a software engineer!",
-    );
-  }
-
-  void updateProfile({
-    String? name,
-    String? username,
-    String? bio,
-    String? profileImage,
-  }) {
-    state = state.copyWith(
-      name: name,
-      username: username,
-      bio: bio,
-      profileImage: profileImage,
-    );
-  }
-}
-
-final profileProvider = NotifierProvider<ProfileNotifier, Profile>(
-  ProfileNotifier.new,
-);
-
 // StateNotifier for managing conversations (Inbox + Chat details)
 class ConversationsNotifier extends Notifier<List<Conversation>> {
   @override
@@ -385,27 +351,6 @@ final batchProvider = Provider<List<BatchSummary>>((ref) {
       title: 'Alumni Spotlight',
       subtitle: 'Where are they now?',
     ),
-  ];
-});
-
-// Profile achievements for the profile screen (mocked UI data).
-final profileAchievementsProvider = Provider<List<Map<String, String>>>((ref) {
-  return [
-    {
-      'title': "Dean's List 2023",
-      'subtitle':
-          'Awarded for outstanding academic performance throughout the fall and spring semesters.',
-    },
-    {
-      'title': 'InnovateU Hackathon Winner',
-      'subtitle':
-          'First place for developing a mobile app that connects student volunteers with local non-profits.',
-    },
-    {
-      'title': 'President of Coding Club',
-      'subtitle':
-          'Led a team of 50+ members, organizing weekly workshops and a university-wide coding competition.',
-    },
   ];
 });
 

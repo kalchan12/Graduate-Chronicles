@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/providers.dart';
+import '../../state/profile_state.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
 import 'story_viewer_screen.dart';

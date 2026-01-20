@@ -114,10 +114,6 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
     ref.read(signupFormProvider.notifier).uploadProfilePicture(context);
   }
 
-  void _skip() {
-    Navigator.of(context).pushNamedAndRemoveUntil('/app', (r) => false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(signupFormProvider);
@@ -142,8 +138,6 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                 ),
                 child: Row(
                   children: [
-                    // No Back Button involved as we are already authenticated.
-                    // We can show a 'Skip' button on the left or just keep it clean.
                     const SizedBox(width: 48),
                     const Expanded(
                       child: Center(
@@ -170,15 +164,27 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 36),
-                child: Text(
-                  'Add a photo so your friends can find you.',
-                  style: TextStyle(color: Color(0xFFBEB2DF), fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
+              const SizedBox(height: 18),
+
+              // Shared User Info (Part 3 Requirement)
+              Column(
+                children: [
+                  Text(
+                    state.fullName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '@${state.username}',
+                    style: const TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 18),
               Expanded(
                 child: SingleChildScrollView(
@@ -253,24 +259,72 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 24),
+
+                      // Bio Input (Part 3 Requirement)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: const Text(
+                          'Bio (Optional)',
+                          style: TextStyle(
+                            color: Color(0xFFBDB1C9),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A1727),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: TextFormField(
+                          initialValue: state.bio,
+                          maxLength: 200,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'Tell us a bit about yourself...',
+                            hintStyle: TextStyle(color: Colors.white30),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.all(16),
+                            counterStyle: TextStyle(color: Colors.white30),
+                          ),
+                          onChanged: (val) {
+                            ref.read(signupFormProvider.notifier).setBio(val);
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
                       TextButton(
-                        onPressed: _skip,
+                        onPressed: () {
+                          // Skip Logic
+                          ref
+                              .read(signupFormProvider.notifier)
+                              .skipProfile(context);
+                        },
                         child: const Text(
                           'Skip for now',
                           style: TextStyle(color: Colors.white70),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
 
                       // Finish Button
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: state.profileImage != null
-                              ? (state.isSubmitting ? null : _uploadAndFinish)
-                              : _skip, // If no image, 'Next' behaves like Skip
+                          onPressed: state.isSubmitting
+                              ? null
+                              : (state.profileImage != null
+                                    ? _uploadAndFinish
+                                    : () => ref
+                                          .read(signupFormProvider.notifier)
+                                          .skipProfile(context)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
                             shape: RoundedRectangleBorder(
