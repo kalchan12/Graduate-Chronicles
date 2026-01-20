@@ -23,6 +23,8 @@ class SupabaseService {
 
   SupabaseService(this._client);
 
+  User? get currentUser => _client.auth.currentUser;
+
   /*
     Compresses and converts image to JPEG.
     Handles HEIC/HEIF and large file sizes.

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 import 'portfolio_viewed_screen.dart';
 import 'portfolio_liked_screen.dart';
-import 'portfolio_select_screen.dart';
+import 'portfolio_management_screen.dart'; // Changed to management screen directly for editing
+import '../../state/portfolio_state.dart';
 
 /*
   Portfolio Hub Screen.
@@ -13,154 +16,181 @@ import 'portfolio_select_screen.dart';
   - Custom visual design with overlapping avatar and cover image.
   - Stats display (Views, Likes).
   - Sections for Achievements, Resumes, Certificates, and Social Links.
-  - Floating action button to add new portfolio items.
+  - Floating action button to manage portfolio items.
 */
-class PortfolioHubScreen extends StatelessWidget {
+class PortfolioHubScreen extends ConsumerStatefulWidget {
   const PortfolioHubScreen({super.key});
 
   @override
+  ConsumerState<PortfolioHubScreen> createState() => _PortfolioHubScreenState();
+}
+
+class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
+    });
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final uri = Uri.parse(urlString);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final portfolio = ref.watch(portfolioProvider);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
         child: Stack(
           children: [
             // -- Main Scrollable Content --
-            SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 100),
-              child: Column(
-                children: [
-                  // -- Header Area (Image + TopBar + Avatar) --
-                  SizedBox(
-                    height: 250, // Reduced height (was 420)
-                    child: Stack(
-                      children: [
-                        // Cover Image
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: 180, // Reduced height (was 350)
-                          child: ShaderMask(
-                            shaderCallback: (rect) {
-                              return const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [Colors.black, Colors.transparent],
-                                stops: [0.6, 1.0],
-                              ).createShader(
-                                Rect.fromLTRB(0, 0, rect.width, rect.height),
-                              );
-                            },
-                            blendMode: BlendMode.dstIn,
-                            child: Image.asset(
-                              'assets/images/dog.png',
-                              fit: BoxFit.cover,
+            RefreshIndicator(
+              onRefresh: () async {
+                await ref
+                    .read(portfolioProvider.notifier)
+                    .loadCurrentPortfolio();
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100),
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // -- Header Area (Image + TopBar + Avatar) --
+                    SizedBox(
+                      height: 250,
+                      child: Stack(
+                        children: [
+                          // Cover Image
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: 180,
+                            child: ShaderMask(
+                              shaderCallback: (rect) {
+                                return const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.black, Colors.transparent],
+                                  stops: [0.6, 1.0],
+                                ).createShader(
+                                  Rect.fromLTRB(0, 0, rect.width, rect.height),
+                                );
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: Image.asset(
+                                'assets/images/dog.png',
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        ),
 
-                        // Top Bar (Wrapped in SafeArea to avoid status bar overlap)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: SafeArea(child: _buildTopBar(context)),
-                        ),
+                          // Top Bar
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: SafeArea(child: _buildTopBar(context)),
+                          ),
 
-                        // Avatar (Positioned at bottom center)
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Center(child: _buildAvatar()),
+                          // Avatar
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Center(child: _buildAvatar()),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // -- Name & Role (Placeholder for now, could be dynamic from ProfileState) --
+                    const Text(
+                      'Abebe Kebede',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Crafting digital experiences @ University',
+                      style: TextStyle(
+                        color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    _buildStatsRow(context),
+
+                    const SizedBox(height: 32),
+
+                    if (portfolio.isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else ...[
+                      // ACHIEVEMENTS
+                      if (portfolio.achievements.isNotEmpty) ...[
+                        _buildSectionHeader(
+                          'ACHIEVEMENTS',
+                          '${portfolio.achievements.length} items',
                         ),
+                        const SizedBox(height: 16),
+                        _buildAchievementsList(portfolio.achievements),
+                        const SizedBox(height: 32),
                       ],
-                    ),
-                  ),
 
-                  const SizedBox(height: 16),
+                      // RESUMES
+                      if (portfolio.resumes.isNotEmpty) ...[
+                        _buildSectionHeader('RESUMES', ''),
+                        const SizedBox(height: 16),
+                        _buildResumesList(portfolio.resumes),
+                        const SizedBox(height: 32),
+                      ],
 
-                  // -- Name & Role --
-                  const Text(
-                    'Abebe Kebede',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Crafting digital experiences @ University',
-                    style: TextStyle(
-                      color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'SENIOR YEAR',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          Icons.circle,
-                          size: 4,
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      Text(
-                        'GLOBAL TECH ACADEMY',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
+                      // CERTIFICATES
+                      if (portfolio.certificates.isNotEmpty) ...[
+                        _buildSectionHeader('CERTS', ''),
+                        const SizedBox(height: 16),
+                        _buildCertsGrid(portfolio.certificates),
+                        const SizedBox(height: 32),
+                      ],
+
+                      // LINKS
+                      if (portfolio.links.isNotEmpty) ...[
+                        _buildSectionHeader('CONNECTED NETWORK', ''),
+                        const SizedBox(height: 16),
+                        _buildNetworkRow(portfolio.links),
+                      ],
                     ],
-                  ),
 
-                  const SizedBox(height: 24),
-
-                  _buildStatsRow(context),
-
-                  const SizedBox(height: 32),
-
-                  _buildSectionHeader('ACHIEVEMENTS', '3 items'),
-                  const SizedBox(height: 16),
-                  _buildAchievementsList(),
-
-                  const SizedBox(height: 32),
-
-                  _buildSectionHeader('RESUMES', ''),
-                  const SizedBox(height: 16),
-                  _buildResumesGrid(),
-
-                  const SizedBox(height: 32),
-
-                  _buildSectionHeader('CERTS', ''),
-                  const SizedBox(height: 16),
-                  _buildCertsGrid(),
-
-                  const SizedBox(height: 32),
-
-                  _buildSectionHeader('CONNECTED NETWORK', ''),
-                  const SizedBox(height: 16),
-                  _buildNetworkRow(),
-                ],
+                    if (!portfolio.isLoading &&
+                        portfolio.achievements.isEmpty &&
+                        portfolio.resumes.isEmpty &&
+                        portfolio.certificates.isEmpty &&
+                        portfolio.links.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text(
+                          "No portfolio items yet. Tap + to add!",
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
 
@@ -170,12 +200,16 @@ class PortfolioHubScreen extends StatelessWidget {
               right: 24,
               child: FloatingActionButton(
                 onPressed: () {
+                  // Navigate to Portfolio Management Screen to add items
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PortfolioSelectScreen(),
+                      builder: (_) => const PortfolioManagementScreen(),
                     ),
-                  );
+                  ).then((_) {
+                    // Refresh on return
+                    ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
+                  });
                 },
                 backgroundColor: DesignSystem.purpleAccent,
                 elevation: 8,
@@ -410,30 +444,35 @@ class PortfolioHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementsList() {
+  Widget _buildAchievementsList(List<Map<String, dynamic>> items) {
     return SizedBox(
       height: 100,
-      child: ListView(
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          _buildAchieveCard(
-            Icons.emoji_events,
-            "Dean's Honor List",
-            "ACADEMIC 2023",
-          ),
-          const SizedBox(width: 12),
-          _buildAchieveCard(
-            Icons.star,
-            "Hackathon Winner",
-            "TECHNICAL EXCELLENCE",
-          ),
-        ],
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _buildAchieveCard(
+              item['cover_image_url'] != null ? null : Icons.emoji_events,
+              item['title'] ?? 'Achievement',
+              item['description'] ?? '',
+              imageUrl: item['cover_image_url'],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildAchieveCard(IconData icon, String title, String subtitle) {
+  Widget _buildAchieveCard(
+    IconData? icon,
+    String title,
+    String subtitle, {
+    String? imageUrl,
+  }) {
     return Container(
       width: 240,
       padding: const EdgeInsets.all(16),
@@ -450,8 +489,16 @@ class PortfolioHubScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(14),
+              image: imageUrl != null
+                  ? DecorationImage(
+                      image: NetworkImage(imageUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            child: Icon(icon, color: DesignSystem.purpleAccent),
+            child: imageUrl == null
+                ? Icon(icon, color: DesignSystem.purpleAccent)
+                : null,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -472,6 +519,8 @@ class PortfolioHubScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.4),
                     fontSize: 10,
@@ -486,7 +535,7 @@ class PortfolioHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildResumesGrid() {
+  Widget _buildResumesList(List<Map<String, dynamic>> items) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -497,56 +546,68 @@ class PortfolioHubScreen extends StatelessWidget {
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.description,
-                  color: DesignSystem.purpleAccent,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'MAIN RESUME',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+          children: items.map((item) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: InkWell(
+                onTap: () {
+                  if (item['file_url'] != null) {
+                    _launchUrl(item['file_url']);
+                  }
+                },
                 borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Main_V3.pdf",
-                      style: TextStyle(color: Colors.white, fontSize: 13),
-                    ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
-                  Icon(
-                    Icons.download,
-                    size: 16,
-                    color: DesignSystem.purpleAccent,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['file_name'] ?? 'Resume',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (item['notes'] != null &&
+                                item['notes'].isNotEmpty)
+                              Text(
+                                item['notes'],
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.download,
+                        size: 16,
+                        color: DesignSystem.purpleAccent,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildCertsGrid() {
+  Widget _buildCertsGrid(List<Map<String, dynamic>> items) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -568,7 +629,7 @@ class PortfolioHubScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'RECENT CERTIFICATES',
+                  'CERTIFICATES',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -578,19 +639,52 @@ class PortfolioHubScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                _miniFileIcon(),
-                const SizedBox(width: 8),
-                _miniFileIcon(),
-                const SizedBox(width: 8),
-                _miniFileIcon(),
-                const SizedBox(width: 8),
-                Text(
-                  '+3 more',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: items.map((item) {
+                return InkWell(
+                  onTap: () {
+                    if (item['certificate_url'] != null) {
+                      _launchUrl(item['certificate_url']);
+                    }
+                  },
+                  child: Tooltip(
+                    message: item['certificate_name'] ?? 'Certificate',
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF151019),
+                          width: 2,
+                        ),
+                        image:
+                            item['certificate_url'] != null &&
+                                (item['certificate_url'].endsWith('.jpg') ||
+                                    item['certificate_url'].endsWith('.png'))
+                            ? DecorationImage(
+                                image: NetworkImage(item['certificate_url']),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child:
+                          item['certificate_url'] != null &&
+                              (item['certificate_url'].endsWith('.jpg') ||
+                                  item['certificate_url'].endsWith('.png'))
+                          ? null
+                          : const Icon(
+                              Icons.insert_drive_file,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ),
@@ -598,35 +692,29 @@ class PortfolioHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _miniFileIcon() {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF151019), width: 2),
-      ),
-      child: const Icon(
-        Icons.insert_drive_file,
-        color: Colors.white70,
-        size: 16,
-      ),
-    );
-  }
-
-  Widget _buildNetworkRow() {
+  Widget _buildNetworkRow(List<Map<String, dynamic>> items) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
-        children: [
-          _socialChip("LINKEDIN", Colors.blue),
-          const SizedBox(width: 12),
-          _socialChip("GITHUB", Colors.white),
-          const SizedBox(width: 12),
-          _socialChip("BEHANCE", Colors.pink),
-        ],
+        children: items.map((item) {
+          Color color = Colors.white;
+          String title = item['title'] ?? 'Link';
+          if (title.toLowerCase().contains('linkedin')) color = Colors.blue;
+          if (title.toLowerCase().contains('behance')) color = Colors.pink;
+          if (title.toLowerCase().contains('github')) color = Colors.white;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: InkWell(
+              onTap: () {
+                if (item['url'] != null) _launchUrl(item['url']);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: _socialChip(title.toUpperCase(), color),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

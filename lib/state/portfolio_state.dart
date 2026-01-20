@@ -80,6 +80,32 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
     }
   }
 
+  Future<void> loadCurrentPortfolio() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final user = service.currentUser;
+
+      if (user == null) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+
+      final data = await service.fetchPortfolio(user.id);
+
+      state = state.copyWith(
+        achievements: data['achievement'] ?? [],
+        resumes: data['resume'] ?? [],
+        certificates: data['certificate'] ?? [],
+        links: data['link'] ?? [],
+        isLoading: false,
+      );
+    } catch (e) {
+      print('Current Portfolio Load Error: $e');
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
   Future<void> addItem(String type, Map<String, dynamic> data) async {
     try {
       final service = ref.read(supabaseServiceProvider);
