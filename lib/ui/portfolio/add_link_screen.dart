@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../../state/portfolio_state.dart';
 
 /*
   Add Link Screen.
 
   Form to add external links to the portfolio (e.g., GitHub, Website).
-  Inputs:
-  - Link Title
-  - URL (with validation)
-  - Optional Description
+  - Saves record to 'portfolio_links' via PortfolioNotifier.
 */
-class AddLinkScreen extends StatefulWidget {
+class AddLinkScreen extends ConsumerStatefulWidget {
   const AddLinkScreen({super.key});
 
   @override
-  State<AddLinkScreen> createState() => _AddLinkScreenState();
+  ConsumerState<AddLinkScreen> createState() => _AddLinkScreenState();
 }
 
-class _AddLinkScreenState extends State<AddLinkScreen> {
+class _AddLinkScreenState extends ConsumerState<AddLinkScreen> {
   final _titleCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -29,6 +29,39 @@ class _AddLinkScreenState extends State<AddLinkScreen> {
     _urlCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_titleCtrl.text.trim().isEmpty || _urlCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter title and URL')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(portfolioProvider.notifier).addItem('link', {
+        'title': _titleCtrl.text.trim(),
+        'url': _urlCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+      });
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Link saved!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -101,9 +134,7 @@ class _AddLinkScreenState extends State<AddLinkScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: _isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DesignSystem.purpleAccent,
                       shape: RoundedRectangleBorder(
@@ -114,14 +145,23 @@ class _AddLinkScreenState extends State<AddLinkScreen> {
                         alpha: 0.4,
                       ),
                     ),
-                    child: const Text(
-                      'Save Link',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save Link',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),

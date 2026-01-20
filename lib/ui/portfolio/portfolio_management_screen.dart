@@ -4,6 +4,10 @@ import '../../theme/design_system.dart';
 import '../../state/portfolio_state.dart';
 import '../../ui/widgets/global_background.dart';
 import '../../services/supabase/supabase_service.dart';
+import 'add_achievement_screen.dart';
+import 'add_cv_screen.dart';
+import 'add_certificate_screen.dart';
+import 'add_link_screen.dart';
 
 class PortfolioManagementScreen extends ConsumerWidget {
   const PortfolioManagementScreen({super.key});
@@ -111,62 +115,25 @@ class _PortfolioManagerState extends ConsumerState<_PortfolioManager> {
   }
 
   void _addItem(String type) {
-    // Show Dialog to add item
-    if (type == 'link') {
-      _showLinkDialog(context, ref);
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Feature coming soon!')));
+    Widget? screen;
+    switch (type) {
+      case 'achievement':
+        screen = const AddAchievementScreen();
+        break;
+      case 'resume':
+        screen = const AddCvScreen();
+        break;
+      case 'certificate':
+        screen = const AddCertificateScreen();
+        break;
+      case 'link':
+        screen = const AddLinkScreen();
+        break;
     }
-  }
 
-  void _showLinkDialog(BuildContext context, WidgetRef ref) {
-    // Simplified add dialog for links
-    final titleCtrl = TextEditingController();
-    final urlCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2E1A36),
-        title: const Text('Add Link', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(labelText: 'Title'),
-              style: const TextStyle(color: Colors.white),
-            ),
-            TextField(
-              controller: urlCtrl,
-              decoration: const InputDecoration(labelText: 'URL'),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (titleCtrl.text.isNotEmpty && urlCtrl.text.isNotEmpty) {
-                ref.read(portfolioProvider.notifier).addItem('link', {
-                  'title': titleCtrl.text,
-                  'url': urlCtrl.text,
-                  'description': '',
-                });
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
+    if (screen != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => screen!));
+    }
   }
 }
 

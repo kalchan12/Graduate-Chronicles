@@ -1,32 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../../state/portfolio_state.dart';
+import '../../services/supabase/supabase_service.dart';
 
 /*
   Add CV/Resume Screen.
-
+  
   Form to upload a PDF resume.
-  Inputs:
-  - File upload area (PDF only usually)
-  - Custom file name
-  - Optional notes
+  - Uploads PDF to 'portfolio_uploads' bucket.
+  - Saves record to 'portfolio_resumes' via PortfolioNotifier.
 */
-class AddCvScreen extends StatefulWidget {
+class AddCvScreen extends ConsumerStatefulWidget {
   const AddCvScreen({super.key});
 
   @override
-  State<AddCvScreen> createState() => _AddCvScreenState();
+  ConsumerState<AddCvScreen> createState() => _AddCvScreenState();
 }
 
-class _AddCvScreenState extends State<AddCvScreen> {
+class _AddCvScreenState extends ConsumerState<AddCvScreen> {
   final _nameCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+
+  String? _pickedFilePath;
+  String? _pickedFileName;
+  bool _isUploading = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _pickedFilePath = result.files.single.path;
+        _pickedFileName = result.files.single.name;
+        // Auto-fill title if empty
+        if (_nameCtrl.text.isEmpty) {
+          _nameCtrl.text = _pickedFileName!;
+        }
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (_pickedFilePath == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a file')));
+      return;
+    }
+
+    if (_nameCtrl.text.trim().isEmpty) {
+      // default to filename if name is empty
+      _nameCtrl.text = _pickedFileName ?? 'Resume';
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final fileUrl = await service.uploadPortfolioFile(
+        path: _pickedFilePath!,
+        type: 'resumes',
+      );
+
+      await ref.read(portfolioProvider.notifier).addItem('resume', {
+        'file_url': fileUrl,
+        'file_name': _nameCtrl.text.trim(),
+        'notes': _notesCtrl.text.trim(),
+      });
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Resume uploaded!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   @override
@@ -96,9 +166,7 @@ class _AddCvScreenState extends State<AddCvScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: _isUploading ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DesignSystem.purpleAccent,
                       shape: RoundedRectangleBorder(
@@ -109,14 +177,23 @@ class _AddCvScreenState extends State<AddCvScreen> {
                         alpha: 0.4,
                       ),
                     ),
-                    child: const Text(
-                      'Save CV',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isUploading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save CV',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -172,17 +249,21 @@ class _AddCvScreenState extends State<AddCvScreen> {
   }
 
   Widget _buildUploadArea() {
-    return Container(
-      height: 180,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(20),
+    return InkWell(
+      onTap: _pickFile,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 180,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.02),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _pickedFilePath != null
+                ? DesignSystem.purpleAccent
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -193,15 +274,17 @@ class _AddCvScreenState extends State<AddCvScreen> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.file_upload_outlined,
+                _pickedFilePath != null
+                    ? Icons.description
+                    : Icons.file_upload_outlined,
                 color: DesignSystem.purpleAccent,
                 size: 40,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Tap to upload PDF',
-              style: TextStyle(
+            Text(
+              _pickedFileName ?? 'Tap to upload PDF/Image',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -209,7 +292,7 @@ class _AddCvScreenState extends State<AddCvScreen> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Max file size: 5MB',
+              'Max file size: 8MB',
               style: TextStyle(color: Colors.white38, fontSize: 12),
             ),
           ],

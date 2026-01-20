@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../../state/portfolio_state.dart';
+import '../../services/supabase/supabase_service.dart';
 
 /*
   Add Certificate Screen.
-
+  
   Form allows users to add a new professional certificate.
-  Inputs:
-  - Certificate Name
-  - Issuing Organization
-  - Date Issued
-  - File/Certificate upload area
+  - Uploads Certificate PDF/Image to 'portfolio_uploads'.
+  - Saves record to 'portfolio_certificates' via PortfolioNotifier.
 */
-class AddCertificateScreen extends StatefulWidget {
+class AddCertificateScreen extends ConsumerStatefulWidget {
   const AddCertificateScreen({super.key});
 
   @override
-  State<AddCertificateScreen> createState() => _AddCertificateScreenState();
+  ConsumerState<AddCertificateScreen> createState() =>
+      _AddCertificateScreenState();
 }
 
-class _AddCertificateScreenState extends State<AddCertificateScreen> {
+class _AddCertificateScreenState extends ConsumerState<AddCertificateScreen> {
   final _nameCtrl = TextEditingController();
   final _issuerCtrl = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  String? _pickedFilePath;
+  String? _pickedFileName;
+  bool _isUploading = false;
 
   @override
   void dispose() {
@@ -56,6 +61,64 @@ class _AddCertificateScreenState extends State<AddCertificateScreen> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _pickedFilePath = result.files.single.path;
+        _pickedFileName = result.files.single.name;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (_nameCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter certificate name')),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      String? fileUrl;
+      if (_pickedFilePath != null) {
+        final service = ref.read(supabaseServiceProvider);
+        fileUrl = await service.uploadPortfolioFile(
+          path: _pickedFilePath!,
+          type: 'certificates',
+        );
+      }
+
+      await ref.read(portfolioProvider.notifier).addItem('certificate', {
+        'certificate_name': _nameCtrl.text.trim(),
+        'issuing_organization': _issuerCtrl.text.trim(),
+        'date_issued': _selectedDate.toIso8601String(),
+        'certificate_url': fileUrl,
+      });
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Certificate saved!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -162,9 +225,7 @@ class _AddCertificateScreenState extends State<AddCertificateScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: _isUploading ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DesignSystem.purpleAccent,
                       shape: RoundedRectangleBorder(
@@ -175,14 +236,23 @@ class _AddCertificateScreenState extends State<AddCertificateScreen> {
                         alpha: 0.4,
                       ),
                     ),
-                    child: const Text(
-                      'Save Certificate',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isUploading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save Certificate',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -238,29 +308,35 @@ class _AddCertificateScreenState extends State<AddCertificateScreen> {
   }
 
   Widget _buildUploadArea() {
-    return Container(
-      height: 120,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(16),
+    return InkWell(
+      onTap: _pickFile,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.02),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _pickedFilePath != null
+                ? DesignSystem.purpleAccent
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.workspace_premium_rounded,
+              _pickedFilePath != null
+                  ? Icons.check_circle
+                  : Icons.workspace_premium_rounded,
               color: DesignSystem.purpleAccent.withValues(alpha: 0.5),
               size: 32,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Upload Certificate',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+            Text(
+              _pickedFileName ?? 'Upload Certificate',
+              style: const TextStyle(color: Colors.white54, fontSize: 14),
             ),
           ],
         ),

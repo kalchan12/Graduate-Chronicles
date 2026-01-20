@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../../state/portfolio_state.dart';
+import '../../services/supabase/supabase_service.dart';
 
 /*
   Add Achievement Screen.
-
-  Form allows users to add a new achievement to their portfolio.
-  Inputs:
-  - Title & Description
-  - Date picker
-  - Evidence/Photo upload area
+  
+  Allows users to add a new achievement to their portfolio.
+  - Uploads evidence image to 'portfolio_uploads' bucket.
+  - Saves record to 'portfolio_achievements' via PortfolioNotifier.
 */
-class AddAchievementScreen extends StatefulWidget {
+class AddAchievementScreen extends ConsumerStatefulWidget {
   const AddAchievementScreen({super.key});
 
   @override
-  State<AddAchievementScreen> createState() => _AddAchievementScreenState();
+  ConsumerState<AddAchievementScreen> createState() =>
+      _AddAchievementScreenState();
 }
 
-class _AddAchievementScreenState extends State<AddAchievementScreen> {
+class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  String? _pickedFilePath;
+  bool _isUploading = false;
 
   @override
   void dispose() {
@@ -55,6 +61,60 @@ class _AddAchievementScreenState extends State<AddAchievementScreen> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _pickedFilePath = picked.path;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    if (_titleCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      String? evidenceUrl;
+      if (_pickedFilePath != null) {
+        final service = ref.read(supabaseServiceProvider);
+        evidenceUrl = await service.uploadPortfolioFile(
+          path: _pickedFilePath!,
+          type: 'achievements',
+        );
+      }
+
+      await ref.read(portfolioProvider.notifier).addItem('achievement', {
+        'title': _titleCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+        'date_achieved': _selectedDate.toIso8601String(),
+        'evidence_url': evidenceUrl,
+      });
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Achievement saved!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -162,15 +222,7 @@ class _AddAchievementScreenState extends State<AddAchievementScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Save logic would go here
-                      Navigator.of(context).pop();
-                      // Ideally we don't push a new PortfolioHubScreen on top of the stack,
-                      // we just pop back to it. But for now matching existing nav flow if needed,
-                      // but popping is cleaner.
-                      // The prompt said "Add / Edit Screens", usually these are modal or pushed.
-                      // Previous code pushed Hub. I will stick to pop().
-                    },
+                    onPressed: _isUploading ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DesignSystem.purpleAccent,
                       shape: RoundedRectangleBorder(
@@ -181,14 +233,23 @@ class _AddAchievementScreenState extends State<AddAchievementScreen> {
                         alpha: 0.4,
                       ),
                     ),
-                    child: const Text(
-                      'Save Achievement',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isUploading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save Achievement',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -251,30 +312,35 @@ class _AddAchievementScreenState extends State<AddAchievementScreen> {
         color: Colors.white.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: _pickedFilePath != null
+              ? DesignSystem.purpleAccent
+              : Colors.white.withValues(alpha: 0.1),
           style: BorderStyle.solid,
-        ), // User asked for no heavy borders, so solid thin is better than dash if dash looks "dashed border".
-        // Or "No heavy borders or thick outlines". I'll use a dashed border effect cleanly or just thin solid.
-        // Prompt said "No heavy borders".
+        ),
       ),
       child: InkWell(
-        onTap: () {},
+        onTap: _pickImage,
         borderRadius: BorderRadius.circular(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.cloud_upload_rounded,
-              color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
-              size: 32,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tap to upload image',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-            ),
-          ],
-        ),
+        child: _pickedFilePath != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(File(_pickedFilePath!), fit: BoxFit.cover),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.cloud_upload_rounded,
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+                    size: 32,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Tap to upload image',
+                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
+                ],
+              ),
       ),
     );
   }

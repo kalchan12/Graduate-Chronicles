@@ -49,3 +49,4 @@ plan.md
 # Database setup
 supabase/setup.sql
 supabase/portfolio_setup.sql
+supabase/storage_setup.sql

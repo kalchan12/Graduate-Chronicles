@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -441,5 +442,37 @@ class SupabaseService {
     // Cascade delete on DB handles children, so just delete parent.
     // Extra safety: Verify ownership via RLS (automatic).
     await _client.from('portfolio').delete().eq('portfolio_id', portfolioId);
+  }
+
+  /*
+    Upload Portfolio File.
+    Uploads file to 'portfolio_uploads/{user_id}/{type}/{filename}'.
+    Returns the purely public URL to be stored in the DB.
+  */
+  Future<String> uploadPortfolioFile({
+    required String path, // Local file path
+    required String type, // 'achievements', 'resumes', 'certificates'
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final file = File(path);
+    final fileName = path.split('/').last;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final storagePath = '$userId/$type/${timestamp}_$fileName';
+
+    await _client.storage
+        .from('portfolio_uploads')
+        .upload(
+          storagePath,
+          file,
+          fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+        );
+
+    final publicUrl = _client.storage
+        .from('portfolio_uploads')
+        .getPublicUrl(storagePath);
+
+    return publicUrl;
   }
 }
