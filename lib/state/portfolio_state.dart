@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
+import 'auth_provider.dart';
 
 /*
   Portfolio State Management.
@@ -43,7 +44,11 @@ class PortfolioState {
 class PortfolioNotifier extends Notifier<PortfolioState> {
   @override
   PortfolioState build() {
-    return const PortfolioState(isLoading: true);
+    final auth = ref.watch(authProvider);
+    if (!auth.isAuthenticated) {
+      return const PortfolioState();
+    }
+    return const PortfolioState(isLoading: false);
   }
 
   /*

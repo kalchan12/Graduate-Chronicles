@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/supabase/supabase_service.dart';
 
 /// Signup draft to preserve multi-step UI state (kept for compatibility).
 class SignupDraft {
@@ -125,23 +126,27 @@ class AuthNotifier extends Notifier<AuthState> {
     }
     if (state.isLoading) return false;
     state = state.copyWith(isLoading: true, errorMessage: null);
-    await Future.delayed(const Duration(milliseconds: 500));
-    final stored = state.users[email.trim()];
-    if (stored != null && stored == password.trim()) {
+
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.signInWithInstitutionalId(email, password);
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
         email: email.trim(),
-        username: state.draft.username,
         errorMessage: null,
       );
       return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().contains('Exception:')
+            ? e.toString().split('Exception:').last
+            : 'Invalid credentials',
+      );
+      return false;
     }
-    state = state.copyWith(
-      isLoading: false,
-      errorMessage: 'Invalid credentials',
-    );
-    return false;
   }
 
   Future<void> signup({
@@ -154,21 +159,45 @@ class AuthNotifier extends Notifier<AuthState> {
       return;
     }
     state = state.copyWith(isLoading: true, errorMessage: null);
-    await Future.delayed(const Duration(milliseconds: 500));
-    final newUsers = Map<String, String>.from(state.users);
-    newUsers[email.trim()] = password.trim();
-    state = state.copyWith(
-      isLoading: false,
-      users: newUsers,
-      isAuthenticated: true,
-      email: email.trim(),
-      username: username ?? state.username,
-      errorMessage: null,
-    );
+
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final draft = state.draft;
+
+      await service.signUp(
+        email: email,
+        password: password,
+        username: username ?? draft.username,
+        fullName: draft.fullName,
+        role: draft.role ?? 'Student',
+        institutionalId:
+            draft.email, // using email as ID if not provided differently
+        major: draft.majorId,
+        graduationYear: int.tryParse(draft.graduationYear ?? ''),
+        interests: draft.interests,
+      );
+
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        email: email.trim(),
+        username: username ?? state.username,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
   }
 
   void logout() {
-    state = AuthState.initial().copyWith(users: state.users);
+    // 1. Sign out from Supabase
+    ref.read(supabaseServiceProvider).signOut();
+
+    // 2. Clear Auth State
+    state = AuthState.initial();
+
+    // Note: Other providers (Profile, Portfolio) should ideally listen to this
+    // or be manually invalidated/reset by their respective UI or logic.
   }
 
   // Keep draft helpers for existing signup UI

@@ -25,6 +25,10 @@ class SupabaseService {
 
   User? get currentUser => _client.auth.currentUser;
 
+  Future<void> signOut() async {
+    await _client.auth.signOut();
+  }
+
   /*
     Compresses and converts image to JPEG.
     Handles HEIC/HEIF and large file sizes.
@@ -476,5 +480,42 @@ class SupabaseService {
         .getPublicUrl(storagePath);
 
     return publicUrl;
+  }
+
+  // --- Reunion System Methods ---
+
+  Future<void> createReunion({
+    required String title,
+    required String description,
+    required String date,
+    required String time,
+    required String locationType,
+    required String locationValue,
+    required String visibility,
+    int? batchYear,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    await _client.from('reunions').insert({
+      'created_by': userId,
+      'title': title,
+      'description': description,
+      'event_date': date,
+      'event_time': time,
+      'location_type': locationType,
+      'location_value': locationValue,
+      'visibility': visibility,
+      'batch_year': batchYear,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchReunions() async {
+    final res = await _client
+        .from('reunions')
+        .select()
+        .order('event_date', ascending: true);
+
+    return List<Map<String, dynamic>>.from(res);
   }
 }

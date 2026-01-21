@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
+import '../../../state/reunion_state.dart';
+import '../../../state/profile_state.dart';
 import '../../widgets/global_background.dart';
+
+// Database-aligned visibility constants
+class ReunionVisibility {
+  static const String public = 'public'; // Visible to everyone
+  static const String batch = 'batch'; // Visible to same batch
+  static const String specificBatch = 'specific_batch'; // Future use
+}
 
 /*
   Create Reunion Event Screen.
@@ -12,14 +22,15 @@ import '../../widgets/global_background.dart';
   - Location (Physical vs Virtual)
   - Visibility settings (Everyone vs Batch only)
 */
-class ReunionCreateScreen extends StatefulWidget {
+class ReunionCreateScreen extends ConsumerStatefulWidget {
   const ReunionCreateScreen({super.key});
 
   @override
-  State<ReunionCreateScreen> createState() => _ReunionCreateScreenState();
+  ConsumerState<ReunionCreateScreen> createState() =>
+      _ReunionCreateScreenState();
 }
 
-class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
+class _ReunionCreateScreenState extends ConsumerState<ReunionCreateScreen> {
   final _titleController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -30,7 +41,17 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
   int _visibleTo = 0; // 0: Everyone, 1: My Batch
 
   @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final reunionState = ref.watch(reunionProvider);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -54,6 +75,12 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (reunionState.isLoading)
+                  const LinearProgressIndicator(
+                    color: DesignSystem.purpleAccent,
+                  ),
+                const SizedBox(height: 8),
+
                 _buildLabel('Event Title'),
                 _buildTextField(
                   _titleController,
@@ -172,7 +199,9 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: reunionState.isLoading
+                            ? null
+                            : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white24),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -189,7 +218,7 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _createEvent,
+                        onPressed: reunionState.isLoading ? null : _createEvent,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: DesignSystem.purpleAccent,
                           foregroundColor: Colors.white,
@@ -198,15 +227,20 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Create Event',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              reunionState.isLoading
+                                  ? 'Creating...'
+                                  : 'Create Event',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward),
+                            const SizedBox(width: 8),
+                            if (!reunionState.isLoading)
+                              const Icon(Icons.arrow_forward),
                           ],
                         ),
                       ),
@@ -336,18 +370,47 @@ class _ReunionCreateScreenState extends State<ReunionCreateScreen> {
     );
   }
 
-  void _createEvent() {
-    if (_titleController.text.trim().isEmpty) {
+  Future<void> _createEvent() async {
+    final title = _titleController.text.trim();
+    final location = _locationController.text.trim();
+    final description = _descriptionController.text.trim();
+
+    if (title.isEmpty) {
       _showToast('Please enter an event title', isError: true);
       return;
     }
-    if (_selectedType == 0 && _locationController.text.trim().isEmpty) {
+    if (_date == 'mm/dd/yy') {
+      _showToast('Please select a date', isError: true);
+      return;
+    }
+    if (location.isEmpty) {
       _showToast('Please enter a location', isError: true);
       return;
     }
 
-    _showToast('Reunion Event Created (Simulated)');
-    Navigator.pop(context);
+    try {
+      final notifier = ref.read(reunionProvider.notifier);
+      final profile = ref.read(profileProvider);
+
+      await notifier.createReunion(
+        title: title,
+        description: description,
+        date: _date,
+        time: _time,
+        locationType: _selectedType == 0 ? 'physical' : 'virtual',
+        locationValue: location,
+        visibility: _visibleTo == 0
+            ? ReunionVisibility.public
+            : ReunionVisibility.batch,
+        batchYear: int.tryParse(profile.year),
+      );
+
+      _showToast('Reunion Event Created Successfully!');
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      _showToast('Error creating event: $e', isError: true);
+    }
   }
 
   Widget _buildLabel(String text) {

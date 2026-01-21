@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
+import 'auth_provider.dart';
 
 /*
   Profile Provider & State.
@@ -45,8 +46,11 @@ class UserProfile {
 class ProfileNotifier extends Notifier<UserProfile> {
   @override
   UserProfile build() {
-    // Initial fetch
-    _loadProfile();
+    final auth = ref.watch(authProvider);
+    if (auth.isAuthenticated) {
+      // Async loading
+      Future.microtask(() => _loadProfile());
+    }
     return const UserProfile();
   }
 
