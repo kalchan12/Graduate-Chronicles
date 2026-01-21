@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/custom_app_bar.dart';
 import '../../theme/design_system.dart';
+import '../../state/yearbook_state.dart';
+import '../../models/yearbook_entry.dart';
+import '../../state/profile_state.dart';
 import 'yearbook_filter_screen.dart';
+import 'yearbook_submission_screen.dart';
 
 import '../widgets/global_background.dart';
 
@@ -10,63 +15,34 @@ import '../widgets/global_background.dart';
 
   Main entry point for browsing yearbooks.
   Features:
-  - Search functionality (by batch name).
-  - Filter by batch type (Regular, Weekend, etc.).
-  - Grid display of available yearbooks/batches.
+  - Search functionality by batch year
+  - Grid display of available yearbook batches from database
+  - Real-time data fetching from Supabase
 */
-class ExploreYearbookScreen extends StatefulWidget {
+class ExploreYearbookScreen extends ConsumerStatefulWidget {
   const ExploreYearbookScreen({super.key});
 
   @override
-  State<ExploreYearbookScreen> createState() => _ExploreYearbookScreenState();
+  ConsumerState<ExploreYearbookScreen> createState() =>
+      _ExploreYearbookScreenState();
 }
 
-class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
-  final List<Map<String, String>> _allBatches = const [
-    {
-      'title': 'Class of 2025',
-      'subtitle': 'The Visionaries',
-      'type': 'Regular',
-    },
-    {
-      'title': 'Class of 2024',
-      'subtitle': 'The Unstoppables',
-      'type': 'Regular',
-    },
-    {
-      'title': 'Class of 2023',
-      'subtitle': 'Forging New Paths',
-      'type': 'Extension',
-    },
-    {'title': 'Class of 2022', 'subtitle': 'The Resilient', 'type': 'Weekend'},
-    {
-      'title': 'Class of 2021',
-      'subtitle': 'Connected from Afar',
-      'type': 'Regular',
-    },
-    {
-      'title': 'Class of 2020',
-      'subtitle': 'The Trailblazers',
-      'type': 'Weekend',
-    },
-  ];
-
+class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
   String _searchQuery = '';
-  String _selectedFilter = 'All';
-
-  List<Map<String, String>> get _filteredBatches {
-    return _allBatches.where((batch) {
-      final matchesSearch =
-          batch['title']!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          batch['subtitle']!.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesFilter =
-          _selectedFilter == 'All' || batch['type'] == _selectedFilter;
-      return matchesSearch && matchesFilter;
-    }).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
+    final yearbookState = ref.watch(yearbookProvider);
+    final profile = ref.watch(profileProvider);
+    final isGraduate = profile.role.toLowerCase().contains('graduate');
+
+    final filteredBatches = yearbookState.batches.where((batch) {
+      final yearStr = batch.batchYear.toString();
+      final subtitle = batch.batchSubtitle ?? '';
+      return yearStr.contains(_searchQuery) ||
+          subtitle.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
@@ -78,6 +54,16 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
                 showLeading: false,
               ),
               const SizedBox(height: 8),
+
+              // CTA for Graduates
+              if (isGraduate) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildGraduateCTA(context),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -100,7 +86,7 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
                           onChanged: (v) => setState(() => _searchQuery = v),
                           style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
-                            hintText: 'Search yearbooks',
+                            hintText: 'Search yearbooks by year...',
                             hintStyle: TextStyle(color: Colors.white38),
                             border: InputBorder.none,
                             isDense: true,
@@ -113,42 +99,86 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Filters
-              SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _filterChip('All'),
-                    const SizedBox(width: 8),
-                    _filterChip('Regular'),
-                    const SizedBox(width: 8),
-                    _filterChip('Extension'),
-                    const SizedBox(width: 8),
-                    _filterChip('Weekend'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+
+              // Loading/Error/Content
               Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: _filteredBatches.length,
-                  itemBuilder: (context, i) {
-                    final batch = _filteredBatches[i];
-                    return _BatchGridItem(batch: batch);
-                  },
-                ),
+                child: yearbookState.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: DesignSystem.purpleAccent,
+                        ),
+                      )
+                    : yearbookState.errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.redAccent,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error loading yearbooks',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              yearbookState.errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredBatches.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.school_outlined,
+                              color: Colors.white24,
+                              size: 64,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'No yearbooks available yet'
+                                  : 'No yearbooks match your search',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 0.85,
+                            ),
+                        itemCount: filteredBatches.length,
+                        itemBuilder: (context, i) {
+                          final batch = filteredBatches[i];
+                          return _BatchGridItem(batch: batch);
+                        },
+                      ),
               ),
             ],
           ),
@@ -157,41 +187,98 @@ class _ExploreYearbookScreenState extends State<ExploreYearbookScreen> {
     );
   }
 
-  Widget _filterChip(String label) {
-    final isSelected = _selectedFilter == label;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedFilter = label),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? DesignSystem.purpleAccent
-              : Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : Colors.white.withValues(alpha: 0.1),
-          ),
+  Widget _buildGraduateCTA(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF4A148C), // Deep Purple
+            DesignSystem.purpleAccent.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              fontSize: 13,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.auto_awesome_outlined,
+              color: Colors.white,
+              size: 24,
             ),
           ),
-        ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Graduate Edition',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Manage your yearbook entry',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const YearbookSubmissionScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: DesignSystem.purpleDark, // Text color
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 4,
+            ),
+            child: const Text('Start'),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _BatchGridItem extends StatelessWidget {
-  final Map<String, String> batch;
+  final YearbookBatch batch;
   const _BatchGridItem({required this.batch});
 
   @override
@@ -200,13 +287,15 @@ class _BatchGridItem extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              YearbookFilterScreen(batchTitle: batch['title']!),
+          builder: (context) => YearbookFilterScreen(
+            batchId: batch.id,
+            batchTitle: 'Class of ${batch.batchYear}',
+          ),
         ),
       ),
       child: Container(
         decoration: DesignSystem.cardDecoration().copyWith(
-          color: const Color(0xFF1E0A25), // Match card base
+          color: const Color(0xFF1E0A25),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -246,20 +335,25 @@ class _BatchGridItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    batch['title']!,
+                    'Class of ${batch.batchYear}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    batch['subtitle']!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
+                  if (batch.batchSubtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      batch.batchSubtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

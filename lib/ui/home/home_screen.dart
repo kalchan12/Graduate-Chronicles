@@ -22,11 +22,25 @@ import '../profile/profile_screen.dart';
   - Batch Highlights (horizontal scroll)
   - Main News Feed (vertical scroll)
 */
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure profile data is loaded on Home (first screen)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(profileProvider.notifier).refresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Read providers for dynamic mock content.
     final profile = ref.watch(profileProvider);
     final batches = ref.watch(batchProvider);

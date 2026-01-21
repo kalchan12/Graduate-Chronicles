@@ -19,6 +19,7 @@ class UserProfile {
   final String? profileImage;
   final String degree; // major
   final String year; // graduation year
+  final String role; // 'student', 'graduate'
 
   const UserProfile({
     this.id = '',
@@ -28,6 +29,7 @@ class UserProfile {
     this.profileImage,
     this.degree = '',
     this.year = '',
+    this.role = '',
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
@@ -39,6 +41,7 @@ class UserProfile {
       profileImage: map['profile_picture'], // can be null
       degree: map['major'] ?? '',
       year: map['graduation_year']?.toString() ?? '',
+      role: map['role'] ?? '', // Add role mapping
     );
   }
 }
@@ -46,11 +49,14 @@ class UserProfile {
 class ProfileNotifier extends Notifier<UserProfile> {
   @override
   UserProfile build() {
+    // Listen to Auth changes to reload profile automatically
     final auth = ref.watch(authProvider);
+
+    // Initial load
     if (auth.isAuthenticated) {
-      // Async loading
-      Future.microtask(() => _loadProfile());
+      Future(() => _loadProfile());
     }
+
     return const UserProfile();
   }
 
@@ -64,7 +70,7 @@ class ProfileNotifier extends Notifier<UserProfile> {
 
       // Get current internal public ID
       final userId = await service.getCurrentUserId();
-      if (userId == null) return; // Not logged in
+      if (userId == null) return; // Not logged in or user record missing
 
       final data = await service.getFullProfile(userId);
       if (data != null) {
@@ -83,18 +89,23 @@ class ProfileNotifier extends Notifier<UserProfile> {
   }) async {
     try {
       final service = ref.read(supabaseServiceProvider);
+      final currentUserId = state.id;
+
+      // Prevent updates if ID is missing
+      if (currentUserId.isEmpty) return;
 
       // Optimistic Update
-      // We assume success for UI responsiveness, then revert on failure if needed.
-      // final oldState = state; // Unused for now
       state = UserProfile(
         id: state.id,
         name: name ?? state.name,
         username: username ?? state.username,
         bio: bio ?? state.bio,
-        profileImage: profileImage ?? state.profileImage,
+        profileImage:
+            profileImage ??
+            state.profileImage, // Optimistically show local path/URL
         degree: state.degree,
         year: state.year,
+        role: state.role,
       );
 
       String? imagePathForDb = profileImage;
@@ -102,36 +113,28 @@ class ProfileNotifier extends Notifier<UserProfile> {
       // Check if we need to upload a new image (Local File)
       if (profileImage != null && !profileImage.startsWith('http')) {
         // It's a local path, so upload it.
-        // Since we are in the ProfileNotifier, we need the internal ID.
-        // state.id should be the internal user_id.
         imagePathForDb = await service.uploadProfilePicture(
-          state.id,
+          currentUserId,
           await _fileToBytes(profileImage),
         );
       } else if (profileImage != null && profileImage.startsWith('http')) {
-        // If it's a URL, it means we didn't change it.
-        // We should ideally NOT update the field or pass the existing path if known.
-        // However, updateProfileSettings maps 'profileImage' -> 'profile_picture' column.
-        // If we pass a full URL to the DB, it breaks our "Store Path Only" rule.
-        // But we don't know the original path here easily without parsing the URL or storing it in state.
-        // TRICK: If it's a URL, we assume it's unchanged, so we pass NULL to updateProfileSettings
-        // to avoid overwriting the valid path in DB with a URL.
+        // Unchanged URL, do not overwrite in DB
         imagePathForDb = null;
       }
 
       await service.updateProfileSettings(
-        userId: state.id,
+        userId: currentUserId,
         fullName: name,
         username: username,
         bio: bio,
         profileImage: imagePathForDb,
       );
 
-      // Re-fetch to ensure consistency (optional but safer)
-      // await _loadProfile();
+      // Re-fetch to confirm server state and get signed URLs if needed
+      await _loadProfile();
     } catch (e) {
       print('Error updating profile: $e');
-      // Revert? For now, we just log. UI toast handles user feedback.
+      // In a real app, we might revert state here
     }
   }
 

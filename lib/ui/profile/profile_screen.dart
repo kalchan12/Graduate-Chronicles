@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../theme/design_system.dart';
@@ -33,72 +32,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _selectedTab = 0;
   bool _isConnectionSent = false;
 
-  // PART 2: State variables
-  String? _profileImageUrl;
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    // PART 2: initState MUST call _loadProfile
-    _loadProfile();
-  }
+    // Refresh profile to ensure latest data (e.g. after edits elsewhere)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(profileProvider.notifier).refresh();
 
-  // PART 2: _loadProfile MUST do proper fetching
-  Future<void> _loadProfile() async {
-    final supabase = Supabase.instance.client;
-    final authUser = supabase.auth.currentUser;
-
-    if (authUser == null) return;
-
-    try {
-      // Fetch User Data (Identity)
-      final userData = await supabase
-          .from('users')
-          .select('user_id, full_name, username, major')
-          .eq('auth_user_id', authUser.id)
-          .single();
-
-      // Fetch Profile Data (Content)
-      final profileData = await supabase
-          .from('profile')
-          .select('profile_picture, bio')
-          .eq('user_id', userData['user_id'])
-          .maybeSingle();
-
-      String? newImageUrl;
-      if (profileData != null && profileData['profile_picture'] != null) {
-        final path = profileData['profile_picture'];
-        // Check if it's already a full URL (legacy safety) or a path
-        if (path.startsWith('http')) {
-          newImageUrl = path;
-        } else {
-          final rawUrl = supabase.storage.from('avatar').getPublicUrl(path);
-
-          // cache-bust to force refresh
-          newImageUrl = '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-        }
+      // Load Portfolio Data (Dependent on user ID)
+      final profile = ref.read(profileProvider);
+      if (profile.id.isNotEmpty) {
+        ref.read(portfolioProvider.notifier).loadPortfolio(profile.id);
       }
-
-      if (mounted) {
-        setState(() {
-          _profileImageUrl = newImageUrl;
-          _isLoading = false;
-        });
-
-        // Load Portfolio Data
-        if (userData['user_id'] != null) {
-          ref
-              .read(portfolioProvider.notifier)
-              .loadPortfolio(userData['user_id']);
-        }
-      }
-    } catch (e) {
-      print('Error loading profile in screen: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    });
   }
 
   void _showCustomToast(String message) {
@@ -173,8 +119,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Center(
               child: Hero(
                 tag: 'profile_image',
-                child: _profileImageUrl != null
-                    ? Image.network(_profileImageUrl!)
+                child: ref.read(profileProvider).profileImage != null
+                    ? Image.network(ref.read(profileProvider).profileImage!)
                     : const Icon(Icons.person, size: 150, color: Colors.white),
               ),
             ),
@@ -190,14 +136,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // BUT we use local state for the image to guarantee freshness.
     final profile = ref.watch(profileProvider);
 
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: CircularProgressIndicator(color: DesignSystem.purpleAccent),
-        ),
-      );
-    }
+    // If needed, show loading if profile is empty OR check a loading state in provider
+    // For now we assume optimistic rendering or empty state is fine
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -232,7 +172,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    // PART 3: UI Rendering (Local State)
+                    // PART 3: UI Rendering (Provider State)
                     GestureDetector(
                       onTap: _showProfileImage,
                       child: Hero(
@@ -260,9 +200,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ),
                             child: ClipOval(
-                              child: _profileImageUrl != null
+                              child: profile.profileImage != null
                                   ? Image.network(
-                                      _profileImageUrl!,
+                                      profile.profileImage!,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) =>

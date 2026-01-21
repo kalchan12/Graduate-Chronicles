@@ -518,4 +518,236 @@ class SupabaseService {
 
     return List<Map<String, dynamic>>.from(res);
   }
+
+  // --- Yearbook System Methods ---
+
+  // Batch operations
+  Future<List<Map<String, dynamic>>> fetchYearbookBatches() async {
+    final res = await _client
+        .from('yearbook_batches')
+        .select()
+        .order('batch_year', ascending: false);
+
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<Map<String, dynamic>?> fetchBatchByYear(int year) async {
+    final res = await _client
+        .from('yearbook_batches')
+        .select()
+        .eq('batch_year', year)
+        .maybeSingle();
+
+    return res;
+  }
+
+  // Entry operations with JOIN to users table
+  Future<List<Map<String, dynamic>>> fetchApprovedYearbookEntries({
+    required String batchId,
+    String? majorFilter,
+  }) async {
+    var query = _client
+        .from('yearbook_entries')
+        .select('''
+          id,
+          user_id,
+          batch_id,
+          yearbook_photo_url,
+          yearbook_bio,
+          status,
+          created_at,
+          updated_at,
+          users!yearbook_entries_user_id_fkey (
+            full_name,
+            username,
+            major
+          )
+        ''')
+        .eq('batch_id', batchId)
+        .eq('status', 'approved')
+        .order('created_at', ascending: false);
+
+    final res = await query;
+
+    // Flatten the JOIN result
+    final entries = List<Map<String, dynamic>>.from(res);
+    return entries
+        .map((entry) {
+          final userData = entry['users'] as Map<String, dynamic>?;
+          return {
+            ...entry,
+            'full_name': userData?['full_name'],
+            'username': userData?['username'],
+            'major': userData?['major'],
+          }..remove('users');
+        })
+        .where((entry) {
+          if (majorFilter != null && majorFilter.isNotEmpty) {
+            return entry['major'] == majorFilter;
+          }
+          return true;
+        })
+        .toList();
+  }
+
+  Future<Map<String, dynamic>?> fetchMyYearbookEntry(String batchId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    final res = await _client
+        .from('yearbook_entries')
+        .select('''
+          id,
+          user_id,
+          batch_id,
+          yearbook_photo_url,
+          yearbook_bio,
+          status,
+          created_at,
+          updated_at
+        ''')
+        .eq('user_id', userId)
+        .eq('batch_id', batchId)
+        .maybeSingle();
+
+    return res;
+  }
+
+  Future<void> createYearbookEntry({
+    required String batchId,
+    required String yearbookPhotoUrl,
+    String? yearbookBio,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    await _client.from('yearbook_entries').insert({
+      'user_id': userId,
+      'batch_id': batchId,
+      'yearbook_photo_url': yearbookPhotoUrl,
+      'yearbook_bio': yearbookBio,
+      'status': 'pending',
+    });
+  }
+
+  Future<void> updateYearbookEntry({
+    required String entryId,
+    String? yearbookPhotoUrl,
+    String? yearbookBio,
+  }) async {
+    final data = <String, dynamic>{};
+    if (yearbookPhotoUrl != null) data['yearbook_photo_url'] = yearbookPhotoUrl;
+    if (yearbookBio != null) data['yearbook_bio'] = yearbookBio;
+
+    if (data.isEmpty) return;
+
+    await _client.from('yearbook_entries').update(data).eq('id', entryId);
+  }
+
+  // Photo upload for yearbook
+  Future<String> uploadYearbookPhoto(File file, int batchYear) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Compress image first
+    final fileBytes = await file.readAsBytes();
+    final compressed = await _compressImage(fileBytes);
+
+    // Storage path: batch_<year>/<user_id>/yearbook.jpg
+    final storagePath = 'batch_$batchYear/$userId/yearbook.jpg';
+
+    await _client.storage
+        .from('yearbook_upload')
+        .uploadBinary(
+          storagePath,
+          compressed,
+          fileOptions: const FileOptions(
+            contentType: 'image/jpeg',
+            upsert: true,
+          ),
+        );
+
+    final publicUrl = _client.storage
+        .from('yearbook_upload')
+        .getPublicUrl(storagePath);
+
+    return publicUrl;
+  }
+
+  // Admin operations
+  Future<void> approveYearbookEntry(String entryId) async {
+    await _client
+        .from('yearbook_entries')
+        .update({'status': 'approved'})
+        .eq('id', entryId);
+  }
+
+  Future<void> rejectYearbookEntry(String entryId) async {
+    await _client
+        .from('yearbook_entries')
+        .update({'status': 'rejected'})
+        .eq('id', entryId);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchPendingYearbookEntries() async {
+    final res = await _client
+        .from('yearbook_entries')
+        .select('''
+          id,
+          user_id,
+          batch_id,
+          yearbook_photo_url,
+          yearbook_bio,
+          status,
+          created_at,
+          updated_at,
+          users!yearbook_entries_user_id_fkey (
+            full_name,
+            username,
+            major
+          )
+        ''')
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+
+    // Flatten the JOIN result
+    final entries = List<Map<String, dynamic>>.from(res);
+    return entries.map((entry) {
+      final userData = entry['users'] as Map<String, dynamic>?;
+      return {
+        ...entry,
+        'full_name': userData?['full_name'],
+        'username': userData?['username'],
+        'major': userData?['major'],
+      }..remove('users');
+    }).toList();
+  }
+
+  Future<List<String>> fetchDistinctMajors() async {
+    // res from RPC is removed as we are using fallback logic below
+    // If RPC fails or acts up, we can fallback to raw query but distinct is annoying in client.
+    // Actually, let's try a raw query workaround if RPC is not preferred,
+    // but typically standard SQL: `select distinct major from users`
+    // Supabase JS client doesn't support `.distinct()` easily on a column select without `.csv` or specific postgrest syntax.
+    // But since the user instructions say "Populate dropdown values dynamically from: DISTINCT majors in users table",
+    // We will use a hacky but standard way: fetch all (lightweight) and distinct in Dart, OR use a Postgres function.
+    // Given I cannot create RPC functions easily without `setup.sql` access rights confirmed or risk breaking things,
+    // I will fetch 'major' from users where major is not null.
+
+    // Note: If users table is huge, this is bad. But for a uni project, it's fine.
+    final data = await _client
+        .from('users')
+        .select('major')
+        .neq('major', 'null');
+
+    final majors = List<Map<String, dynamic>>.from(data)
+        .map((e) => e['major'] as String?)
+        .where((e) => e != null && e.isNotEmpty)
+        .toSet()
+        .toList();
+    // toSet removes duplicates
+
+    majors.sort();
+    return majors.cast<String>();
+  }
 }

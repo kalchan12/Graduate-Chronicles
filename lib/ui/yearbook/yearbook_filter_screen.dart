@@ -1,65 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/custom_app_bar.dart';
 import '../../theme/design_system.dart';
+import '../../state/yearbook_state.dart';
+import '../../models/yearbook_entry.dart';
 import '../profile/profile_screen.dart';
-import 'yearbook_gallery_screen.dart';
 
 import '../widgets/global_background.dart';
 
 /*
   Yearbook Filter Screen.
 
-  Displays students within a specific batch/yearbook.
+  Displays yearbook entries for a specific batch.
   Features:
-  - Search students by name or degree.
-  - Filter by category (Major, Club, Achievement, etc.).
-  - Navigates to student details modal.
+  - Search students by name or major
+  - Filter by major
+  - Real data from Supabase with JOIN to users table
+  - Navigates to student profile
 */
-class YearbookFilterScreen extends StatefulWidget {
+class YearbookFilterScreen extends ConsumerStatefulWidget {
+  final String batchId;
   final String batchTitle;
-  const YearbookFilterScreen({super.key, required this.batchTitle});
+
+  const YearbookFilterScreen({
+    super.key,
+    required this.batchId,
+    required this.batchTitle,
+  });
 
   @override
-  State<YearbookFilterScreen> createState() => _YearbookFilterScreenState();
+  ConsumerState<YearbookFilterScreen> createState() =>
+      _YearbookFilterScreenState();
 }
 
-class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
-  final List<Map<String, String>> _students = List.generate(
-    24,
-    (i) => {
-      'name':
-          '${['Olivia Chen', 'Benjamin Carter', 'Sophia Rodriguez', 'Liam Goldberg', 'Ava Nguyen', 'Noah Williams', 'Elijah Smith', 'Isabella Jones'][i % 8]} ${i + 1}',
-      'degree': i % 3 == 0
-          ? 'B.S. in Computer Science'
-          : i % 3 == 1
-          ? 'B.A. in Economics'
-          : 'M.Arch in Architecture',
-      'category': i % 4 == 0
-          ? 'Major'
-          : i % 4 == 1
-          ? 'Club'
-          : i % 4 == 2
-          ? 'Achievement'
-          : 'Location',
-    },
-  );
-
+class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
   String _query = '';
-  String _selectedCategory = 'All';
+  String _selectedMajor = 'All';
 
-  List<Map<String, String>> get _filtered {
-    return _students.where((s) {
+  @override
+  void initState() {
+    super.initState();
+    // Load entries for this batch
+    Future.microtask(() {
+      ref.read(yearbookProvider.notifier).loadEntriesForBatch(widget.batchId);
+    });
+  }
+
+  List<YearbookEntry> get _filteredEntries {
+    final state = ref.watch(yearbookProvider);
+    return state.entries.where((entry) {
       final matchesQuery =
-          s['name']!.toLowerCase().contains(_query.toLowerCase()) ||
-          s['degree']!.toLowerCase().contains(_query.toLowerCase());
-      final matchesCategory =
-          _selectedCategory == 'All' || s['category'] == _selectedCategory;
-      return matchesQuery && matchesCategory;
+          (entry.fullName?.toLowerCase().contains(_query.toLowerCase()) ??
+              false) ||
+          (entry.major?.toLowerCase().contains(_query.toLowerCase()) ?? false);
+      final matchesMajor =
+          _selectedMajor == 'All' || entry.major == _selectedMajor;
+      return matchesQuery && matchesMajor;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final yearbookState = ref.watch(yearbookProvider);
+    final filteredList = _filteredEntries;
+
+    // Majors list including "All"
+    final majorsList = ['All', ...yearbookState.majors];
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
@@ -73,71 +80,104 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
                 onLeading: () => Navigator.of(context).pop(),
               ),
 
-              // Search Bar
+              // Search & Filter Row
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 12),
-                      Icon(
-                        Icons.search,
-                        color: Colors.white.withValues(
-                          alpha: 0.5,
-                        ), // consistent icon color
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          onChanged: (v) => setState(() => _query = v),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'Search by name or degree...',
-                            hintStyle: TextStyle(color: Colors.white38),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                          cursorColor: DesignSystem.purpleAccent,
+                child: Column(
+                  children: [
+                    // Search Bar
+                    Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.search,
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              onChanged: (v) => setState(() => _query = v),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: 'Search student name...',
+                                hintStyle: TextStyle(color: Colors.white38),
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                              cursorColor: DesignSystem.purpleAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
-              // Filter Chips
-              SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _navChip('All'),
-                    const SizedBox(width: 8),
-                    _navChip('Major'),
-                    const SizedBox(width: 8),
-                    _navChip('Club'),
-                    const SizedBox(width: 8),
-                    _navChip('Achievement'),
-                    const SizedBox(width: 8),
-                    _navChip('Location'),
+                    const SizedBox(height: 12),
+
+                    // Major Filter Dropdown
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: majorsList.contains(_selectedMajor)
+                              ? _selectedMajor
+                              : 'All',
+                          isExpanded: true,
+                          dropdownColor: DesignSystem.scaffoldBg,
+                          style: const TextStyle(color: Colors.white),
+                          icon: const Icon(
+                            Icons.class_outlined,
+                            color: Colors.white54,
+                          ), // Filter icon
+                          items: majorsList.map((major) {
+                            return DropdownMenuItem<String>(
+                              value: major,
+                              child: Text(
+                                major == 'All' ? 'All Majors' : major,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedMajor = val);
+                              // Ideally trigger a backend filter too if dataset is large,
+                              // but client side is fine for now as per previous logic.
+                            }
+                          },
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              // Removed Chip List
+              const SizedBox(height: 8),
+
+              // Count
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Showing ${_filtered.length} students',
+                  yearbookState.isLoading
+                      ? 'Loading...'
+                      : 'Showing ${filteredList.length} ${filteredList.length == 1 ? 'entry' : 'entries'}',
                   style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 13,
@@ -147,27 +187,79 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
               ),
               const SizedBox(height: 8),
 
+              // Content
               Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  itemCount: _filtered.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemBuilder: (context, i) {
-                    final s = _filtered[i];
-                    return _StudentCard(
-                      student: s,
-                      onTap: () => _showStudentDetail(s),
-                    );
-                  },
-                ),
+                child: yearbookState.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: DesignSystem.purpleAccent,
+                        ),
+                      )
+                    : yearbookState.errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.redAccent,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error loading entries',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : filteredList.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.school_outlined,
+                              color: Colors.white24,
+                              size: 64,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _query.isEmpty
+                                  ? 'No yearbook entries yet'
+                                  : 'No matches found',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        itemCount: filteredList.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 0.75,
+                            ),
+                        itemBuilder: (context, i) {
+                          final entry = filteredList[i];
+                          return _StudentCard(
+                            entry: entry,
+                            onTap: () => _showStudentDetail(entry),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -176,45 +268,13 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
     );
   }
 
-  Widget _navChip(String label) {
-    final isSelected = _selectedCategory == label;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = label),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? DesignSystem.purpleAccent
-              : Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : Colors.white.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white60,
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showStudentDetail(Map<String, String> student) {
+  void _showStudentDetail(YearbookEntry entry) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.40,
+        initialChildSize: 0.50,
         minChildSize: 0.30,
         maxChildSize: 0.85,
         builder: (_, controller) => Container(
@@ -233,25 +293,38 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
           child: ListView(
             controller: controller,
             children: [
+              // Yearbook Photo
               Center(
                 child: Container(
-                  width: 96,
-                  height: 96,
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(24),
+                    image: entry.yearbookPhotoUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(entry.yearbookPhotoUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: entry.yearbookPhotoUrl.isEmpty
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : null,
                   ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white24,
-                    size: 48,
-                  ),
+                  child: entry.yearbookPhotoUrl.isEmpty
+                      ? const Icon(
+                          Icons.person_rounded,
+                          color: Colors.white24,
+                          size: 48,
+                        )
+                      : null,
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Name
               Center(
                 child: Text(
-                  student['name']!,
+                  entry.fullName ?? 'Unknown',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -260,13 +333,40 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              Center(
-                child: Text(
-                  student['degree']!,
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+
+              // Major
+              if (entry.major != null)
+                Center(
+                  child: Text(
+                    entry.major!,
+                    style: const TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
                 ),
-              ),
+
+              // Bio
+              if (entry.yearbookBio != null &&
+                  entry.yearbookBio!.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    entry.yearbookBio!,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 24),
+
+              // Actions
               Center(
                 child: Wrap(
                   spacing: 12,
@@ -296,32 +396,6 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
                       },
                       child: const Text('View Profile'),
                     ),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => YearbookGalleryScreen(
-                              studentName: student['name']!,
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('View Gallery'),
-                    ),
                   ],
                 ),
               ),
@@ -334,9 +408,9 @@ class _YearbookFilterScreenState extends State<YearbookFilterScreen> {
 }
 
 class _StudentCard extends StatelessWidget {
-  final Map<String, String> student;
+  final YearbookEntry entry;
   final VoidCallback onTap;
-  const _StudentCard({required this.student, required this.onTap});
+  const _StudentCard({required this.entry, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -344,47 +418,63 @@ class _StudentCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: DesignSystem.cardDecoration().copyWith(
-          color: const Color(0xFF1E0A25), // Match card base
+          color: const Color(0xFF1E0A25),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Photo
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [const Color(0xFF2E1A36), const Color(0xFF1E0A25)],
-                  ),
+                  image: entry.yearbookPhotoUrl.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(entry.yearbookPhotoUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                  gradient: entry.yearbookPhotoUrl.isEmpty
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFF2E1A36),
+                            const Color(0xFF1E0A25),
+                          ],
+                        )
+                      : null,
                 ),
-                child: Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: Colors.white24,
-                      size: 40,
-                    ),
-                  ),
-                ),
+                child: entry.yearbookPhotoUrl.isEmpty
+                    ? Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: Colors.white24,
+                            size: 40,
+                          ),
+                        ),
+                      )
+                    : null,
               ),
             ),
+
+            // Info
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    student['name']!,
+                    entry.fullName ?? 'Unknown',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -393,13 +483,18 @@ class _StudentCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    student['degree']!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
+                  if (entry.major != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      entry.major!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
