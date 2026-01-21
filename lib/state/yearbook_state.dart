@@ -91,6 +91,21 @@ class YearbookNotifier extends Notifier<YearbookState> {
     }
   }
 
+  Future<void> createBatch(int year, String? subtitle) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.createYearbookBatch(year: year, subtitle: subtitle);
+
+      // Refresh list
+      await loadBatches();
+    } catch (e) {
+      print('Create Batch Error: $e');
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      rethrow;
+    }
+  }
+
   Future<void> loadEntriesForBatch(
     String batchId, {
     String? majorFilter,

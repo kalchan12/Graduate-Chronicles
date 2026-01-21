@@ -338,9 +338,12 @@ class SupabaseService {
     Fetch Portfolio for a User.
     Fetches all items grouped by type.
   */
-  Future<Map<String, List<Map<String, dynamic>>>> fetchPortfolio(
-    String authUserId,
-  ) async {
+  /*
+    Fetch Portfolio for a User.
+    Fetches all items grouped by type.
+    Returns grouping + 'portfolio_id' (from the most recent portfolio entry).
+  */
+  Future<Map<String, dynamic>> fetchPortfolio(String authUserId) async {
     // 1. Fetch Parent Rows
     final portItems = await _client
         .from('portfolio')
@@ -348,14 +351,18 @@ class SupabaseService {
         .eq('user_id', authUserId)
         .order('created_at', ascending: false);
 
-    final Map<String, List<Map<String, dynamic>>> result = {
-      'achievement': [],
-      'resume': [],
-      'certificate': [],
-      'link': [],
+    final Map<String, dynamic> result = {
+      'achievement': <Map<String, dynamic>>[],
+      'resume': <Map<String, dynamic>>[],
+      'certificate': <Map<String, dynamic>>[],
+      'link': <Map<String, dynamic>>[],
+      'portfolio_id': null,
     };
 
     if (portItems.isEmpty) return result;
+
+    // Use the most recent portfolio as the "active" one for ID purposes
+    result['portfolio_id'] = portItems.first['portfolio_id'];
 
     // 2. Fetch Children based on type
     // We could do this with joins if we had foreign keys set up nicely in standard PostgREST way,
@@ -371,28 +378,28 @@ class SupabaseService {
             .select()
             .eq('portfolio_id', pid)
             .maybeSingle();
-        if (child != null) result['achievement']!.add(child);
+        if (child != null) (result['achievement'] as List).add(child);
       } else if (type == 'resume') {
         final child = await _client
             .from('portfolio_resumes')
             .select()
             .eq('portfolio_id', pid)
             .maybeSingle();
-        if (child != null) result['resume']!.add(child);
+        if (child != null) (result['resume'] as List).add(child);
       } else if (type == 'certificate') {
         final child = await _client
             .from('portfolio_certificates')
             .select()
             .eq('portfolio_id', pid)
             .maybeSingle();
-        if (child != null) result['certificate']!.add(child);
+        if (child != null) (result['certificate'] as List).add(child);
       } else if (type == 'link') {
         final child = await _client
             .from('portfolio_links')
             .select()
             .eq('portfolio_id', pid)
             .maybeSingle();
-        if (child != null) result['link']!.add(child);
+        if (child != null) (result['link'] as List).add(child);
       }
     }
 
@@ -539,6 +546,20 @@ class SupabaseService {
         .maybeSingle();
 
     return res;
+  }
+
+  Future<void> createYearbookBatch({
+    required int year,
+    String? subtitle,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    await _client.from('yearbook_batches').insert({
+      'batch_year': year,
+      'batch_subtitle': subtitle,
+      'created_by': userId,
+    });
   }
 
   // Entry operations with JOIN to users table
@@ -749,5 +770,69 @@ class SupabaseService {
 
     majors.sort();
     return majors.cast<String>();
+  }
+
+  /*
+    Upload Portfolio Picture (Profile or Cover).
+    Uploads to 'portfolio_uploads/{user_id}/{type}'.
+    Returns the public URL.
+    Also inserts/updates the 'portfolio_pictures' table.
+  */
+  Future<String> uploadPortfolioPicture({
+    required String path,
+    required String type, // 'profile' or 'cover'
+    required String portfolioId, // Parent ID
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final file = File(path);
+    final fileExt = path.split('.').last;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    // Overwrite per type usually, but uniqueness helps cache busting
+    final storagePath = '$userId/$type/${timestamp}_$type.$fileExt';
+
+    // 1. Upload to Storage
+    await _client.storage
+        .from('portfolio_uploads')
+        .upload(
+          storagePath,
+          file,
+          fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+        );
+
+    final publicUrl = _client.storage
+        .from('portfolio_uploads')
+        .getPublicUrl(storagePath);
+
+    // 2. Upsert DB Record
+    // We use upsert based on (portfolio_id, type) unique constraint
+    await _client.from('portfolio_pictures').upsert({
+      'portfolio_id': portfolioId,
+      'type': type,
+      'image_url': publicUrl,
+    }, onConflict: 'portfolio_id, type');
+
+    return publicUrl;
+  }
+
+  Future<Map<String, String?>> fetchPortfolioPictures(
+    String portfolioId,
+  ) async {
+    final res = await _client
+        .from('portfolio_pictures')
+        .select('type, image_url')
+        .eq('portfolio_id', portfolioId);
+
+    final data = List<Map<String, dynamic>>.from(res);
+    String? profileUrl;
+    String? coverUrl;
+
+    for (var item in data) {
+      if (item['type'] == 'profile') profileUrl = item['image_url'];
+      if (item['type'] == 'cover') coverUrl = item['image_url'];
+    }
+
+    return {'profile': profileUrl, 'cover': coverUrl};
   }
 }

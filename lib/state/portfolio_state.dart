@@ -14,6 +14,8 @@ class PortfolioState {
   final List<Map<String, dynamic>> resumes;
   final List<Map<String, dynamic>> certificates;
   final List<Map<String, dynamic>> links;
+  final String? profileImageUrl;
+  final String? coverImageUrl;
   final bool isLoading;
 
   const PortfolioState({
@@ -21,6 +23,8 @@ class PortfolioState {
     this.resumes = const [],
     this.certificates = const [],
     this.links = const [],
+    this.profileImageUrl,
+    this.coverImageUrl,
     this.isLoading = false,
   });
 
@@ -29,6 +33,8 @@ class PortfolioState {
     List<Map<String, dynamic>>? resumes,
     List<Map<String, dynamic>>? certificates,
     List<Map<String, dynamic>>? links,
+    String? profileImageUrl,
+    String? coverImageUrl,
     bool? isLoading,
   }) {
     return PortfolioState(
@@ -36,6 +42,8 @@ class PortfolioState {
       resumes: resumes ?? this.resumes,
       certificates: certificates ?? this.certificates,
       links: links ?? this.links,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -71,12 +79,20 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
 
       // 2. Fetch Data using Auth ID
       final data = await service.fetchPortfolio(authId);
+      final portfolioId = data['portfolio_id'];
+
+      Map<String, String?> images = {'profile': null, 'cover': null};
+      if (portfolioId != null) {
+        images = await service.fetchPortfolioPictures(portfolioId);
+      }
 
       state = state.copyWith(
         achievements: data['achievement'] ?? [],
         resumes: data['resume'] ?? [],
         certificates: data['certificate'] ?? [],
         links: data['link'] ?? [],
+        profileImageUrl: images['profile'],
+        coverImageUrl: images['cover'],
         isLoading: false,
       );
     } catch (e) {
@@ -97,12 +113,20 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       }
 
       final data = await service.fetchPortfolio(user.id);
+      final portfolioId = data['portfolio_id'];
+
+      Map<String, String?> images = {'profile': null, 'cover': null};
+      if (portfolioId != null) {
+        images = await service.fetchPortfolioPictures(portfolioId);
+      }
 
       state = state.copyWith(
         achievements: data['achievement'] ?? [],
         resumes: data['resume'] ?? [],
         certificates: data['certificate'] ?? [],
         links: data['link'] ?? [],
+        profileImageUrl: images['profile'],
+        coverImageUrl: images['cover'],
         isLoading: false,
       );
     } catch (e) {

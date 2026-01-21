@@ -35,6 +35,7 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
     final yearbookState = ref.watch(yearbookProvider);
     final profile = ref.watch(profileProvider);
     final isGraduate = profile.role.toLowerCase().contains('graduate');
+    final isAdmin = profile.role.toLowerCase().contains('admin');
 
     final filteredBatches = yearbookState.batches.where((batch) {
       final yearStr = batch.batchYear.toString();
@@ -158,6 +159,18 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
                                 fontSize: 16,
                               ),
                             ),
+                            if (isAdmin) ...[
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () => _showAddBatchDialog(context),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Create First Batch'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: DesignSystem.purpleAccent,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       )
@@ -183,6 +196,106 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: isAdmin && filteredBatches.isNotEmpty
+          ? FloatingActionButton(
+              onPressed: () => _showAddBatchDialog(context),
+              backgroundColor: DesignSystem.purpleAccent,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+    );
+  }
+
+  void _showAddBatchDialog(BuildContext context) {
+    final yearController = TextEditingController();
+    final subtitleController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: DesignSystem.purpleDark,
+        title: const Text(
+          'Create New Batch',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: yearController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Batch Year (e.g. 2025)',
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white24),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: subtitleController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Subtitle (Optional)',
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white24),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final year = int.tryParse(yearController.text.trim());
+              if (year != null) {
+                try {
+                  Navigator.pop(context);
+                  await ref
+                      .read(yearbookProvider.notifier)
+                      .createBatch(
+                        year,
+                        subtitleController.text.trim().isEmpty
+                            ? null
+                            : subtitleController.text.trim(),
+                      );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Batch created successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text(
+              'Create',
+              style: TextStyle(color: DesignSystem.purpleAccent),
+            ),
+          ),
+        ],
       ),
     );
   }

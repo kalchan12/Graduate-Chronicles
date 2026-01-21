@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 import 'portfolio_viewed_screen.dart';
 import 'portfolio_liked_screen.dart';
 import 'portfolio_management_screen.dart'; // Changed to management screen directly for editing
 import '../../state/portfolio_state.dart';
+import '../../state/profile_state.dart';
+import '../../services/supabase/supabase_service.dart';
 
 /*
   Portfolio Hub Screen.
@@ -26,6 +29,9 @@ class PortfolioHubScreen extends ConsumerStatefulWidget {
 }
 
 class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
+
   @override
   void initState() {
     super.initState();
@@ -41,9 +47,64 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     }
   }
 
+  Future<void> _pickAndUploadImage(String type) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      setState(() => _isUploading = true);
+
+      final service = ref.read(supabaseServiceProvider);
+      // We need the portfolio ID. We can get it from fetching current portfolio again or storing it in state.
+      // Ideally PortfolioState should have portfolioId, but currently it doesn't.
+      // We can fetch it quickly or refactor state.
+      // For now, let's just fetch it wrapper or rely on service finding it?
+      // The uploadPortfolioPicture needs portfolioId.
+
+      final user = service.currentUser;
+      if (user == null) throw Exception("User not found");
+
+      // Quick fetch to get ID (optimized path would be to put ID in state)
+      final data = await service.fetchPortfolio(user.id);
+      final portfolioId = data['portfolio_id'];
+
+      if (portfolioId == null) throw Exception("Portfolio not init");
+
+      await service.uploadPortfolioPicture(
+        path: image.path,
+        type: type,
+        portfolioId: portfolioId,
+      );
+
+      // Refresh
+      await ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final portfolio = ref.watch(portfolioProvider);
+    final userProfile = ref.watch(profileProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -73,21 +134,73 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                             left: 0,
                             right: 0,
                             height: 180,
-                            child: ShaderMask(
-                              shaderCallback: (rect) {
-                                return const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [Colors.black, Colors.transparent],
-                                  stops: [0.6, 1.0],
-                                ).createShader(
-                                  Rect.fromLTRB(0, 0, rect.width, rect.height),
-                                );
-                              },
-                              blendMode: BlendMode.dstIn,
-                              child: Image.asset(
-                                'assets/images/dog.png',
-                                fit: BoxFit.cover,
+                            child: GestureDetector(
+                              onTap: () => _pickAndUploadImage('cover'),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  ShaderMask(
+                                    shaderCallback: (rect) {
+                                      return const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.black,
+                                          Colors.transparent,
+                                        ],
+                                        stops: [0.6, 1.0],
+                                      ).createShader(
+                                        Rect.fromLTRB(
+                                          0,
+                                          0,
+                                          rect.width,
+                                          rect.height,
+                                        ),
+                                      );
+                                    },
+                                    blendMode: BlendMode.dstIn,
+                                    child: portfolio.coverImageUrl != null
+                                        ? Image.network(
+                                            portfolio.coverImageUrl!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (c, e, s) =>
+                                                Image.asset(
+                                                  'assets/images/dog.png',
+                                                  fit: BoxFit.cover,
+                                                ),
+                                          )
+                                        : Image.asset(
+                                            'assets/images/dog.png',
+                                            fit: BoxFit.cover,
+                                          ),
+                                  ),
+
+                                  // Edit Overlay hint
+                                  Positioned(
+                                    top: 10,
+                                    right: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+
+                                  if (_isUploading)
+                                    Container(
+                                      color: Colors.black54,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           ),
@@ -105,7 +218,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                             bottom: 0,
                             left: 0,
                             right: 0,
-                            child: Center(child: _buildAvatar()),
+                            child: Center(
+                              child: _buildAvatar(portfolio.profileImageUrl),
+                            ),
                           ),
                         ],
                       ),
@@ -113,10 +228,12 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
 
                     const SizedBox(height: 16),
 
-                    // -- Name & Role (Placeholder for now, could be dynamic from ProfileState) --
-                    const Text(
-                      'Abebe Kebede',
-                      style: TextStyle(
+                    // -- Name & Role (Dynamic from ProfileState) --
+                    Text(
+                      userProfile.name.isNotEmpty
+                          ? userProfile.name
+                          : 'Student',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
@@ -125,7 +242,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Crafting digital experiences @ University',
+                      userProfile.degree.isNotEmpty
+                          ? '${userProfile.degree} @ Graduate Chronicles'
+                          : 'Graduate Student',
                       style: TextStyle(
                         color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
                         fontSize: 15,
@@ -268,43 +387,52 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     );
   }
 
-  Widget _buildAvatar() {
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: DesignSystem.purpleAccent.withValues(alpha: 0.6),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
-                blurRadius: 30,
-                spreadRadius: 5,
+  Widget _buildAvatar(String? imageUrl) {
+    return GestureDetector(
+      onTap: () => _pickAndUploadImage('profile'),
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.6),
+                width: 2,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 54,
+              backgroundColor: const Color(0xFFC7A069),
+              backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+              child: imageUrl == null
+                  ? const Icon(Icons.person, size: 64, color: Colors.white24)
+                  : null,
+            ),
           ),
-          child: const CircleAvatar(
-            radius: 54,
-            backgroundColor: Color(0xFFC7A069),
-            child: Icon(Icons.person, size: 64, color: Colors.white24),
+
+          // Online Status / Edit Icon
+          Container(
+            margin: const EdgeInsets.only(right: 6, bottom: 6),
+            width: 24, // Slightly larger for edit icon visibility
+            height: 24,
+            decoration: BoxDecoration(
+              color: DesignSystem.purpleAccent,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF1E1E2E), width: 2),
+            ),
+            child: const Icon(Icons.edit, color: Colors.white, size: 12),
           ),
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 6, bottom: 6),
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2ECC71),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF1E1E2E), width: 3),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
