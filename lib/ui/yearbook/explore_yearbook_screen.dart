@@ -7,6 +7,7 @@ import '../../models/yearbook_entry.dart';
 import '../../state/profile_state.dart';
 import 'yearbook_filter_screen.dart';
 import 'yearbook_submission_screen.dart';
+import '../widgets/toast_helper.dart';
 
 import '../widgets/global_background.dart';
 
@@ -99,17 +100,17 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
                   ),
                 ),
               ),
+              if (yearbookState.isLoading)
+                const LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: Colors.transparent,
+                  color: DesignSystem.purpleAccent,
+                ),
               const SizedBox(height: 16),
 
               // Loading/Error/Content
               Expanded(
-                child: yearbookState.isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: DesignSystem.purpleAccent,
-                        ),
-                      )
-                    : yearbookState.errorMessage != null
+                child: yearbookState.errorMessage != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -271,21 +272,11 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
                             : subtitleController.text.trim(),
                       );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Batch created successfully'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    ToastHelper.show(context, 'Batch created successfully');
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    ToastHelper.show(context, 'Error: $e', isError: true);
                   }
                 }
               }

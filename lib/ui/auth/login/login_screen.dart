@@ -351,15 +351,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               width: double.infinity,
                               height: 50,
                               child: ElevatedButton(
-                                onPressed: () {
-                                  ref
-                                      .read(loginFormProvider.notifier)
-                                      .validateAndSubmit(
-                                        identifier: _idCtrl.text,
-                                        password: _pwCtrl.text,
-                                        context: context,
-                                      );
-                                },
+                                onPressed: loginState.isSubmitting
+                                    ? null
+                                    : () {
+                                        ref
+                                            .read(loginFormProvider.notifier)
+                                            .validateAndSubmit(
+                                              identifier: _idCtrl.text,
+                                              password: _pwCtrl.text,
+                                              context: context,
+                                            );
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: DesignSystem.purpleAccent,
                                   elevation: 4,
@@ -369,15 +371,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Login',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
+                                child: loginState.isSubmitting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Login',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
                               ),
                             ),
                           ],

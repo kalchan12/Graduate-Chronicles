@@ -47,6 +47,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final feed = ref.watch(feedProvider);
     final stories = ref.watch(storiesProvider);
 
+    // Initial Loading State (Skeleton)
+    if (profile.id.isEmpty) {
+      return const _HomeSkeleton();
+    }
+
     return Scaffold(
       backgroundColor: DesignSystem.purpleDark,
       body: Container(
@@ -64,92 +69,98 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 96),
-            children: [
-              // Top App Bar
-              const _HomeAppBar(),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await ref.read(profileProvider.notifier).refresh();
+            },
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 96),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                // Top App Bar
+                const _HomeAppBar(),
 
-              // Story carousel (horizontal avatars)
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 110,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: stories.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 16),
-                  itemBuilder: (context, index) =>
-                      _StoryAvatar(story: stories[index]),
-                ),
-              ),
-
-              // Featured Graduate section header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Text(
-                  'Featured Graduate',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontSize: 20),
-                ),
-              ),
-
-              // Featured Graduate card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _FeaturedCard(
-                  profileName: profile.name,
-                  degreeLine: '${profile.degree} | ${profile.year}',
-                ),
-              ),
-
-              // Batch Highlights header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
-                child: Text(
-                  "Batch Highlights: Class of '24",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontSize: 20),
-                ),
-              ),
-
-              // Batch highlights carousel
-              SizedBox(
-                height: 150,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: batches.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 16),
-                  itemBuilder: (context, index) => _BatchCard(
-                    title: batches[index].title,
-                    subtitle: batches[index].subtitle,
+                // Story carousel (horizontal avatars)
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 110,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: stories.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 16),
+                    itemBuilder: (context, index) =>
+                        _StoryAvatar(story: stories[index]),
                   ),
                 ),
-              ),
 
-              // Feed
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: List.generate(
-                    feed.length,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: _PostCard(
-                        title: feed[i].title,
-                        subtitle: feed[i].subtitle,
+                // Featured Graduate section header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                  child: Text(
+                    'Featured Graduate',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                  ),
+                ),
+
+                // Featured Graduate card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _FeaturedCard(
+                    profileName: profile.name,
+                    degreeLine: '${profile.degree} | ${profile.year}',
+                  ),
+                ),
+
+                // Batch Highlights header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+                  child: Text(
+                    "Batch Highlights: Class of '24",
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                  ),
+                ),
+
+                // Batch highlights carousel
+                SizedBox(
+                  height: 150,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: batches.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 16),
+                    itemBuilder: (context, index) => _BatchCard(
+                      title: batches[index].title,
+                      subtitle: batches[index].subtitle,
+                    ),
+                  ),
+                ),
+
+                // Feed
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: List.generate(
+                      feed.length,
+                      (i) => Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: _PostCard(
+                          title: feed[i].title,
+                          subtitle: feed[i].subtitle,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -848,6 +859,153 @@ class _PostCardState extends State<_PostCard> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeSkeleton extends StatelessWidget {
+  const _HomeSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF2E0F3A),
+              DesignSystem.purpleDark,
+              Color(0xFF150518),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 96),
+            children: [
+              const _HomeAppBar(),
+              const SizedBox(height: 12),
+              // Stories Skeleton
+              SizedBox(
+                height: 110,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 5,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (_, __) => const _SkeletonAvatar(),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Featured Skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  height: 24,
+                  width: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              // Batch Skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  height: 24,
+                  width: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 150,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 3,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (_, __) => Container(
+                    width: 280,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonAvatar extends StatefulWidget {
+  const _SkeletonAvatar();
+
+  @override
+  State<_SkeletonAvatar> createState() => _SkeletonAvatarState();
+}
+
+class _SkeletonAvatarState extends State<_SkeletonAvatar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.3, end: 0.6).animate(_controller),
+      child: Column(
+        children: [
+          Container(
+            width: 74,
+            height: 74,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(width: 60, height: 10, color: Colors.white),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../widgets/toast_helper.dart';
 import '../../state/portfolio_state.dart';
 
 /*
@@ -33,9 +34,7 @@ class _AddLinkScreenState extends ConsumerState<AddLinkScreen> {
 
   Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty || _urlCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter title and URL')),
-      );
+      ToastHelper.show(context, 'Please enter title and URL', isError: true);
       return;
     }
 
@@ -49,15 +48,11 @@ class _AddLinkScreenState extends ConsumerState<AddLinkScreen> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Link saved!')));
+        ToastHelper.show(context, 'Link saved!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ToastHelper.show(context, 'Error: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

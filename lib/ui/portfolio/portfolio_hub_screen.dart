@@ -10,6 +10,7 @@ import 'portfolio_management_screen.dart'; // Changed to management screen direc
 import '../../state/portfolio_state.dart';
 import '../../state/profile_state.dart';
 import '../../services/supabase/supabase_service.dart';
+import '../widgets/toast_helper.dart';
 
 /*
   Portfolio Hub Screen.
@@ -80,21 +81,12 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
       await ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Image updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Use Unified Toast
+        ToastHelper.show(context, 'Image updated successfully!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Upload failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ToastHelper.show(context, 'Upload failed: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -370,17 +362,6 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
-          ),
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.settings, color: Colors.white, size: 20),
-            ),
-            onPressed: () {},
           ),
         ],
       ),

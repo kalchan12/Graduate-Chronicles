@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
+import '../../widgets/toast_helper.dart';
 import '../../widgets/global_background.dart';
 
 /*
@@ -68,52 +69,7 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
   ];
 
   void _showToast(String message) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A1727),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: DesignSystem.purpleAccent,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ToastHelper.show(context, message);
   }
 
   @override

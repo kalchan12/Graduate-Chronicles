@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../widgets/toast_helper.dart';
 import '../../state/portfolio_state.dart';
 import '../../services/supabase/supabase_service.dart';
 
@@ -80,9 +81,7 @@ class _AddCertificateScreenState extends ConsumerState<AddCertificateScreen> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter certificate name')),
-      );
+      ToastHelper.show(context, 'Please enter certificate name', isError: true);
       return;
     }
 
@@ -107,15 +106,11 @@ class _AddCertificateScreenState extends ConsumerState<AddCertificateScreen> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Certificate saved!')));
+        ToastHelper.show(context, 'Certificate saved!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ToastHelper.show(context, 'Error: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);

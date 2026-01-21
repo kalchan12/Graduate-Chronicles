@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/design_system.dart';
+import '../../ui/widgets/toast_helper.dart';
 import 'providers/settings_provider.dart';
 import 'widgets/settings_tile.dart';
 import '../../ui/auth/forgot/set_new_password_screen.dart'; // Direct import or use named route
@@ -114,10 +115,9 @@ class PrivacySettingsScreen extends ConsumerWidget {
                           notifier.toggleTwoFactorAuth(false);
                           notifier.setTwoFactorCode(''); // Clear code
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('2FA Disabled Successfully'),
-                            ),
+                          ToastHelper.show(
+                            context,
+                            '2FA Disabled Successfully',
                           );
                         },
                         style: OutlinedButton.styleFrom(
@@ -137,25 +137,21 @@ class PrivacySettingsScreen extends ConsumerWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         if (codeController.text.length < 4) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Code must be at least 4 digits'),
-                              backgroundColor: Colors.redAccent,
-                            ),
+                          ToastHelper.show(
+                            context,
+                            'Code must be at least 4 digits',
+                            isError: true,
                           );
                           return;
                         }
                         notifier.setTwoFactorCode(codeController.text);
                         notifier.toggleTwoFactorAuth(true);
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isEditing
-                                  ? '2FA Updated Successfully'
-                                  : '2FA Enabled Successfully',
-                            ),
-                          ),
+                        ToastHelper.show(
+                          context,
+                          isEditing
+                              ? '2FA Updated Successfully'
+                              : '2FA Enabled Successfully',
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -334,9 +330,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 icon: Icons.policy,
                 title: 'Privacy Policy',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Opening Privacy Policy...')),
-                  );
+                  ToastHelper.show(context, 'Opening Privacy Policy...');
                 },
               ),
             ],

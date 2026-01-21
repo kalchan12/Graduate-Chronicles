@@ -142,9 +142,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
-        child: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(profileProvider.notifier).refresh();
+            final profile = ref.read(profileProvider);
+            if (profile.id.isNotEmpty) {
+              await ref
+                  .read(portfolioProvider.notifier)
+                  .loadPortfolio(profile.id);
+            }
+          },
           child: ListView(
             padding: const EdgeInsets.only(bottom: 40),
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
               // App Bar matching design
               CustomAppBar(

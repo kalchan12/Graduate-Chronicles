@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/reunion_state.dart';
 import '../../../state/profile_state.dart';
+import '../../widgets/toast_helper.dart';
 import '../../widgets/global_background.dart';
 
 // Database-aligned visibility constants
@@ -320,54 +321,7 @@ class _ReunionCreateScreenState extends ConsumerState<ReunionCreateScreen> {
   }
 
   void _showToast(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A1727),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isError
-                  ? Colors.redAccent.withValues(alpha: 0.5)
-                  : DesignSystem.purpleAccent.withValues(alpha: 0.3),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isError ? Icons.error_outline : Icons.check_circle,
-                color: isError ? Colors.redAccent : DesignSystem.purpleAccent,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ToastHelper.show(context, message, isError: isError);
   }
 
   Future<void> _createEvent() async {

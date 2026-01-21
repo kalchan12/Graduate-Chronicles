@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../widgets/toast_helper.dart';
 import '../../state/portfolio_state.dart';
 import '../../services/supabase/supabase_service.dart';
 
@@ -56,9 +56,7 @@ class _AddCvScreenState extends ConsumerState<AddCvScreen> {
 
   Future<void> _save() async {
     if (_pickedFilePath == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a file')));
+      ToastHelper.show(context, 'Please select a file', isError: true);
       return;
     }
 
@@ -84,15 +82,11 @@ class _AddCvScreenState extends ConsumerState<AddCvScreen> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Resume uploaded!')));
+        ToastHelper.show(context, 'Resume uploaded!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ToastHelper.show(context, 'Error: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
+import '../widgets/toast_helper.dart';
 import '../../state/portfolio_state.dart';
 import '../../services/supabase/supabase_service.dart';
 
@@ -76,9 +77,7 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
 
   Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
+      ToastHelper.show(context, 'Please enter a title', isError: true);
       return;
     }
 
@@ -103,15 +102,11 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Achievement saved!')));
+        ToastHelper.show(context, 'Achievement saved!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+        ToastHelper.show(context, 'Error saving: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);

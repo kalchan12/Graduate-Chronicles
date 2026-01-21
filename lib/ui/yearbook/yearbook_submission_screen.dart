@@ -6,6 +6,7 @@ import '../../theme/design_system.dart';
 import '../../state/yearbook_state.dart';
 import '../../state/profile_state.dart';
 import '../../services/supabase/supabase_service.dart';
+import '../widgets/toast_helper.dart';
 import '../widgets/global_background.dart';
 
 /*
@@ -193,13 +194,7 @@ class _YearbookSubmissionScreenState
   }
 
   void _showToast(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : DesignSystem.purpleAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ToastHelper.show(context, message, isError: isError);
   }
 
   @override

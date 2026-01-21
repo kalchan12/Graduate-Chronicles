@@ -5,6 +5,7 @@ import 'dart:io';
 
 import '../../theme/design_system.dart';
 import '../../state/profile_state.dart';
+import '../../ui/widgets/toast_helper.dart';
 
 import '../../ui/widgets/global_background.dart';
 
@@ -76,15 +77,10 @@ class _EditProfileSettingsScreenState
   void _saveProfile() {
     if (_nameController.text.trim().isEmpty ||
         _usernameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Name and username cannot be empty'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      ToastHelper.show(
+        context,
+        'Name and username cannot be empty',
+        isError: true,
       );
       return;
     }
@@ -103,62 +99,7 @@ class _EditProfileSettingsScreenState
   }
 
   void _showSuccessToast() {
-    late OverlayEntry overlayEntry;
-    overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        bottom: 50,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E1A36).withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline,
-                    color: DesignSystem.purpleAccent,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Profile updated successfully',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(overlayEntry);
-    Future.delayed(const Duration(seconds: 3), () {
-      overlayEntry.remove();
-    });
+    ToastHelper.show(context, 'Profile updated successfully');
   }
 
   @override
