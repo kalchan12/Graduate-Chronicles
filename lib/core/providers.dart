@@ -29,6 +29,7 @@ class Profile {
   final String username;
   final String bio;
   final String? profileImage; // Local path or URL
+  final String? authUserId; // Supabase Auth ID
 
   Profile({
     required this.id,
@@ -38,6 +39,7 @@ class Profile {
     this.username = '',
     this.bio = '',
     this.profileImage,
+    this.authUserId,
   });
 
   Profile copyWith({
@@ -47,6 +49,7 @@ class Profile {
     String? username,
     String? bio,
     String? profileImage,
+    String? authUserId,
   }) {
     return Profile(
       id: id,
@@ -56,6 +59,7 @@ class Profile {
       username: username ?? this.username,
       bio: bio ?? this.bio,
       profileImage: profileImage ?? this.profileImage,
+      authUserId: authUserId ?? this.authUserId,
     );
   }
 }

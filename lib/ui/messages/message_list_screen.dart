@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers.dart';
+
 import '../../theme/design_system.dart';
+import '../../state/messaging_state.dart';
+import '../discovery/user_discovery_screen.dart';
 import 'message_detail_screen.dart';
 
 /*
@@ -13,13 +15,27 @@ import 'message_detail_screen.dart';
   - Recent conversations list with unread counts
   - Search bar for finding classmates
 */
-class MessageListScreen extends ConsumerWidget {
+
+class MessageListScreen extends ConsumerStatefulWidget {
   const MessageListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Watch conversations from the new NotifierProvider
-    final conversations = ref.watch(conversationsProvider);
+  ConsumerState<MessageListScreen> createState() => _MessageListScreenState();
+}
+
+class _MessageListScreenState extends ConsumerState<MessageListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(messagingProvider.notifier).fetchConversations();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(messagingProvider);
+    final conversations = state.conversations;
 
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
@@ -48,8 +64,8 @@ class MessageListScreen extends ConsumerWidget {
                           Container(
                             width: 40,
                             height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2A1727),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2A1727),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -58,21 +74,31 @@ class MessageListScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              color: DesignSystem.purpleAccent,
-                              shape: BoxShape.circle,
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const UserDiscoveryScreen(),
+                                ),
+                              );
+                            },
+                            icon: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: const BoxDecoration(
+                                color: DesignSystem.purpleAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.add, color: Colors.white),
                             ),
-                            child: const Icon(Icons.edit, color: Colors.white),
                           ),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Search Bar
+                  // Search Bar (Static for now)
                   Container(
                     height: 48,
                     decoration: BoxDecoration(
@@ -100,258 +126,183 @@ class MessageListScreen extends ConsumerWidget {
 
             // Scrollable Content
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                children: [
-                  const SizedBox(height: 12),
-                  // ACTIVE NOW Section
-                  const Text(
-                    'ACTIVE NOW',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+              child: state.isLoading && conversations.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : RefreshIndicator(
+                      onRefresh: () => ref
+                          .read(messagingProvider.notifier)
+                          .fetchConversations(),
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        children: [
+                          const SizedBox(height: 12),
+                          // ACTIVE NOW Section (Placeholder)
+                          const Text(
+                            'ACTIVE NOW',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
 
-                  // Horizontal Active Users List
-                  SizedBox(
-                    height: 90,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: 6,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 16),
-                      itemBuilder: (context, index) {
-                        final names = [
-                          'My Story',
-                          'Sarah',
-                          'Mike',
-                          'Jen',
-                          'Alex',
-                          'Sam',
-                        ];
-                        final isStory = index == 0;
-                        return Column(
-                          children: [
-                            Stack(
-                              children: [
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: isStory
-                                        ? Border.all(
-                                            color: Colors.white24,
-                                            width: 2,
-                                            style: BorderStyle.solid,
-                                          )
-                                        : Border.all(
-                                            color: DesignSystem.purpleAccent,
-                                            width: 2,
-                                          ),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(3.0),
-                                    child: CircleAvatar(
+                          // Horizontal Active Users List (Placeholder)
+                          SizedBox(
+                            height: 90,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: 4,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: 16),
+                              itemBuilder: (context, index) {
+                                final names = ['Sarah', 'Mike', 'Jen', 'Alex'];
+                                return Column(
+                                  children: [
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: DesignSystem.purpleAccent,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const CircleAvatar(
+                                        backgroundColor: Color(0xFF3A2738),
+                                        child: Icon(
+                                          Icons.person,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      names[index],
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Conversation List
+                          if (conversations.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 40),
+                              child: Center(
+                                child: Text(
+                                  'No conversations yet.',
+                                  style: TextStyle(color: Colors.white54),
+                                ),
+                              ),
+                            ),
+
+                          ...conversations.map((convo) {
+                            final name = convo['other_user_name'] ?? 'User';
+                            final lastMsg =
+                                convo['last_message'] ?? 'No messages yet';
+                            final timeStr = convo['last_message_time'] != null
+                                ? _formatTime(
+                                    DateTime.parse(convo['last_message_time']),
+                                  )
+                                : '';
+                            final avatar = convo['other_user_avatar'];
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MessageDetailScreen(
+                                        conversationId: convo['id'],
+                                        participantName: name,
+                                        participantAvatar: avatar,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
                                       backgroundColor: const Color(0xFF3A2738),
-                                      child: isStory
-                                          ? const Icon(
-                                              Icons.add,
-                                              color: Colors.white,
-                                            )
-                                          : const Icon(
-                                              Icons.person,
-                                              color: Colors.white70,
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                                if (!isStory)
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 2,
-                                    child: Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: Colors.greenAccent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: DesignSystem.scaffoldBg,
-                                          width: 2,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              names[index],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Conversation List
-                  ...conversations.map((conversation) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MessageDetailScreen(
-                                conversationId: conversation.id,
-                              ),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Row(
-                          children: [
-                            Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 28,
-                                  backgroundColor: const Color(0xFF3A2738),
-                                  child: Text(
-                                    conversation.participantName.isNotEmpty
-                                        ? conversation.participantName[0]
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                ),
-                                if (conversation.unreadCount > 0)
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      width: 16,
-                                      height: 16,
-                                      decoration: BoxDecoration(
-                                        color: Colors.greenAccent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: DesignSystem.scaffoldBg,
-                                          width: 2,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        conversation.participantName,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight:
-                                              conversation.unreadCount > 0
-                                              ? FontWeight.w800
-                                              : FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        _formatTime(
-                                          conversation.lastMessageTime,
-                                        ),
-                                        style: TextStyle(
-                                          color: conversation.unreadCount > 0
-                                              ? DesignSystem.purpleAccent
-                                              : Colors.white54,
-                                          fontSize: 12,
-                                          fontWeight:
-                                              conversation.unreadCount > 0
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          conversation.lastMessage,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: conversation.unreadCount > 0
-                                                ? Colors.white
-                                                : Colors.white54,
-                                            fontSize: 14,
-                                            fontWeight:
-                                                conversation.unreadCount > 0
-                                                ? FontWeight.w500
-                                                : FontWeight.normal,
-                                          ),
-                                        ),
-                                      ),
-                                      if (conversation.unreadCount > 0)
-                                        Container(
-                                          margin: const EdgeInsets.only(
-                                            left: 8,
-                                          ),
-                                          width: 22,
-                                          height: 22,
-                                          decoration: const BoxDecoration(
-                                            color: DesignSystem.purpleAccent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '${conversation.unreadCount}',
+                                      backgroundImage: avatar != null
+                                          ? NetworkImage(avatar)
+                                          : null,
+                                      child: avatar == null
+                                          ? Text(
+                                              name[0],
                                               style: const TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 11,
                                                 fontWeight: FontWeight.bold,
+                                                fontSize: 20,
                                               ),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                name,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              Text(
+                                                timeStr,
+                                                style: const TextStyle(
+                                                  color: Colors.white54,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            lastMsg,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Colors.white54,
+                                              fontSize: 14,
                                             ),
                                           ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            );
+                          }),
+                        ],
                       ),
-                    );
-                  }),
-                ],
-              ),
+                    ),
             ),
           ],
         ),
@@ -366,6 +317,6 @@ class MessageListScreen extends ConsumerWidget {
     if (diff.inHours < 24) return '${diff.inHours}h';
     if (diff.inDays < 2) return 'Yesterday';
     if (diff.inDays < 7) return '${diff.inDays}d';
-    return '1w';
+    return '${time.day}/${time.month}';
   }
 }

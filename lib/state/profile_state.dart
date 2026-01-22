@@ -20,6 +20,7 @@ class UserProfile {
   final String degree; // major
   final String year; // graduation year
   final String role; // 'student', 'graduate'
+  final String? authUserId;
 
   const UserProfile({
     this.id = '',
@@ -30,6 +31,7 @@ class UserProfile {
     this.degree = '',
     this.year = '',
     this.role = '',
+    this.authUserId,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
@@ -42,6 +44,7 @@ class UserProfile {
       degree: map['major'] ?? '',
       year: map['graduation_year']?.toString() ?? '',
       role: map['role'] ?? '', // Add role mapping
+      authUserId: map['auth_user_id']?.toString(),
     );
   }
 }
@@ -106,6 +109,7 @@ class ProfileNotifier extends Notifier<UserProfile> {
         degree: state.degree,
         year: state.year,
         role: state.role,
+        authUserId: state.authUserId,
       );
 
       String? imagePathForDb = profileImage;

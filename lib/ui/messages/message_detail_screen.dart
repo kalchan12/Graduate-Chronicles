@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../theme/design_system.dart';
+import '../../state/messaging_state.dart';
 
 /*
   Chat Detail Screen.
-  
   Individual conversation view.
-  Features:
-  - Real-time message list (local state)
-  - Message input with send button
-  - Auto-scroll to latest message
-  - Header with audio/video call placeholders
 */
 class MessageDetailScreen extends ConsumerStatefulWidget {
   final String conversationId;
@@ -33,58 +28,33 @@ class MessageDetailScreen extends ConsumerStatefulWidget {
 class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final String _myId = sb.Supabase.instance.client.auth.currentUser?.id ?? '';
 
   @override
   void initState() {
     super.initState();
-    // Mark as read when opening the screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Only mark as read if it's an existing conversation
-      if (widget.conversationId != 'new') {
-        ref
-            .read(conversationsProvider.notifier)
-            .markAsRead(widget.conversationId);
-        _scrollToBottom();
-      }
+      ref.read(messagingProvider.notifier).fetchMessages(widget.conversationId);
     });
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    // Handle new conversation creation or existing
-    if (widget.conversationId == 'new' ||
-        widget.conversationId.startsWith('new_')) {
-      // Logic to create would go here, for now using a simple approach
-      // Since the provider expects an ID to store messages, we can't fully create it
-      // without updating the provider to support "create on send" or passing a real ID.
-      // However, to satisfy the requirement, we will just use the provider's sendMessage
-      // which currently requires an ID.
-      // Note: In a real app we'd create the conversation first.
-      // For this fix, let's assume we use the 'new' ID or a generated one.
-      // But the provider uses `deepConversation.id == conversationId` to find where to add.
-      // So we need to ensure the ID exists or add a new conversation.
-
-      // Correct fix: Add method to provider or handle "new" case.
-      // For simplicity, we'll implement a transient "add" in the UI only if fails,
-      // but the cleaner way is to assume the ID is valid or auto-generated.
-
-      // Fallback: Just show it locally? No, persistent.
-      // Let's assume the caller passes a generated ID or we generate one here.
+    try {
+      await ref
+          .read(messagingProvider.notifier)
+          .sendMessage(widget.conversationId, text);
+      _controller.clear();
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
+      }
     }
-
-    // Actually, let's rely on the ID being passed. If "new", we need to handle it.
-    // The robust way for this task: modify provider to `createConversation`.
-    // But modifying provider is complex.
-    // Let's look at `sendMessage` in provider: it iterates and updates.
-
-    ref
-        .read(conversationsProvider.notifier)
-        .sendMessage(widget.conversationId, text);
-    _controller.clear();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   void _scrollToBottom() {
@@ -106,23 +76,8 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final conversations = ref.watch(conversationsProvider);
-
-    // Find conversation or use fallback
-    Conversation conversation;
-    try {
-      conversation = conversations.firstWhere(
-        (c) => c.id == widget.conversationId,
-      );
-    } catch (_) {
-      // Not found, create dummy for display
-      conversation = Conversation(
-        id: widget.conversationId,
-        participantName: widget.participantName ?? 'Unknown',
-        participantAvatar: widget.participantAvatar ?? '',
-        messages: [],
-      );
-    }
+    final state = ref.watch(messagingProvider);
+    final messages = state.currentMessages;
 
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
@@ -149,15 +104,18 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: const Color(0xFF3A2738),
-                    child: Text(
-                      conversation.participantName.isNotEmpty
-                          ? conversation.participantName[0]
-                          : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    backgroundImage: widget.participantAvatar != null
+                        ? NetworkImage(widget.participantAvatar!)
+                        : null,
+                    child: widget.participantAvatar == null
+                        ? Text(
+                            (widget.participantName ?? '?')[0],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -165,7 +123,7 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          conversation.participantName,
+                          widget.participantName ?? 'Chat',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -173,7 +131,7 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
                           ),
                         ),
                         const Text(
-                          'Active Now',
+                          'Online',
                           style: TextStyle(
                             color: DesignSystem.purpleAccent,
                             fontSize: 12,
@@ -182,107 +140,86 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2A1727),
-                      shape: BoxShape.circle,
-                    ), // Video icon placeholder logic? HTML showed video/phone
-                    child: const Icon(
-                      Icons.videocam,
-                      color: Colors.white54,
-                      size: 20,
-                    ),
-                  ),
+                  _buildHeaderAction(Icons.videocam),
                   const SizedBox(width: 12),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2A1727),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.call,
-                      color: Colors.white54,
-                      size: 20,
-                    ),
-                  ),
+                  _buildHeaderAction(Icons.call),
                 ],
               ),
             ),
 
             // Messages Area
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: conversation.messages.length,
-                itemBuilder: (context, index) {
-                  final message = conversation.messages[index];
-                  final isMe = message.isMe;
-                  // showAvatar logic removed as unused
+              child: state.isLoading && messages.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isMe = message['sender_id'] == _myId;
 
-                  // Date headers logic? Keeping simple for now as per "simulate".
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      mainAxisAlignment: isMe
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (!isMe) ...[
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: const Color(0xFF3A2738),
-                            // Logic to show avatar only on last message of block?
-                            // For simplicity, showing on all or just mimicking design which shows it regularly.
-                            child: Text(
-                              conversation.participantName[0],
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Row(
+                            mainAxisAlignment: isMe
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (!isMe) ...[
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: const Color(0xFF3A2738),
+                                  backgroundImage:
+                                      widget.participantAvatar != null
+                                      ? NetworkImage(widget.participantAvatar!)
+                                      : null,
+                                  child: widget.participantAvatar == null
+                                      ? Text(
+                                          (widget.participantName ?? '?')[0],
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isMe
+                                        ? DesignSystem.purpleAccent
+                                        : const Color(0xFF2A1727),
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(20),
+                                      topRight: const Radius.circular(20),
+                                      bottomLeft: isMe
+                                          ? const Radius.circular(20)
+                                          : Radius.zero,
+                                      bottomRight: isMe
+                                          ? Radius.zero
+                                          : const Radius.circular(20),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    message['content'] ?? '',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (isMe) const SizedBox(width: 8),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                        ],
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? DesignSystem.purpleAccent
-                                  : const Color(0xFF2A1727),
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(20),
-                                topRight: const Radius.circular(20),
-                                bottomLeft: isMe
-                                    ? const Radius.circular(20)
-                                    : Radius.zero,
-                                bottomRight: isMe
-                                    ? Radius.zero
-                                    : const Radius.circular(20),
-                              ),
-                            ),
-                            child: Text(
-                              message.content,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (isMe) const SizedBox(width: 8), // Gap for alignment
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
 
             // Input Area
@@ -291,15 +228,7 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
               color: DesignSystem.scaffoldBg,
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2A1727),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white),
-                  ),
+                  _buildCircleAction(Icons.add),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Container(
@@ -350,6 +279,30 @@ class _MessageDetailScreenState extends ConsumerState<MessageDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeaderAction(IconData icon) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: const BoxDecoration(
+        color: Color(0xFF2A1727),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white54, size: 20),
+    );
+  }
+
+  Widget _buildCircleAction(IconData icon) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: const BoxDecoration(
+        color: Color(0xFF2A1727),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white),
     );
   }
 }

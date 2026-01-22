@@ -117,7 +117,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   children: [
                     // -- Header Area (Image + TopBar + Avatar) --
                     SizedBox(
-                      height: 250,
+                      height: 320, // Taller header
                       child: Stack(
                         children: [
                           // Cover Image
@@ -125,7 +125,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                             top: 0,
                             left: 0,
                             right: 0,
-                            height: 180,
+                            height: 240, // Taller cover
                             child: GestureDetector(
                               onTap: () => _pickAndUploadImage('cover'),
                               child: Stack(
@@ -137,20 +137,18 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                         colors: [
-                                          Colors.black,
+                                          Colors
+                                              .black45, // Darker top for text visibility
                                           Colors.transparent,
+                                          Colors
+                                              .black, // Fade into background at bottom
                                         ],
-                                        stops: [0.6, 1.0],
-                                      ).createShader(
-                                        Rect.fromLTRB(
-                                          0,
-                                          0,
-                                          rect.width,
-                                          rect.height,
-                                        ),
-                                      );
+                                        stops: [0.0, 0.5, 1.0],
+                                      ).createShader(rect);
                                     },
-                                    blendMode: BlendMode.dstIn,
+                                    blendMode: BlendMode
+                                        .dstOut, // logic inverse? No, let's use srcOver with gradient overlay instead for better control.
+                                    // Actually, simple gradient overlay is better than shadermask for this.
                                     child: portfolio.coverImageUrl != null
                                         ? Image.network(
                                             portfolio.coverImageUrl!,
@@ -166,21 +164,45 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                                             fit: BoxFit.cover,
                                           ),
                                   ),
+                                  // Gradient Overlay for text protection & smooth transition
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.black54,
+                                          Colors.transparent,
+                                          Color(
+                                            0xFF0D0D12,
+                                          ), // Match Global Background mostly
+                                        ],
+                                        stops: [0.0, 0.6, 1.0],
+                                      ),
+                                    ),
+                                  ),
 
-                                  // Edit Overlay hint
+                                  // Edit Overlay hint (Floating)
                                   Positioned(
-                                    top: 10,
-                                    right: 10,
+                                    bottom:
+                                        20, // Moved to bottom right of cover area, above gradient
+                                    right: 16,
                                     child: Container(
-                                      padding: const EdgeInsets.all(6),
+                                      padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.black54,
+                                        color: Colors.black.withValues(
+                                          alpha: 0.6,
+                                        ),
                                         shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white24,
+                                          width: 1,
+                                        ),
                                       ),
                                       child: const Icon(
-                                        Icons.edit,
+                                        Icons.add_a_photo,
                                         color: Colors.white,
-                                        size: 16,
+                                        size: 18,
                                       ),
                                     ),
                                   ),
@@ -246,7 +268,10 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
 
                     const SizedBox(height: 24),
 
-                    _buildStatsRow(context),
+                    _buildStatsRow(
+                      context,
+                      portfolio,
+                    ), // Pass portfolio for stats
 
                     const SizedBox(height: 32),
 
@@ -336,30 +361,37 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                shape: BoxShape.circle,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                onPressed: () => Navigator.maybePop(context),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-            onPressed: () => Navigator.maybePop(context),
+              // Settings/More Icon placeholder on right if needed, else empty width
+              const SizedBox(width: 40),
+            ],
           ),
           Text(
             'PROFILE HUB',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              letterSpacing: 3,
-              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.9),
+              letterSpacing: 2,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -399,25 +431,12 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   : null,
             ),
           ),
-
-          // Online Status / Edit Icon
-          Container(
-            margin: const EdgeInsets.only(right: 6, bottom: 6),
-            width: 24, // Slightly larger for edit icon visibility
-            height: 24,
-            decoration: BoxDecoration(
-              color: DesignSystem.purpleAccent,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF1E1E2E), width: 2),
-            ),
-            child: const Icon(Icons.edit, color: Colors.white, size: 12),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsRow(BuildContext context) {
+  Widget _buildStatsRow(BuildContext context, PortfolioState portfolio) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 40),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
@@ -430,6 +449,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
+            // VIEWS
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
@@ -449,9 +469,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '1.2k',
-                        style: TextStyle(
+                      Text(
+                        '${portfolio.views}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -475,16 +495,28 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
               thickness: 1,
             ),
 
+            // LIKES
             GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PortfolioLikedScreen()),
-              ),
+              onTap: () {
+                // Toggle Like
+                ref.read(portfolioProvider.notifier).toggleLike();
+              },
+              onLongPress: () {
+                // View Liked Screen (if we want to keep it accessible)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PortfolioLikedScreen(),
+                  ),
+                );
+              },
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.favorite,
-                    color: Colors.pinkAccent,
+                  Icon(
+                    portfolio.isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: portfolio.isLiked
+                        ? Colors.pinkAccent
+                        : Colors.white70,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -492,9 +524,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '458',
-                        style: TextStyle(
+                      Text(
+                        '${portfolio.likes}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,

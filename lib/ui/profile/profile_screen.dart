@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers.dart';
+import '../../services/supabase/supabase_service.dart';
 import '../../theme/design_system.dart';
 import '../../state/profile_state.dart';
 import '../../state/portfolio_state.dart'; // Added Import
@@ -330,32 +330,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () {
-                                final conversations = ref.read(
-                                  conversationsProvider,
-                                );
-                                // Simple match by name for this mock data environment
-                                final existingConv = conversations.firstWhere(
-                                  (c) => c.participantName == profile.name,
-                                  orElse: () => Conversation(
-                                    id: 'new_${profile.id}',
-                                    participantName: profile.name,
-                                    participantAvatar:
-                                        profile.profileImage ?? '',
-                                    messages: [],
-                                  ),
-                                );
+                              onTap: () async {
+                                final authUserId = profile.authUserId;
+                                if (authUserId == null) {
+                                  _showCustomToast('User not found');
+                                  return;
+                                }
 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => MessageDetailScreen(
-                                      conversationId: existingConv.id,
-                                      participantName: profile.name,
-                                      participantAvatar: profile.profileImage,
-                                    ),
-                                  ),
-                                );
+                                try {
+                                  final service = ref.read(
+                                    supabaseServiceProvider,
+                                  );
+                                  final convoId = await service
+                                      .startConversation(authUserId);
+
+                                  if (mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MessageDetailScreen(
+                                          conversationId: convoId,
+                                          participantName: profile.name,
+                                          participantAvatar:
+                                              profile.profileImage,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    _showCustomToast('Could not start chat');
+                                  }
+                                }
                               },
                               child: Container(
                                 height: 42, // Reduced height

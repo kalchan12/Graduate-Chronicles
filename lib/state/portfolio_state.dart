@@ -18,6 +18,11 @@ class PortfolioState {
   final String? coverImageUrl;
   final bool isLoading;
 
+  final String? id; // Portfolio ID
+  final int likes;
+  final int views;
+  final bool isLiked;
+
   const PortfolioState({
     this.achievements = const [],
     this.resumes = const [],
@@ -26,6 +31,10 @@ class PortfolioState {
     this.profileImageUrl,
     this.coverImageUrl,
     this.isLoading = false,
+    this.id,
+    this.likes = 0,
+    this.views = 0,
+    this.isLiked = false,
   });
 
   PortfolioState copyWith({
@@ -36,6 +45,10 @@ class PortfolioState {
     String? profileImageUrl,
     String? coverImageUrl,
     bool? isLoading,
+    String? id,
+    int? likes,
+    int? views,
+    bool? isLiked,
   }) {
     return PortfolioState(
       achievements: achievements ?? this.achievements,
@@ -45,6 +58,10 @@ class PortfolioState {
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       isLoading: isLoading ?? this.isLoading,
+      id: id ?? this.id,
+      likes: likes ?? this.likes,
+      views: views ?? this.views,
+      isLiked: isLiked ?? this.isLiked,
     );
   }
 }
@@ -82,8 +99,18 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       final portfolioId = data['portfolio_id'];
 
       Map<String, String?> images = {'profile': null, 'cover': null};
+      Map<String, dynamic> stats = {'likes': 0, 'views': 0, 'isLiked': false};
+
       if (portfolioId != null) {
         images = await service.fetchPortfolioPictures(portfolioId);
+        stats = await service.getPortfolioStats(portfolioId);
+
+        // Increment View (Once per session/load ideally, we do it here for simplicity)
+        // But only if it's NOT ME.
+        final currentUser = service.currentUser;
+        if (currentUser?.id != authId) {
+          await service.incrementPortfolioView(portfolioId);
+        }
       }
 
       state = state.copyWith(
@@ -93,6 +120,10 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         links: data['link'] ?? [],
         profileImageUrl: images['profile'],
         coverImageUrl: images['cover'],
+        id: portfolioId,
+        likes: stats['likes'],
+        views: stats['views'],
+        isLiked: stats['isLiked'],
         isLoading: false,
       );
     } catch (e) {
@@ -116,8 +147,11 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       final portfolioId = data['portfolio_id'];
 
       Map<String, String?> images = {'profile': null, 'cover': null};
+      Map<String, dynamic> stats = {'likes': 0, 'views': 0, 'isLiked': false};
+
       if (portfolioId != null) {
         images = await service.fetchPortfolioPictures(portfolioId);
+        stats = await service.getPortfolioStats(portfolioId);
       }
 
       state = state.copyWith(
@@ -127,11 +161,38 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         links: data['link'] ?? [],
         profileImageUrl: images['profile'],
         coverImageUrl: images['cover'],
+        id: portfolioId,
+        likes: stats['likes'],
+        views: stats['views'],
+        isLiked: stats['isLiked'],
         isLoading: false,
       );
     } catch (e) {
       print('Current Portfolio Load Error: $e');
       state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> toggleLike() async {
+    final portfolioId = state.id;
+    if (portfolioId == null) return;
+
+    // Optimistic Update
+    final wasLiked = state.isLiked;
+    final oldLikes = state.likes;
+
+    state = state.copyWith(
+      isLiked: !wasLiked,
+      likes: wasLiked ? (oldLikes > 0 ? oldLikes - 1 : 0) : oldLikes + 1,
+    );
+
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.togglePortfolioLike(portfolioId);
+    } catch (e) {
+      // Revert on error
+      state = state.copyWith(isLiked: wasLiked, likes: oldLikes);
+      print("Like Error: $e");
     }
   }
 
@@ -141,7 +202,6 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       await service.addPortfolioItem(type: type, data: data);
 
       // Force refresh current user portfolio
-      // We assume we are viewing our own portfolio if we are adding stuff
       final currentPublicId = await service.getCurrentUserId();
       if (currentPublicId != null) {
         await loadPortfolio(currentPublicId);

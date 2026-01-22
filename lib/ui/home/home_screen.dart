@@ -9,7 +9,9 @@ import '../../state/profile_state.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
 import 'story_viewer_screen.dart';
+
 import '../profile/profile_screen.dart';
+import '../discovery/user_discovery_screen.dart';
 
 // Home feed screen implemented to match the provided static HTML layout.
 /*
@@ -212,8 +214,22 @@ class _HomeAppBar extends StatelessWidget {
               ),
             ],
           ),
+
           Row(
             children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UserDiscoveryScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.search, color: Colors.white),
+                splashRadius: 24,
+                tooltip: 'Discover Classmates',
+              ),
               const SizedBox(width: 4),
               IconButton(
                 // Message

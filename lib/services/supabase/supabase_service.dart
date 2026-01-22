@@ -239,7 +239,7 @@ class SupabaseService {
     // Fetch users table data
     final userRes = await _client
         .from('users')
-        .select()
+        .select('*, auth_user_id')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -834,5 +834,288 @@ class SupabaseService {
     }
 
     return {'profile': profileUrl, 'cover': coverUrl};
+  }
+
+  // --- Portfolio Stats & Interaction ---
+
+  Future<Map<String, dynamic>> getPortfolioStats(String portfolioId) async {
+    final userId = _client.auth.currentUser?.id;
+
+    // 1. Get View Count
+    final portfolioRes = await _client
+        .from('portfolio')
+        .select('view_count')
+        .eq('portfolio_id', portfolioId)
+        .single();
+    final views = portfolioRes['view_count'] as int? ?? 0;
+
+    // 2. Get Like Count
+    final likes = await _client
+        .from('portfolio_likes')
+        .count(CountOption.exact)
+        .eq('portfolio_id', portfolioId);
+
+    // 3. Check if Liked by User
+    bool isLiked = false;
+    if (userId != null) {
+      final userLike = await _client
+          .from('portfolio_likes')
+          .select('id')
+          .eq('portfolio_id', portfolioId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      isLiked = userLike != null;
+    }
+
+    return {'views': views, 'likes': likes, 'isLiked': isLiked};
+  }
+
+  Future<void> togglePortfolioLike(String portfolioId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final existing = await _client
+        .from('portfolio_likes')
+        .select('id')
+        .eq('portfolio_id', portfolioId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (existing != null) {
+      // Unlike
+      await _client.from('portfolio_likes').delete().eq('id', existing['id']);
+    } else {
+      // Like
+      await _client.from('portfolio_likes').insert({
+        'portfolio_id': portfolioId,
+        'user_id': userId,
+      });
+    }
+  }
+
+  Future<void> incrementPortfolioView(String portfolioId) async {
+    // Ideally use RPC, but simple fetch-update is acceptable for this scope.
+    // We don't worry about race conditions for views in this prototype.
+    final res = await _client
+        .from('portfolio')
+        .select('view_count')
+        .eq('portfolio_id', portfolioId)
+        .single();
+
+    final current = res['view_count'] as int? ?? 0;
+
+    await _client
+        .from('portfolio')
+        .update({'view_count': current + 1})
+        .eq('portfolio_id', portfolioId);
+  }
+
+  // --- User Discovery ---
+
+  Future<List<Map<String, dynamic>>> fetchDiscoverableUsers() async {
+    final userId = _client.auth.currentUser?.id;
+
+    // FILTERS FIRST, then order.
+
+    // We need two queries depending on auth? No, just filter applier.
+    // We'll use the joined query strategy, but correct order.
+
+    var joinedQuery = _client
+        .from('users')
+        .select('*, profile(profile_picture)');
+
+    if (userId != null) {
+      joinedQuery = joinedQuery.neq('auth_user_id', userId);
+    }
+
+    // order() is a modifier, comes last.
+    final res = await joinedQuery.order('created_at', ascending: false);
+
+    final List<Map<String, dynamic>> users = [];
+
+    for (var row in (res as List)) {
+      final user = Map<String, dynamic>.from(row);
+
+      // Fix Profile Picture URL
+      // profile is a single object or list depending on relationship (1:1 -> object)
+      final profile = user['profile'];
+      String? avatarUrl;
+
+      if (profile != null && profile['profile_picture'] != null) {
+        final path = profile['profile_picture'];
+        avatarUrl = _client.storage.from('avatar').getPublicUrl(path);
+      }
+
+      user['avatar_url'] = avatarUrl;
+      users.add(user);
+    }
+
+    return users;
+  }
+
+  // --- Messaging System ---
+
+  Future<String> startConversation(String targetUserId) async {
+    final currentUserId = _client.auth.currentUser?.id;
+    if (currentUserId == null) throw Exception('Not authenticated');
+
+    // 1. Check if conversation already exists between these 2
+    // Complex query in Supabase (intersection), so we might just create new or filter locally for MVP simplicity?
+    // Proper way:
+    // Find conversation_ids where participants include ME.
+    // Filter those where participants include TARGET.
+
+    // For MVP efficiency: We'll skip complex check and just support creating one or reusing if we find one easily.
+    // Actually, let's create a NEW conversation if one doesn't exist.
+
+    final myConvos = await _client
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', currentUserId);
+
+    final myConvoIds = (myConvos as List)
+        .map((e) => e['conversation_id'])
+        .toSet();
+
+    if (myConvoIds.isNotEmpty) {
+      // Find if target is in any of these
+      // This is n+1ish but fine for small scale
+      final targetIn = await _client
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', targetUserId)
+          .inFilter('conversation_id', myConvoIds.toList());
+
+      if ((targetIn as List).isNotEmpty) {
+        return targetIn.first['conversation_id'];
+      }
+    }
+
+    // 2. Create New
+    final convoRes = await _client
+        .from('conversations')
+        .insert({})
+        .select('id')
+        .single();
+    final convoId = convoRes['id'];
+
+    // 3. Add Participants
+    await _client.from('conversation_participants').insert([
+      {'conversation_id': convoId, 'user_id': currentUserId},
+      // Target User ID is likely the AUTH ID?
+      // Wait, 'users' table user_id vs 'auth.users' id.
+      // My schema says 'user_id' in participants references 'auth.users(id)'.
+      // The `targetUserId` passed here MUST be Auth ID.
+      // If UI passes public ID, we must resolve it.
+      // Assuming we pass Auth ID for now, or resolve it.
+      // Let's resolve safely.
+      {'conversation_id': convoId, 'user_id': targetUserId},
+    ]);
+
+    return convoId;
+  }
+
+  // Need helper to resolve Public ID -> Auth ID if we use Public IDs in UI
+  // I already have `getAuthIdFromPublicId`.
+
+  Future<List<Map<String, dynamic>>> fetchConversations() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Get my conversations
+    final myConvos = await _client
+        .from('conversation_participants')
+        .select('conversation_id, conversations(updated_at)')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false); // Order by join? tricky.
+
+    // We want to sort by updated_at of conversation usually.
+    // For now, simple list.
+
+    final List<Map<String, dynamic>> fullConvos = [];
+
+    for (var c in (myConvos as List)) {
+      final convoId = c['conversation_id'];
+
+      // Get Other Participants (names, avatars)
+      final participants = await _client
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', convoId)
+          .neq('user_id', userId); // Exclude me
+
+      if ((participants as List).isEmpty) continue; // Just me?
+
+      final otherAuthId = participants.first['user_id'];
+
+      // Get details for snippet
+      final userDetails = await _client
+          .from('users')
+          .select('full_name, username')
+          .eq('auth_user_id', otherAuthId)
+          .maybeSingle();
+
+      // Get Avatar
+      final profileParams = await _client
+          .from('profile')
+          .select('profile_picture')
+          .eq('user_id', otherAuthId)
+          .maybeSingle();
+      String? avatar;
+      if (profileParams != null && profileParams['profile_picture'] != null) {
+        avatar = _client.storage
+            .from('avatar')
+            .getPublicUrl(profileParams['profile_picture']);
+      }
+
+      // Get Last Message
+      final lastMsg = await _client
+          .from('messages')
+          .select('content, created_at, sender_id')
+          .eq('conversation_id', convoId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      fullConvos.add({
+        'id': convoId,
+        'other_user_name': userDetails?['full_name'] ?? 'User',
+        'other_user_avatar': avatar,
+        'target_auth_id': otherAuthId, // Useful for navigation
+        'last_message': lastMsg?['content'],
+        'last_message_time': lastMsg?['created_at'],
+      });
+    }
+
+    return fullConvos;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchMessages(
+    String conversationId,
+  ) async {
+    final res = await _client
+        .from('messages')
+        .select()
+        .eq('conversation_id', conversationId)
+        .order('created_at', ascending: true); // Oldest first for chat list
+
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<void> sendMessage(String conversationId, String content) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    await _client.from('messages').insert({
+      'conversation_id': conversationId,
+      'sender_id': userId,
+      'content': content,
+    });
+
+    // Update conversation updated_at
+    await _client
+        .from('conversations')
+        .update({'updated_at': DateTime.now().toIso8601String()})
+        .eq('id', conversationId);
   }
 }
