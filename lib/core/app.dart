@@ -13,6 +13,7 @@ import '../ui/auth/admin/screens/admin_signup_screen.dart';
 import '../ui/auth/admin/screens/admin_dashboard_screen.dart';
 import '../ui/auth/admin/screens/user_monitoring_screen.dart';
 import '../ui/auth/admin/screens/content_monitoring_screen.dart'; // Will add later
+import '../ui/auth/admin/screens/yearbook_entries_approval_screen.dart';
 import '../ui/portfolio/portfolio_management_screen.dart';
 
 /*
@@ -56,6 +57,7 @@ class App extends StatelessWidget {
         '/admin/dashboard': (_) => const AdminDashboardScreen(),
         '/admin/users': (_) => const UserMonitoringScreen(),
         '/admin/monitoring': (_) => const ContentMonitoringScreen(),
+        '/admin/yearbook_entries': (_) => const YearbookEntriesApprovalScreen(),
         '/notifications': (_) => const NotificationScreen(),
         '/messages': (_) => const MessageListScreen(),
         '/portfolio_management': (_) => const PortfolioManagementScreen(),

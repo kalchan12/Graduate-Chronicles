@@ -330,6 +330,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                             ),
                             const SizedBox(height: 10),
                             _NavTile(
+                              title: 'Yearbook Entries',
+                              subtitle: 'Approve or reject student entries',
+                              icon: Icons.auto_stories_outlined,
+                              color: Colors.purpleAccent,
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pushNamed('/admin/yearbook_entries'),
+                            ),
+                            const SizedBox(height: 10),
+                            _NavTile(
                               title: 'System Logs',
                               subtitle: 'View access & security logs',
                               icon: Icons.data_usage,

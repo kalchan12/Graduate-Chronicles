@@ -95,7 +95,11 @@ class YearbookNotifier extends Notifier<YearbookState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final service = ref.read(supabaseServiceProvider);
-      await service.createYearbookBatch(year: year, subtitle: subtitle);
+      await service.createYearbookBatch(
+        batchYear: year,
+        batchLabel: 'Class of $year',
+        slogan: subtitle,
+      );
 
       // Refresh list
       await loadBatches();

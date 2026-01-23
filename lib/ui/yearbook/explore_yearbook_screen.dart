@@ -32,6 +32,15 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Explicitly load batches when screen first loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(yearbookProvider.notifier).loadBatches();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final yearbookState = ref.watch(yearbookProvider);
     final profile = ref.watch(profileProvider);

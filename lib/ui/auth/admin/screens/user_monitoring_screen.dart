@@ -1,70 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../services/supabase/supabase_service.dart';
 
 /*
   Admin: User Directory Screen.
   
   Allows admins to:
   - View list of all registered users
-  - Filter by Role (Student, Alumni, Faculty)
-  - Search (UI visual only, mock data)
-  - See status indicators (Active, Inactive, Blocked)
+  - Filter by Role (Student, Alumni, Staff)
+  - Search by name, username, email
 */
-class UserMonitoringScreen extends StatefulWidget {
+class UserMonitoringScreen extends ConsumerStatefulWidget {
   const UserMonitoringScreen({super.key});
 
   @override
-  State<UserMonitoringScreen> createState() => _UserMonitoringScreenState();
+  ConsumerState<UserMonitoringScreen> createState() =>
+      _UserMonitoringScreenState();
 }
 
-class _UserMonitoringScreenState extends State<UserMonitoringScreen> {
-  // Mock data
-  final List<Map<String, dynamic>> _users = [
-    {
-      'name': 'Sarah Jenkins',
-      'role': 'Student',
-      'email': 's.jenkins@uni.edu',
-      'avatar': 'assets/images/avatar1.png',
-      'status': 'active',
-      'color': Colors.purpleAccent,
-    },
-    {
-      'name': 'Dr. Aris Thorne',
-      'role': 'Alumni',
-      'email': 'a.thorne@uni.edu',
-      'status': 'active',
-      'color': Colors.blueAccent,
-    },
-    {
-      'name': 'Marcus Chen',
-      'role': 'Student',
-      'email': 'm.chen23@uni.edu',
-      'status': 'inactive',
-      'color': Colors.orangeAccent,
-    },
-    {
-      'name': 'Elena Rodriguez',
-      'role': 'Faculty',
-      'email': 'e.rodriguez@uni.edu',
-      'status': 'blocked',
-      'color': Colors.redAccent,
-    },
-    {
-      'name': 'Priya Patel',
-      'role': 'Student',
-      'email': 'p.patel@uni.edu',
-      'status': 'active',
-      'color': Colors.tealAccent,
-    },
-    {
-      'name': 'James Wilson',
-      'role': 'Alumni',
-      'email': 'j.wilson@tech.co',
-      'status': 'inactive',
-      'color': Colors.amber,
-    },
-  ];
-
+class _UserMonitoringScreenState extends ConsumerState<UserMonitoringScreen> {
+  List<Map<String, dynamic>> _users = [];
+  bool _isLoading = true;
   String _selectedFilter = 'All';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUsers() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      List<Map<String, dynamic>> users;
+
+      // If search is active, use search method
+      if (_searchQuery.isNotEmpty) {
+        users = await service.searchUsers(
+          _searchQuery,
+          _selectedFilter == 'All' ? null : _getRoleValue(_selectedFilter),
+        );
+      } else {
+        // Otherwise use filter
+        if (_selectedFilter == 'All') {
+          users = await service.fetchAllUsers();
+        } else {
+          users = await service.fetchUsersByRole(
+            _getRoleValue(_selectedFilter),
+          );
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _users = users;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading users: $e')));
+      }
+    }
+  }
+
+  String _getRoleValue(String filterLabel) {
+    switch (filterLabel) {
+      case 'Students':
+        return 'Student';
+      case 'Alumni':
+        return 'Alumni';
+      case 'Faculty':
+        return 'Staff';
+      default:
+        return filterLabel;
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() => _searchQuery = query);
+    _loadUsers();
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() => _selectedFilter = filter);
+    _loadUsers();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,22 +109,7 @@ class _UserMonitoringScreenState extends State<UserMonitoringScreen> {
       colors: [Color(0xFF130F25), Color(0xFF1E1030)],
     );
 
-    final filteredUsers = _selectedFilter == 'All'
-        ? _users
-        : _users
-              .where(
-                (u) => (u['role'] as String).contains(
-                  _selectedFilter.replaceAll('s', ''),
-                ),
-              )
-              .toList();
-
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: const Color(0xFF9B2CFF),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
       body: Container(
         decoration: const BoxDecoration(gradient: bgGradient),
         child: SafeArea(
@@ -133,20 +153,30 @@ class _UserMonitoringScreenState extends State<UserMonitoringScreen> {
                     color: const Color(0x14FFFFFF),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.search, color: Colors.white38),
-                      SizedBox(width: 12),
+                      const Icon(Icons.search, color: Colors.white38),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
-                          style: TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
+                          controller: _searchController,
+                          onChanged: _onSearchChanged,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
                             hintText: 'Search users by name, email...',
                             hintStyle: TextStyle(color: Colors.white38),
                             border: InputBorder.none,
                           ),
                         ),
                       ),
+                      if (_searchQuery.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white38),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -163,22 +193,22 @@ class _UserMonitoringScreenState extends State<UserMonitoringScreen> {
                     _FilterChip(
                       'All',
                       _selectedFilter == 'All',
-                      () => setState(() => _selectedFilter = 'All'),
+                      () => _onFilterChanged('All'),
                     ),
                     _FilterChip(
                       'Students',
                       _selectedFilter == 'Students',
-                      () => setState(() => _selectedFilter = 'Students'),
+                      () => _onFilterChanged('Students'),
                     ),
                     _FilterChip(
                       'Alumni',
                       _selectedFilter == 'Alumni',
-                      () => setState(() => _selectedFilter = 'Alumni'),
+                      () => _onFilterChanged('Alumni'),
                     ),
                     _FilterChip(
                       'Faculty',
                       _selectedFilter == 'Faculty',
-                      () => setState(() => _selectedFilter = 'Faculty'),
+                      () => _onFilterChanged('Faculty'),
                     ),
                   ],
                 ),
@@ -186,17 +216,60 @@ class _UserMonitoringScreenState extends State<UserMonitoringScreen> {
 
               const SizedBox(height: 20),
 
+              // Stats
+              if (!_isLoading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${_users.length} user${_users.length != 1 ? 's' : ''}',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+
               // List
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: filteredUsers.length,
-                  separatorBuilder: (c, i) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final user = filteredUsers[index];
-                    return _UserCard(user: user);
-                  },
-                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _users.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.people_outline,
+                              size: 64,
+                              color: Colors.white24,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'No users found for "$_searchQuery"'
+                                  : 'No users found',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: _users.length,
+                        separatorBuilder: (c, i) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final user = _users[index];
+                          return _UserCard(user: user);
+                        },
+                      ),
               ),
             ],
           ),
@@ -248,12 +321,22 @@ class _UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final role = user['role'] as String;
-    final status = user['status'] as String;
+    final role = user['role'] as String? ?? 'Unknown';
+    final fullName = user['full_name'] as String? ?? 'Unknown';
+    final username = user['username'] as String? ?? '';
+    final email = user['email'] as String? ?? '';
 
-    Color statusColor = Colors.greenAccent;
-    if (status == 'inactive') statusColor = Colors.grey;
-    if (status == 'blocked') statusColor = Colors.redAccent;
+    // Generate color from username for consistency
+    final colorIndex = username.isEmpty ? 0 : username.codeUnitAt(0) % 6;
+    final colors = [
+      Colors.purpleAccent,
+      Colors.blueAccent,
+      Colors.orangeAccent,
+      Colors.tealAccent,
+      Colors.pinkAccent,
+      Colors.greenAccent,
+    ];
+    final color = colors[colorIndex];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -266,13 +349,10 @@ class _UserCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: (user['color'] as Color).withValues(alpha: 0.2),
+            backgroundColor: color.withValues(alpha: 0.2),
             child: Text(
-              (user['name'] as String)[0],
-              style: TextStyle(
-                color: user['color'],
-                fontWeight: FontWeight.bold,
-              ),
+              fullName[0].toUpperCase(),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 16),
@@ -282,12 +362,15 @@ class _UserCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      user['name'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        fullName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -312,19 +395,11 @@ class _UserCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user['email'],
+                  '@$username • $email',
                   style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF1E1030), width: 2),
             ),
           ),
           const SizedBox(width: 12),

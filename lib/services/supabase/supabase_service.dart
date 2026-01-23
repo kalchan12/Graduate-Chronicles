@@ -566,17 +566,18 @@ class SupabaseService {
     return res;
   }
 
+  /// Create a new yearbook batch (Admin only - enforced at UI layer)
   Future<void> createYearbookBatch({
-    required int year,
-    String? subtitle,
+    String? batchLabel,
+    int? batchYear,
+    String? slogan,
+    String? createdByAdminId,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Not authenticated');
-
     await _client.from('yearbook_batches').insert({
-      'batch_year': year,
-      'batch_subtitle': subtitle,
-      'created_by': userId,
+      if (batchLabel != null) 'batch_label': batchLabel,
+      if (batchYear != null) 'batch_year': batchYear,
+      if (slogan != null) 'slogan': slogan,
+      if (createdByAdminId != null) 'created_by_admin_id': createdByAdminId,
     });
   }
 
@@ -630,8 +631,8 @@ class SupabaseService {
   }
 
   Future<Map<String, dynamic>?> fetchMyYearbookEntry(String batchId) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) return null;
+    // Get public user ID (not auth.uid())
+    final publicUserId = await _getPublicUserId();
 
     final res = await _client
         .from('yearbook_entries')
@@ -645,11 +646,25 @@ class SupabaseService {
           created_at,
           updated_at
         ''')
-        .eq('user_id', userId)
+        .eq('user_id', publicUserId)
         .eq('batch_id', batchId)
         .maybeSingle();
 
     return res;
+  }
+
+  // Helper to get public.users.user_id from auth.uid()
+  Future<String> _getPublicUserId() async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    final res = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+
+    return res['user_id'] as String;
   }
 
   Future<void> createYearbookEntry({
@@ -657,11 +672,11 @@ class SupabaseService {
     required String yearbookPhotoUrl,
     String? yearbookBio,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Not authenticated');
+    // Get public.users.id (not auth.users.id)
+    final publicUserId = await _getPublicUserId();
 
     await _client.from('yearbook_entries').insert({
-      'user_id': userId,
+      'user_id': publicUserId,
       'batch_id': batchId,
       'yearbook_photo_url': yearbookPhotoUrl,
       'yearbook_bio': yearbookBio,
@@ -740,10 +755,14 @@ class SupabaseService {
           status,
           created_at,
           updated_at,
-          users!yearbook_entries_user_id_fkey (
+          users (
             full_name,
             username,
             major
+          ),
+          yearbook_batches (
+             batch_year,
+             batch_label
           )
         ''')
         .eq('status', 'pending')
@@ -753,12 +772,17 @@ class SupabaseService {
     final entries = List<Map<String, dynamic>>.from(res);
     return entries.map((entry) {
       final userData = entry['users'] as Map<String, dynamic>?;
+      final batchData = entry['yearbook_batches'] as Map<String, dynamic>?;
       return {
         ...entry,
         'full_name': userData?['full_name'],
         'username': userData?['username'],
         'major': userData?['major'],
-      }..remove('users');
+        'batch_label': batchData?['batch_label'],
+        'batch_year': batchData?['batch_year'],
+      }..removeWhere(
+        (key, value) => key == 'users' || key == 'yearbook_batches',
+      );
     }).toList();
   }
 
@@ -1215,5 +1239,50 @@ class SupabaseService {
       'alumni': results[3],
       'staff': results[4],
     };
+  }
+
+  // ========== USER DIRECTORY (ADMIN) ==========
+
+  /// Fetch all users for admin directory
+  Future<List<Map<String, dynamic>>> fetchAllUsers() async {
+    final response = await _client
+        .from('users')
+        .select('user_id, full_name, username, email, role, created_at')
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  /// Fetch users filtered by role
+  Future<List<Map<String, dynamic>>> fetchUsersByRole(String role) async {
+    final response = await _client
+        .from('users')
+        .select('user_id, full_name, username, email, role, created_at')
+        .eq('role', role)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  /// Search users by name, username, or email with optional role filter
+  Future<List<Map<String, dynamic>>> searchUsers(
+    String query,
+    String? roleFilter,
+  ) async {
+    var queryBuilder = _client
+        .from('users')
+        .select('user_id, full_name, username, email, role, created_at');
+
+    // Apply role filter if provided
+    if (roleFilter != null && roleFilter != 'All') {
+      queryBuilder = queryBuilder.eq('role', roleFilter);
+    }
+
+    // Search across multiple fields (case-insensitive)
+    // Using OR condition for name, username, email
+    queryBuilder = queryBuilder.or(
+      'full_name.ilike.%$query%,username.ilike.%$query%,email.ilike.%$query%',
+    );
+
+    final response = await queryBuilder.order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response as List);
   }
 }
