@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../services/supabase/supabase_service.dart';
+import '../state/admin_auth_state.dart';
 
 /*
   The central hub for Administrators.
@@ -12,8 +15,57 @@ import 'package:flutter/material.dart';
   - Content Monitoring
   - System Logs
 */
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  ConsumerState<AdminDashboardScreen> createState() =>
+      _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  bool _isLoading = true;
+  Map<String, int> _stats = {
+    'total': 0,
+    'student': 0,
+    'graduate': 0,
+    'alumni': 0,
+    'staff': 0,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final stats = await ref
+          .read(supabaseServiceProvider)
+          .getAdminDashboardStats();
+      if (mounted) {
+        setState(() {
+          _stats = stats;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading stats: $e')));
+      }
+    }
+  }
+
+  void _handleLogout() {
+    ref.read(adminAuthProvider.notifier).logout();
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil('/admin/login', (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +100,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     const Expanded(
+                      // Fixed Expanded usage
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -72,7 +125,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Exit Button
+                    // Logout Button
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.redAccent.withOpacity(0.1),
@@ -82,13 +135,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         ),
                       ),
                       child: InkWell(
-                        onTap: () {
-                          // Logout and go to login
-                          // For now just navigate
-                          Navigator.of(
-                            context,
-                          ).pushNamedAndRemoveUntil('/login', (route) => false);
-                        },
+                        onTap: _handleLogout,
                         borderRadius: BorderRadius.circular(20),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
@@ -98,7 +145,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               Text(
-                                'Exit',
+                                'Log out',
                                 style: TextStyle(
                                   color: Colors.redAccent,
                                   fontSize: 12,
@@ -123,172 +170,175 @@ class AdminDashboardScreen extends StatelessWidget {
               const Divider(color: Colors.white10),
 
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionHeader('Overview'),
-                      const SizedBox(height: 12),
-
-                      // Total Users Card (Big)
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0x14FFFFFF),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white10),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            const _SectionHeader('Overview'),
+                            const SizedBox(height: 12),
+
+                            // Total Users Card (Big)
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0x14FFFFFF),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Row(
                                 children: [
-                                  const Text(
-                                    'TOTAL USERS',
-                                    style: TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        '15,284',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.greenAccent.withOpacity(
-                                            0.1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          '+12%',
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'TOTAL USERS',
                                           style: TextStyle(
-                                            color: Colors.greenAccent,
+                                            color: Colors.white54,
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '${_stats['total']}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            // Optional: Keep growth tag if we have historical data, otherwise hide or mock
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.greenAccent
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: const Text(
+                                                'LIVE',
+                                                style: TextStyle(
+                                                  color: Colors.greenAccent,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF3B1E54),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(
+                                      Icons.people_outline,
+                                      color: Color(0xFF9B2CFF),
+                                      size: 28,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3B1E54),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Icon(
-                                Icons.people_outline,
-                                color: Color(0xFF9B2CFF),
-                                size: 28,
-                              ),
+
+                            const SizedBox(height: 12),
+
+                            // Mini Cards
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _MiniCard(
+                                    title: 'STUDENTS',
+                                    value: '${_stats['student']}',
+                                    icon: Icons.school_outlined,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _MiniCard(
+                                    title: 'ALUMNI',
+                                    value: '${_stats['alumni']}',
+                                    icon: Icons.history_edu,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _MiniCard(
+                                    title: 'GRADUATES',
+                                    value: '${_stats['graduate']}',
+                                    icon: Icons.workspace_premium_outlined,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _MiniCard(
+                                    title: 'STAFF',
+                                    value:
+                                        '${_stats['staff']}', // Assuming staff is tracked or we reuse alerts
+                                    icon: Icons.badge_outlined,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 30),
+                            const _SectionHeader('Control Panel'),
+                            const SizedBox(height: 12),
+
+                            _NavTile(
+                              title: 'User Directory',
+                              subtitle: 'Manage students, alumni & faculty',
+                              icon: Icons.supervised_user_circle_outlined,
+                              color: Colors.blueAccent,
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pushNamed('/admin/users'),
+                            ),
+                            const SizedBox(height: 10),
+                            _NavTile(
+                              title: 'Content Monitoring',
+                              subtitle: 'Review reported posts & activity',
+                              icon: Icons.shield_outlined,
+                              color: Colors.orangeAccent,
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pushNamed('/admin/monitoring'),
+                            ),
+                            const SizedBox(height: 10),
+                            _NavTile(
+                              title: 'System Logs',
+                              subtitle: 'View access & security logs',
+                              icon: Icons.data_usage,
+                              color: Colors.tealAccent,
+                              onTap: () {},
                             ),
                           ],
                         ),
                       ),
-
-                      const SizedBox(height: 12),
-
-                      // Mini Cards
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MiniCard(
-                              title: 'STUDENTS',
-                              value: '12.5k',
-                              icon: Icons.school_outlined,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MiniCard(
-                              title: 'ALUMNI',
-                              value: '2.7k',
-                              icon: Icons.history_edu,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MiniCard(
-                              title: 'ACTIVE EVENTS',
-                              value: '24',
-                              isEvents: true,
-                              icon: Icons.event,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MiniCard(
-                              title: 'PENDING REPORTS',
-                              value: '8',
-                              isAlert: true,
-                              icon: Icons.flag_outlined,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 30),
-                      _SectionHeader('Control Panel'),
-                      const SizedBox(height: 12),
-
-                      _NavTile(
-                        title: 'User Directory',
-                        subtitle: 'Manage students, alumni & faculty',
-                        icon: Icons.supervised_user_circle_outlined,
-                        color: Colors.blueAccent,
-                        onTap: () =>
-                            Navigator.of(context).pushNamed('/admin/users'),
-                      ),
-                      const SizedBox(height: 10),
-                      _NavTile(
-                        title: 'Content Monitoring',
-                        subtitle: 'Review reported posts & activity',
-                        icon: Icons.shield_outlined,
-                        color: Colors.orangeAccent,
-                        onTap: () => Navigator.of(
-                          context,
-                        ).pushNamed('/admin/monitoring'),
-                      ),
-                      const SizedBox(height: 10),
-                      _NavTile(
-                        title: 'System Logs',
-                        subtitle: 'View access & security logs',
-                        icon: Icons.data_usage,
-                        color: Colors.tealAccent,
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
@@ -325,26 +375,17 @@ class _MiniCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
-  final bool isAlert;
-  final bool isEvents;
 
   const _MiniCard({
     required this.title,
     required this.value,
     required this.icon,
-    this.isAlert = false,
-    this.isEvents = false,
   });
 
   @override
   Widget build(BuildContext context) {
     Color borderColor = Colors.white10;
     Color iconColor = Colors.white38;
-
-    if (isAlert) {
-      borderColor = Colors.redAccent.withOpacity(0.3);
-      iconColor = Colors.redAccent;
-    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -367,15 +408,6 @@ class _MiniCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (isEvents)
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.greenAccent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -385,7 +417,7 @@ class _MiniCard extends StatelessWidget {
               Text(
                 value,
                 style: TextStyle(
-                  color: isAlert ? Colors.redAccent : Colors.white,
+                  color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                 ),

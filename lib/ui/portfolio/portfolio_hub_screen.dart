@@ -182,27 +182,30 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                                     ),
                                   ),
 
-                                  // Edit Overlay hint (Floating)
+                                  // Edit Overlay hint (Floating) - Moved to Top Right
                                   Positioned(
-                                    bottom:
-                                        20, // Moved to bottom right of cover area, above gradient
-                                    right: 16,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.6,
+                                    top: 0,
+                                    right: 0,
+                                    child: SafeArea(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 8,
                                         ),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white24,
-                                          width: 1,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.add_a_photo,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
                                         ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.add_a_photo,
-                                        color: Colors.white,
-                                        size: 18,
                                       ),
                                     ),
                                   ),

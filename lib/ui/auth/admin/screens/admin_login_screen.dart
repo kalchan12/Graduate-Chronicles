@@ -267,42 +267,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
                       const SizedBox(height: 30),
 
-                      const Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.white12)),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'OR LOGIN WITH',
-                              style: TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: Colors.white12)),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Mock Social Login
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white24),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.face,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ),
-                      ),
-
                       const SizedBox(height: 40),
                       TextButton.icon(
                         onPressed: () => Navigator.of(context).pop(),

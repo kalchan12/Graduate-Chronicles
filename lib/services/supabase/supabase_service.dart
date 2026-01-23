@@ -177,6 +177,24 @@ class SupabaseService {
   }
 
   /*
+    Smart Sign In (Email OR Institutional ID).
+  */
+  Future<AuthResponse> signInWithEmailOrId(
+    String identifier,
+    String password,
+  ) async {
+    final isEmail = identifier.contains('@');
+    if (isEmail) {
+      return await _client.auth.signInWithPassword(
+        email: identifier,
+        password: password,
+      );
+    } else {
+      return await signInWithInstitutionalId(identifier, password);
+    }
+  }
+
+  /*
     Validation checks.
   */
   Future<bool> isUsernameTaken(String username) async {
@@ -959,58 +977,44 @@ class SupabaseService {
     final currentUserId = _client.auth.currentUser?.id;
     if (currentUserId == null) throw Exception('Not authenticated');
 
-    // 1. Check if conversation already exists between these 2
-    // Complex query in Supabase (intersection), so we might just create new or filter locally for MVP simplicity?
-    // Proper way:
-    // Find conversation_ids where participants include ME.
-    // Filter those where participants include TARGET.
+    // 1. Try to reuse existing conversation via secure RPC
+    // The RPC 'get_conversation_id' bypasses RLS to check for an existing chat ID
+    try {
+      final data = await _client.rpc(
+        'get_conversation_id',
+        params: {'target_user_id': targetUserId},
+      );
 
-    // For MVP efficiency: We'll skip complex check and just support creating one or reusing if we find one easily.
-    // Actually, let's create a NEW conversation if one doesn't exist.
-
-    final myConvos = await _client
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', currentUserId);
-
-    final myConvoIds = (myConvos as List)
-        .map((e) => e['conversation_id'])
-        .toSet();
-
-    if (myConvoIds.isNotEmpty) {
-      // Find if target is in any of these
-      // This is n+1ish but fine for small scale
-      final targetIn = await _client
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', targetUserId)
-          .inFilter('conversation_id', myConvoIds.toList());
-
-      if ((targetIn as List).isNotEmpty) {
-        return targetIn.first['conversation_id'];
+      if (data != null) {
+        return data as String;
       }
+    } catch (e) {
+      // If RPC is missing or fails, log it but proceed to try creating (or fail if critical)
+      print('RPC get_conversation_id error (ignoring): $e');
     }
 
-    // 2. Create New
+    // 2. Create New Conversation (Strict Order Required by RLS)
+
+    // Step A: Create Conversation Row (No user_id, public creation allowed)
     final convoRes = await _client
         .from('conversations')
         .insert({})
         .select('id')
         .single();
-    final convoId = convoRes['id'];
+    final convoId = convoRes['id'] as String;
 
-    // 3. Add Participants
-    await _client.from('conversation_participants').insert([
-      {'conversation_id': convoId, 'user_id': currentUserId},
-      // Target User ID is likely the AUTH ID?
-      // Wait, 'users' table user_id vs 'auth.users' id.
-      // My schema says 'user_id' in participants references 'auth.users(id)'.
-      // The `targetUserId` passed here MUST be Auth ID.
-      // If UI passes public ID, we must resolve it.
-      // Assuming we pass Auth ID for now, or resolve it.
-      // Let's resolve safely.
-      {'conversation_id': convoId, 'user_id': targetUserId},
-    ]);
+    // Step B: Add SELF (Allowed by RLS rule: "user_id = auth.uid()")
+    await _client.from('conversation_participants').insert({
+      'conversation_id': convoId,
+      'user_id': currentUserId,
+    });
+
+    // Step C: Add TARGET (Allowed by RLS rule: "EXISTS... I am a participant")
+    // This MUST happen after Step B.
+    await _client.from('conversation_participants').insert({
+      'conversation_id': convoId,
+      'user_id': targetUserId,
+    });
 
     return convoId;
   }
@@ -1102,6 +1106,14 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(res);
   }
 
+  Stream<List<Map<String, dynamic>>> getMessagesStream(String conversationId) {
+    return _client
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('conversation_id', conversationId)
+        .order('created_at', ascending: true);
+  }
+
   Future<void> sendMessage(String conversationId, String content) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
@@ -1117,5 +1129,91 @@ class SupabaseService {
         .from('conversations')
         .update({'updated_at': DateTime.now().toIso8601String()})
         .eq('id', conversationId);
+  }
+
+  // --- Admin Access System ---
+
+  /*
+     Submit Admin Request (Isolated System).
+     Inserts into `admin_requests` via secure RPC.
+     Does NOT create a Supabase Auth User.
+  */
+  Future<void> submitAdminRequest({
+    required String fullName,
+    required String username,
+    required String email,
+    required String adminId,
+    required String password,
+  }) async {
+    // Call the RPC that handles hashing
+    await _client.rpc(
+      'submit_admin_request',
+      params: {
+        'full_name': fullName,
+        'username': username,
+        'email': email,
+        'admin_id': adminId,
+        'password_text': password,
+      },
+    );
+  }
+
+  /*
+     Verify Admin Login (Isolated System).
+     Calls secure RPC to verify credentials against `admins` table.
+     Returns the Admin Map if successful, or throws Exception.
+  */
+  Future<Map<String, dynamic>> verifyAdminLogin({
+    required String identifier, // Email or Admin ID
+    required String password,
+  }) async {
+    final response = await _client.rpc(
+      'verify_admin_login',
+      params: {'identifier': identifier, 'password_input': password},
+    );
+
+    if (response == null || response['success'] != true) {
+      throw Exception(response?['message'] ?? 'Login failed');
+    }
+
+    return Map<String, dynamic>.from(response);
+  }
+
+  /*
+    Fetch request status (Isolated).
+    We can't rely on 'user_id' anymore since we are unauthenticated.
+    However, for privacy, we can't just let anyone search by email without auth.
+    
+    Refactor: 
+    The "Check Status" feature for users who submitted a request is tricky without Auth.
+    They would need to "Login" to check status?
+    
+    For now, we will return null/empty or implement a limited check if needed.
+    But strictly speaking, once submitted, they wait for approval email or just try to login.
+  */
+  Future<String?> fetchAdminRequestStatus(String email) async {
+    // NOTE: This might be insecure if open to public.
+    // Ideally, we move this logic.
+    // For this iteration, we will rely on "Try Login -> Failed (Inactive)" flow.
+    return null;
+  }
+
+  Future<Map<String, int>> getAdminDashboardStats() async {
+    // Run count queries in parallel for efficiency
+    final results = await Future.wait([
+      _client.from('users').count(CountOption.exact), // Total
+      _client.from('users').count(CountOption.exact).eq('role', 'Student'),
+      _client.from('users').count(CountOption.exact).eq('role', 'Graduate'),
+      _client.from('users').count(CountOption.exact).eq('role', 'Alumni'),
+      _client.from('users').count(CountOption.exact).eq('role', 'Staff'),
+    ]);
+
+    return {
+      'total': results[0],
+      'student': results[1],
+      'graduate': results[2],
+      'alumni': results[3],
+      'staff': results[4],
+    };
   }
 }

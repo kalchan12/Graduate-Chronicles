@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/supabase/supabase_service.dart';
 import '../../theme/design_system.dart';
 import '../../state/profile_state.dart';
-import '../../state/portfolio_state.dart'; // Added Import
+import '../../state/portfolio_state.dart';
+import '../../core/providers/current_user_provider.dart'; // Added
 import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
-import '../messages/message_detail_screen.dart';
+import '../messages/message_detail_screen.dart'; // Re-added if it was missing
 
 import '../widgets/global_background.dart';
 
@@ -38,6 +39,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Refresh profile to ensure latest data (e.g. after edits elsewhere)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(profileProvider.notifier).refresh();
+      // Also refresh current user for role
+      ref.read(currentUserProvider.notifier).refresh();
 
       // Load Portfolio Data (Dependent on user ID)
       final profile = ref.read(profileProvider);
@@ -135,6 +138,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // We still watch the provider for other fields (name, degree, bio)
     // BUT we use local state for the image to guarantee freshness.
     final profile = ref.watch(profileProvider);
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final role = currentUserAsync.value?.role;
 
     // If needed, show loading if profile is empty OR check a loading state in provider
     // For now we assume optimistic rendering or empty state is fine
@@ -145,6 +150,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: RefreshIndicator(
           onRefresh: () async {
             await ref.read(profileProvider.notifier).refresh();
+            await ref.read(currentUserProvider.notifier).refresh();
             final profile = ref.read(profileProvider);
             if (profile.id.isNotEmpty) {
               await ref
@@ -161,16 +167,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 title: 'Profile',
                 showLeading: true,
                 onLeading: () => Navigator.of(context).pop(),
-                trailing: IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SettingsMainScreen(),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Admin Access Button
+                    if (role == 'admin')
+                      IconButton(
+                        icon: const Icon(
+                          Icons.dashboard_customize,
+                          color: Color(0xFFE94CFF),
+                        ),
+                        tooltip: 'Admin Dashboard',
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/admin/dashboard'),
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(
+                          Icons.add_moderator,
+                          color: Colors.white70,
+                        ),
+                        tooltip: 'Request Admin Access',
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/admin/signup'),
                       ),
-                    );
-                  },
+
+                    IconButton(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SettingsMainScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
 
@@ -26,8 +27,14 @@ class MessagingState {
 }
 
 class MessagingNotifier extends Notifier<MessagingState> {
+  StreamSubscription<List<Map<String, dynamic>>>? _subscription;
+
   @override
   MessagingState build() {
+    // Cancel subscription on dispose
+    ref.onDispose(() {
+      _subscription?.cancel();
+    });
     return const MessagingState();
   }
 
@@ -44,11 +51,28 @@ class MessagingNotifier extends Notifier<MessagingState> {
   }
 
   Future<void> fetchMessages(String conversationId) async {
-    state = state.copyWith(isLoading: true);
+    // Cancel existing subscription if any
+    await _subscription?.cancel();
+    _subscription = null;
+
+    state = state.copyWith(isLoading: true, currentMessages: []);
+
     try {
       final service = ref.read(supabaseServiceProvider);
-      final messages = await service.fetchMessages(conversationId);
-      state = state.copyWith(currentMessages: messages, isLoading: false);
+      _subscription = service
+          .getMessagesStream(conversationId)
+          .listen(
+            (messages) {
+              state = state.copyWith(
+                currentMessages: messages,
+                isLoading: false,
+              );
+            },
+            onError: (e) {
+              print('Fetch Messages Stream Error: $e');
+              state = state.copyWith(isLoading: false);
+            },
+          );
     } catch (e) {
       print('Fetch Messages Error: $e');
       state = state.copyWith(isLoading: false);
@@ -60,9 +84,9 @@ class MessagingNotifier extends Notifier<MessagingState> {
       final service = ref.read(supabaseServiceProvider);
       await service.sendMessage(conversationId, content);
 
-      // Optimistic update or just refresh
-      await fetchMessages(conversationId);
-      // Also refresh conversations list to update last message
+      // No need to fetchMessages manually, stream updates automatically
+
+      // Update conversations list for "Last Message"
       await fetchConversations();
     } catch (e) {
       print('Send Message Error: $e');
