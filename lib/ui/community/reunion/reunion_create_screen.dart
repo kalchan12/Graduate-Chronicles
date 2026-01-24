@@ -346,6 +346,21 @@ class _ReunionCreateScreenState extends ConsumerState<ReunionCreateScreen> {
       final notifier = ref.read(reunionProvider.notifier);
       final profile = ref.read(profileProvider);
 
+      int? batchYear;
+      if (_visibleTo == 1) {
+        // specific_batch or batch
+        final parsedYear = int.tryParse(profile.year);
+        if (parsedYear == null) {
+          _showToast(
+            'Invalid profile batch year. Please update profile.',
+            isError: true,
+          );
+          return;
+        }
+        batchYear = parsedYear;
+      }
+      // If public (_visibleTo == 0), batchYear remains null, satisfying the constraint.
+
       await notifier.createReunion(
         title: title,
         description: description,
@@ -356,7 +371,7 @@ class _ReunionCreateScreenState extends ConsumerState<ReunionCreateScreen> {
         visibility: _visibleTo == 0
             ? ReunionVisibility.public
             : ReunionVisibility.batch,
-        batchYear: int.tryParse(profile.year),
+        batchYear: batchYear,
       );
 
       _showToast('Reunion Event Created Successfully!');
