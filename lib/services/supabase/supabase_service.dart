@@ -547,6 +547,68 @@ class SupabaseService {
   // --- Yearbook System Methods ---
 
   // Batch operations
+  // --- Stories Feature ---
+
+  Future<String> uploadStoryMedia(File file) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Simple file validation
+    final length = await file.length();
+    if (length > 15 * 1024 * 1024) throw Exception('File size exceeds 15MB');
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final ext = file.path.split('.').last;
+    final path = '$userId/story_$timestamp.$ext';
+
+    await _client.storage
+        .from('stories')
+        .upload(path, file, fileOptions: const FileOptions(upsert: true));
+
+    final url = _client.storage.from('stories').getPublicUrl(path);
+    return url;
+  }
+
+  Future<void> createStory({
+    required String mediaUrl,
+    required String type, // 'image' or 'video'
+    String? caption,
+  }) async {
+    final publicUserId = await _getPublicUserId();
+
+    await _client.from('stories').insert({
+      'user_id': publicUserId,
+      'media_url': mediaUrl,
+      'media_type': type,
+      'caption': caption,
+      // expires_at defaults to 24h in DB
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchActiveStories() async {
+    // 1. Fetch active stories with user data join (single join to avoid PostgREST alias conflict)
+    final res = await _client
+        .from('stories')
+        .select('''
+          id,
+          media_url,
+          media_type,
+          caption,
+          created_at,
+          expires_at,
+          users (
+            user_id,
+            username,
+            full_name
+          )
+        ''')
+        .gt('expires_at', DateTime.now().toIso8601String())
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  // --- Yearbook Feature ---
   Future<List<Map<String, dynamic>>> fetchYearbookBatches() async {
     final res = await _client
         .from('yearbook_batches')

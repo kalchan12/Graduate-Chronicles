@@ -1,14 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../core/providers.dart';
 import '../../state/profile_state.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
 import 'story_viewer_screen.dart';
+import 'story_card.dart';
+import '../stories/story_uploader.dart';
 
 import '../profile/profile_screen.dart';
 import '../discovery/user_discovery_screen.dart';
@@ -35,9 +34,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure profile data is loaded on Home (first screen)
+    // Ensure profile data and stories are loaded on Home (first screen)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(profileProvider.notifier).refresh();
+      ref.read(storiesProvider.notifier).loadStories();
     });
   }
 
@@ -91,9 +91,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     scrollDirection: Axis.horizontal,
                     itemCount: stories.length,
                     separatorBuilder: (context, index) =>
-                        const SizedBox(width: 16),
-                    itemBuilder: (context, index) =>
-                        _StoryAvatar(story: stories[index]),
+                        const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final group = stories[index];
+                      return StoryCard(
+                        group: group,
+                        onAddStory: () {
+                          StoryUploader(context, ref).pickAndUpload();
+                        },
+                        onViewStory: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  StoryViewerScreen(userGroup: group),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
 
@@ -260,111 +276,9 @@ class _HomeAppBar extends StatelessWidget {
   }
 }
 
-class _StoryAvatar extends ConsumerWidget {
-  final Story story;
-  const _StoryAvatar({required this.story});
-
-  Future<void> _pickImage(WidgetRef ref) async {
-    final status = await Permission.photos.request();
-    if (status.isPermanentlyDenied) {
-      openAppSettings();
-      return;
-    }
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      ref.read(storiesProvider.notifier).addStory(File(image.path));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: () {
-            if (story.isMe && story.image == null) {
-              _pickImage(ref);
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => StoryViewerScreen(storyId: story.id),
-                ),
-              );
-            }
-          },
-          child: Container(
-            width: 74, // size + border spacing
-            height: 74,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: story.isMe && story.image == null
-                    ? Colors
-                          .white24 // Subtle for add
-                    : DesignSystem.purpleAccent, // Highlight for stories
-                width: 2,
-              ),
-            ),
-            padding: const EdgeInsets.all(
-              3,
-            ), // Spacing between border and image
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF2B2630),
-                image: story.image != null
-                    ? DecorationImage(
-                        image: FileImage(story.image!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: story.image == null
-                  ? Stack(
-                      children: [
-                        const Center(
-                          child: Icon(Icons.person, color: Colors.white54),
-                        ),
-                        if (story.isMe)
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: DesignSystem.purpleAccent,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                      ],
-                    )
-                  : null,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 74,
-          child: Text(
-            story.name,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ),
-      ],
-    );
-  }
-}
+/*
+  _StoryAvatar class removed in favor of the specialized StoryCard component.
+*/
 
 class _FeaturedCard extends StatelessWidget {
   final String profileName;
