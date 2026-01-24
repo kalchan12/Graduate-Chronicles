@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/stories_state.dart';
+import '../widgets/toast_helper.dart';
 
 class StoryUploader {
   final WidgetRef ref;
@@ -25,36 +26,22 @@ class StoryUploader {
         final isVideo = ['mp4', 'mov', 'avi'].contains(extension);
         final mediaType = isVideo ? StoryMediaType.video : StoryMediaType.image;
 
-        // Show loading indicator
+        // Show loading toast
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Uploading story...'),
-              duration: Duration(days: 1),
-            ),
-          );
+          ToastHelper.show(context, 'Uploading story...');
         }
 
         // Upload
         await ref.read(storiesProvider.notifier).uploadStory(file, mediaType);
 
-        // Success
+        // Success toast
         if (context.mounted) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Story uploaded!')));
+          ToastHelper.show(context, 'Story uploaded!');
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to upload story: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ToastHelper.show(context, 'Failed to upload story', isError: true);
       }
     }
   }

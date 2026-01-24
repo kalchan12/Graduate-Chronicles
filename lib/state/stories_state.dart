@@ -144,6 +144,19 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
       // Add "Your Story" placeholder if not present in fetched stories
       bool myStoryFound = false;
 
+      // Pre-fetch my avatar URL (needed regardless of whether I have stories)
+      String? myAvatarUrl;
+      if (currentUserId != null) {
+        try {
+          final myProfile = await service.getFullProfile(currentUserId);
+          if (myProfile != null) {
+            myAvatarUrl = myProfile['profile_picture'];
+          }
+        } catch (e) {
+          // Ignore error, use placeholder
+        }
+      }
+
       // Process grouped stories
       for (final entry in groupedStories.entries) {
         final userId = entry.key;
@@ -157,7 +170,8 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
           UserStoryGroup(
             userId: userId,
             username: isMe ? 'Your Story' : info['username'],
-            profilePicUrl: info['profile_pic_url'],
+            // For "Me", always use the pre-fetched avatar; for others, use placeholder
+            profilePicUrl: isMe ? myAvatarUrl : info['profile_pic_url'],
             isMe: isMe,
             stories: stories,
           ),
