@@ -25,12 +25,14 @@ class SignupState {
   final String? role;
   final String? userId;
   final String? major;
+  final String? school; // New field
   final String? graduationYear;
 
   // Step 2 Errors
   final String? roleError;
   final String? userIdError;
   final String? majorError;
+  final String? schoolError; // New field
   final String? yearError;
 
   // Step 3 Data
@@ -58,10 +60,12 @@ class SignupState {
     this.role,
     this.userId,
     this.major,
+    this.school,
     this.graduationYear,
     this.roleError,
     this.userIdError,
     this.majorError,
+    this.schoolError,
     this.yearError,
     this.bio,
     this.profileImage,
@@ -84,10 +88,12 @@ class SignupState {
     String? role,
     String? userId,
     String? major,
+    String? school,
     String? graduationYear,
     String? Function()? roleError,
     String? Function()? userIdError,
     String? Function()? majorError,
+    String? Function()? schoolError,
     String? Function()? yearError,
     String? bio,
     Uint8List? profileImage,
@@ -117,10 +123,12 @@ class SignupState {
       role: role ?? this.role,
       userId: userId ?? this.userId,
       major: major ?? this.major,
+      school: school ?? this.school,
       graduationYear: graduationYear ?? this.graduationYear,
       roleError: roleError != null ? roleError() : this.roleError,
       userIdError: userIdError != null ? userIdError() : this.userIdError,
       majorError: majorError != null ? majorError() : this.majorError,
+      schoolError: schoolError != null ? schoolError() : this.schoolError,
       yearError: yearError != null ? yearError() : this.yearError,
       bio: bio ?? this.bio,
       profileImage: profileImage ?? this.profileImage,
@@ -157,6 +165,9 @@ class SignupNotifier extends Notifier<SignupState> {
     }
     if (key == 'major') {
       state = state.copyWith(major: value, majorError: () => null);
+    }
+    if (key == 'school') {
+      state = state.copyWith(school: value, schoolError: () => null);
     }
     if (key == 'userId') {
       state = state.copyWith(userId: value, userIdError: () => null);
@@ -237,21 +248,32 @@ class SignupNotifier extends Notifier<SignupState> {
   }
 
   bool validateStep2() {
-    String? rErr, uErr, mErr, yErr;
+    String? rErr, uErr, mErr, sErr, yErr;
     if (state.role == null) {
       rErr = "Role is required";
     }
 
     // User ID validation - required for all roles
-    if (state.userId?.trim().isEmpty ?? true) {
+    final idVal = state.userId?.trim() ?? '';
+    if (idVal.isEmpty) {
       uErr = "ID is required";
+    } else {
+      // Strict format: ABC/12345/26
+      final idRegex = RegExp(r'^[A-Z]{3}/\d{5}/\d{2}$');
+      if (!idRegex.hasMatch(idVal)) {
+        uErr = "Invalid format. Use ABC/12345/26";
+      }
     }
 
     if (state.major?.trim().isEmpty ?? true) {
       mErr = "Major is required";
     }
 
-    // Graduation Year Validation
+    if (state.school?.trim().isEmpty ?? true) {
+      sErr = "School is required";
+    }
+
+    // Graduation Year Validation (Allow past years for alumni)
     final yStr = state.graduationYear?.trim();
     if (yStr == null || yStr.isEmpty) {
       yErr = "Year is required";
@@ -259,8 +281,8 @@ class SignupNotifier extends Notifier<SignupState> {
       final yInt = int.tryParse(yStr);
       if (yInt == null || yStr.length != 4) {
         yErr = "Enter a valid 4-digit year";
-      } else if (yInt < 2026) {
-        yErr = "Year must be 2026 or later";
+      } else if (yInt < 1990 || yInt > 2100) {
+        yErr = "Enter a reasonable year (1990-2100)";
       }
     }
 
@@ -268,10 +290,15 @@ class SignupNotifier extends Notifier<SignupState> {
       roleError: () => rErr,
       userIdError: () => uErr,
       majorError: () => mErr,
+      schoolError: () => sErr,
       yearError: () => yErr,
     );
 
-    return rErr == null && uErr == null && mErr == null && yErr == null;
+    return rErr == null &&
+        uErr == null &&
+        mErr == null &&
+        sErr == null &&
+        yErr == null;
   }
 
   Future<void> submitSignup(BuildContext context) async {
@@ -287,6 +314,7 @@ class SignupNotifier extends Notifier<SignupState> {
         role: state.role!, // Validated by step 2
         institutionalId: state.userId,
         major: state.major,
+        school: state.school, // Pass school abbreviation
         graduationYear: int.tryParse(
           state.graduationYear ?? '',
         ), // Fixed duplicate

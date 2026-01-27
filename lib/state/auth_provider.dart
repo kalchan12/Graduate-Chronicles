@@ -174,6 +174,7 @@ class AuthNotifier extends Notifier<AuthState> {
             draft.email, // using email as ID if not provided differently
         major: draft.majorId,
         graduationYear: int.tryParse(draft.graduationYear ?? ''),
+        school: null, // Not used in legacy auth flow
         interests: draft.interests,
       );
 

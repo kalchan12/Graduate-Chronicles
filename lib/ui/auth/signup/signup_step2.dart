@@ -27,6 +27,29 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
   // Roles updated as per requirements: Student, Graduate, Alumni, Staff
   final List<String> _roles = ['Student', 'Graduate', 'Alumni', 'Staff'];
 
+  // Schools - Display as abbreviations only, save abbreviation to DB
+  static const List<String> _schools = ['SoEE', 'SoMCME', 'SoCEA', 'SoANS'];
+
+  // Majors - FULL NAMES, filtered by selected school, save full name to DB
+  static const Map<String, List<String>> _majors = {
+    'SoEE': [
+      'Computer Science and Engineering',
+      'Electrical and Computer Engineering',
+      'Electrical Power and Control Engineering',
+    ],
+    'SoMCME': [
+      'Mechanical Engineering',
+      'Chemical Engineering',
+      'Materials Science and Engineering',
+    ],
+    'SoCEA': [
+      'Architecture',
+      'Water Resources Engineering',
+      'Civil Engineering',
+    ],
+    'SoANS': ['Physics', 'Chemistry', 'Biology', 'Geology'],
+  };
+
   // Placeholder list removed. We use dynamic data from majorsProvider.
 
   @override
@@ -144,25 +167,41 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                               errorText: state.roleError,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: _buildField(
-                              label: switch (state.role) {
-                                'Graduate' => 'Graduate Student ID',
-                                'Staff' => 'Staff ID',
-                                'Alumni' => 'Alumni ID',
-                                _ => 'Student ID',
-                              },
-                              hint: 'ID #',
-                              icon: Icons.badge_outlined,
-                              controller: _userIdController,
-                              errorText: state.userIdError,
-                              onChanged: (val) =>
-                                  notifier.setField('userId', val),
-                            ),
-                          ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // School Dropdown - Abbreviations only
+                      _buildOverlayDropdown(
+                        context,
+                        label: 'School',
+                        hint: state.school ?? 'Select School',
+                        value: state.school,
+                        items: _schools,
+                        onChanged: (val) {
+                          notifier.setField('school', val);
+                          notifier.setField(
+                            'major',
+                            '',
+                          ); // Reset major when school changes
+                        },
+                        errorText: state.schoolError,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ID Field (Strict Validation visual feedback handled by state error)
+                      _buildField(
+                        label: switch (state.role) {
+                          'Graduate' => 'Graduate ID', // Explicit requirement
+                          'Staff' => 'Staff ID',
+                          'Alumni' => 'Alumni ID',
+                          _ => 'Student ID',
+                        },
+                        hint: 'Format: ABC/12345/26',
+                        icon: Icons.badge_outlined,
+                        controller: _userIdController,
+                        errorText: state.userIdError,
+                        onChanged: (val) => notifier.setField('userId', val),
                       ),
                       const SizedBox(height: 16),
 
@@ -172,8 +211,8 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                       const SizedBox(height: 16),
 
                       _buildField(
-                        label: 'Graduation Year',
-                        hint: 'YYYY (e.g. 2026)',
+                        label: 'Graduation / Graduated Year',
+                        hint: 'YYYY (e.g. 2024)',
                         icon: Icons.calendar_today_outlined,
                         errorText: state.yearError,
                         inputType: TextInputType.number,
@@ -181,6 +220,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
+                        // Updated logic to allow past years for Alumni support
                         onChanged: (val) =>
                             notifier.setField('graduationYear', val),
                         initialValue: state.graduationYear,
@@ -311,19 +351,10 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     SignupState state,
     SignupNotifier notifier,
   ) {
-    // Hardcoded major suggestions (no database needed)
-    final List<String> majorSuggestions = [
-      'Computer Science',
-      'Software Engineering',
-      'Mechanical Engineering',
-      'Electrical Engineering',
-      'Civil Engineering',
-      'Architectural Engineering',
-      'Chemical Engineering',
-      'Mechatronics Engineering',
-      'Industrial Engineering',
-      'Other',
-    ];
+    // Dependent Majors
+    final List<String> majorSuggestions = state.school != null
+        ? (_majors[state.school] ?? [])
+        : [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,6 +364,15 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
           style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
+        // Warning if school not selected
+        if (state.school == null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Please select a school first',
+              style: TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+          ),
         LayoutBuilder(
           builder: (context, constraints) {
             return Autocomplete<String>(
@@ -449,6 +489,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
     required String? value,
     required List<String> items,
     required ValueChanged<String> onChanged,
+    String? Function(String)? itemLabelBuilder,
     String? errorText,
   }) {
     return Column(
@@ -500,7 +541,9 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          item,
+                          itemLabelBuilder != null
+                              ? itemLabelBuilder(item)!
+                              : item,
                           style: TextStyle(
                             color: isSelected ? Colors.white : Colors.white70,
                             fontWeight: isSelected
@@ -533,7 +576,9 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                 children: [
                   Expanded(
                     child: Text(
-                      value ?? hint,
+                      (value != null && itemLabelBuilder != null)
+                          ? itemLabelBuilder(value)!
+                          : (value ?? hint),
                       style: TextStyle(
                         color: value != null ? Colors.white : Colors.white38,
                         fontWeight: FontWeight.w500,

@@ -121,6 +121,7 @@ class SupabaseService {
     required String? institutionalId,
     required String? major,
     required int? graduationYear,
+    required String? school, // School abbreviation string
     required List<String> interests,
   }) async {
     // 1. Auth Signup
@@ -145,6 +146,7 @@ class SupabaseService {
         'institutional_id': institutionalId,
         'major': major,
         'graduation_year': graduationYear,
+        'school': school,
         'interests': interests,
       });
     } catch (e) {
@@ -204,6 +206,17 @@ class SupabaseService {
         .eq('username', username)
         .maybeSingle();
     return data != null;
+  }
+
+  /*
+    Fetch Schools.
+  */
+  Future<List<Map<String, dynamic>>> fetchSchools() async {
+    final res = await _client
+        .from('schools')
+        .select('id, name, abbreviation')
+        .order('name', ascending: true);
+    return List<Map<String, dynamic>>.from(res);
   }
 
   // --- Profile System Methods ---

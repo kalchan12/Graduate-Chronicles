@@ -151,9 +151,22 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                         obscure: true,
                         controller: _password,
                         errorText: state.passwordError,
-                        onChanged: (v) => notifier.setField('password', v),
+
+                        onChanged: (v) {
+                          notifier.setField('password', v);
+                          setState(() {}); // Rebuild for strength indicator
+                        },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
+                      // Password Strength Indicator
+                      if (state.password.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 8),
+                          child: _buildPasswordStrengthIndicator(
+                            state.password,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
                       _buildField(
                         label: 'Confirm Password',
                         hint: 'Re-enter your password',
@@ -268,6 +281,71 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
               ),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordStrengthIndicator(String password) {
+    // Password Strength Rules:
+    // 0: Weak - letters only OR numbers only (or too short)
+    // 1: Medium - letters + numbers
+    // 2: Strong - letters + numbers + special characters
+
+    int strength = 0;
+    if (password.length >= 8) {
+      bool hasLetters = password.contains(RegExp(r'[a-zA-Z]'));
+      bool hasDigits = password.contains(RegExp(r'[0-9]'));
+      bool hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+      if (hasLetters && hasDigits && hasSpecial) {
+        strength = 2; // Strong
+      } else if (hasLetters && hasDigits) {
+        strength = 1; // Medium
+      } else {
+        strength = 0; // Weak (only letters OR only numbers)
+      }
+    }
+
+    final color = switch (strength) {
+      2 => Colors.greenAccent,
+      1 => Colors.amber,
+      _ => Colors.redAccent,
+    };
+
+    final text = switch (strength) {
+      2 => 'Strong',
+      1 => 'Medium',
+      _ => 'Weak',
+    };
+
+    return Row(
+      children: [
+        // Bars
+        ...List.generate(3, (index) {
+          // 0 -> Weak (Index 0 active)
+          // 1 -> Medium (Index 0, 1 active)
+          // 2 -> Strong (Index 0, 1, 2 active)
+          bool active = index <= strength;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.only(right: 6),
+            height: 4,
+            width: 24,
+            decoration: BoxDecoration(
+              color: active ? color : Colors.white10,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          );
+        }),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
