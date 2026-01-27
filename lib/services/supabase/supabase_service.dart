@@ -765,7 +765,7 @@ class SupabaseService {
       'yearbook_photo_url': yearbookPhotoUrl,
       'yearbook_bio': yearbookBio,
       'status': 'pending',
-      'more_pictures': [], // Default empty list
+      'more_pictures': morePictures ?? [],
     });
   }
 

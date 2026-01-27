@@ -359,7 +359,7 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
                           final entry = filteredList[i];
                           return _StudentCard(
                             entry: entry,
-                            onTap: () => _showStudentDetail(entry),
+                            onTap: () => _openStudentProfile(entry),
                           );
                         },
                       ),
@@ -371,12 +371,13 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
     );
   }
 
-  void _showStudentDetail(YearbookEntry entry) {
+  void _openStudentProfile(YearbookEntry entry) {
+    // Explicitly show the new YearbookProfileDialog
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => YearbookProfileDialog(entry: entry),
+      backgroundColor: Colors.transparent,
+      builder: (context) => YearbookProfileDialog(entry: entry),
     );
   }
 }
@@ -390,6 +391,7 @@ class _StudentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque, // Ensure tap is caught
       child: Container(
         decoration: DesignSystem.cardDecoration().copyWith(
           color: const Color(0xFF1E0A25),

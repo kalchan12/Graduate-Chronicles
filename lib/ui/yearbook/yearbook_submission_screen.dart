@@ -36,6 +36,10 @@ class _YearbookSubmissionScreenState
   String? _selectedBatchId;
   bool _isUploading = false;
 
+  // Gallery
+  final List<XFile> _newGalleryImages = [];
+  List<String> _existingGalleryImages = [];
+
   @override
   void initState() {
     super.initState();
@@ -68,9 +72,13 @@ class _YearbookSubmissionScreenState
 
     if (entry != null && _selectedBatchId == entry.batchId) {
       _bioController.text = entry.yearbookBio ?? '';
+      _existingGalleryImages = List.from(entry.morePictures);
+      _newGalleryImages.clear();
       // We don't set _selectedImage as it is a File, relying on NetworkImage preview if valid
     } else {
       _bioController.clear();
+      _existingGalleryImages.clear();
+      _newGalleryImages.clear();
       // _selectedImage = null; // Don't clear image if user just switched batches? Maybe yes.
     }
   }
@@ -102,6 +110,47 @@ class _YearbookSubmissionScreenState
       }
     } catch (e) {
       _showToast('Error picking image: $e', isError: true);
+    }
+  }
+
+  Future<void> _pickGalleryImages() async {
+    final state = ref.read(yearbookProvider);
+    if (state.myEntry != null && state.myEntry!.status != 'pending') {
+      _showToast(
+        'Cannot edit entry after it has been processed.',
+        isError: true,
+      );
+      return;
+    }
+
+    final currentCount =
+        _existingGalleryImages.length + _newGalleryImages.length;
+    if (currentCount >= 6) {
+      _showToast('Maximum 6 additional photos allowed.', isError: true);
+      return;
+    }
+
+    try {
+      final List<XFile> images = await _picker.pickMultiImage(
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (images.isNotEmpty) {
+        final remainingSlots = 6 - currentCount;
+        final imagesToAdd = images.take(remainingSlots).toList();
+
+        setState(() {
+          _newGalleryImages.addAll(imagesToAdd);
+        });
+
+        if (images.length > remainingSlots) {
+          _showToast('Only ${imagesToAdd.length} photo(s) added. Limit is 6.');
+        }
+      }
+    } catch (e) {
+      _showToast('Error picking photos: $e', isError: true);
     }
   }
 
@@ -153,6 +202,18 @@ class _YearbookSubmissionScreenState
 
       if (photoUrl == null) throw 'Photo URL missing';
 
+      // Upload new gallery images
+      final List<String> finalGalleryUrls = List.from(_existingGalleryImages);
+      for (final xFile in _newGalleryImages) {
+        final file = File(xFile.path);
+        // Re-using uploadYearbookPhoto is safe as it uses timestamp in filename
+        final url = await service.uploadYearbookPhoto(
+          file,
+          selectedBatch.batchYear,
+        );
+        finalGalleryUrls.add(url);
+      }
+
       if (existingEntry == null) {
         // Create
         await ref
@@ -161,6 +222,7 @@ class _YearbookSubmissionScreenState
               batchId: _selectedBatchId!,
               yearbookPhotoUrl: photoUrl,
               yearbookBio: bio.isNotEmpty ? bio : null,
+              morePictures: finalGalleryUrls,
             );
       } else {
         // Update
@@ -173,6 +235,7 @@ class _YearbookSubmissionScreenState
                   ? photoUrl
                   : null, // Only send if changed
               yearbookBio: bio,
+              morePictures: finalGalleryUrls,
             );
       }
 
@@ -471,6 +534,157 @@ class _YearbookSubmissionScreenState
                           ),
                           cursorColor: DesignSystem.purpleAccent,
                         ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Gallery Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Gallery (Optional)',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${_existingGalleryImages.length + _newGalleryImages.length}/6',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          // Existing Images
+                          ..._existingGalleryImages.map((url) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: NetworkImage(url),
+                                      fit: BoxFit.cover,
+                                    ),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _existingGalleryImages.remove(url);
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+
+                          // New Images
+                          ..._newGalleryImages.map((xFile) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: FileImage(File(xFile.path)),
+                                      fit: BoxFit.cover,
+                                    ),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _newGalleryImages.remove(xFile);
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+
+                          // Add Button
+                          if ((_existingGalleryImages.length +
+                                  _newGalleryImages.length) <
+                              6)
+                            GestureDetector(
+                              onTap: isReadOnly ? null : _pickGalleryImages,
+                              child: Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    style: BorderStyle.none,
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.add_photo_alternate,
+                                    color: Colors.white54,
+                                    size: 32,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
 
                       const SizedBox(height: 32),

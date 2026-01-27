@@ -150,6 +150,7 @@ class YearbookNotifier extends Notifier<YearbookState> {
     required String batchId,
     required String yearbookPhotoUrl,
     String? yearbookBio,
+    List<String>? morePictures,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -158,6 +159,7 @@ class YearbookNotifier extends Notifier<YearbookState> {
         batchId: batchId,
         yearbookPhotoUrl: yearbookPhotoUrl,
         yearbookBio: yearbookBio,
+        morePictures: morePictures,
       );
 
       // Refresh my entry
@@ -175,6 +177,7 @@ class YearbookNotifier extends Notifier<YearbookState> {
     String? yearbookPhotoUrl,
     String? yearbookBio,
     required String batchId,
+    List<String>? morePictures,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -183,6 +186,7 @@ class YearbookNotifier extends Notifier<YearbookState> {
         entryId: entryId,
         yearbookPhotoUrl: yearbookPhotoUrl,
         yearbookBio: yearbookBio,
+        morePictures: morePictures,
       );
 
       // Refresh my entry
