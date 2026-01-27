@@ -171,6 +171,22 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                       ),
                       const SizedBox(height: 16),
 
+                      // ID Field (Strict Validation visual feedback handled by state error)
+                      _buildField(
+                        label: switch (state.role) {
+                          'Graduate' => 'Graduate ID', // Explicit requirement
+                          'Staff' => 'Staff ID',
+                          'Alumni' => 'Alumni ID',
+                          _ => 'Student ID',
+                        },
+                        hint: 'Insert ID number',
+                        icon: Icons.badge_outlined,
+                        controller: _userIdController,
+                        errorText: state.userIdError,
+                        onChanged: (val) => notifier.setField('userId', val),
+                      ),
+                      const SizedBox(height: 16),
+
                       // School Dropdown - Abbreviations only
                       _buildOverlayDropdown(
                         context,
@@ -186,22 +202,6 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                           ); // Reset major when school changes
                         },
                         errorText: state.schoolError,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // ID Field (Strict Validation visual feedback handled by state error)
-                      _buildField(
-                        label: switch (state.role) {
-                          'Graduate' => 'Graduate ID', // Explicit requirement
-                          'Staff' => 'Staff ID',
-                          'Alumni' => 'Alumni ID',
-                          _ => 'Student ID',
-                        },
-                        hint: 'Format: ABC/12345/26',
-                        icon: Icons.badge_outlined,
-                        controller: _userIdController,
-                        errorText: state.userIdError,
-                        onChanged: (val) => notifier.setField('userId', val),
                       ),
                       const SizedBox(height: 16),
 

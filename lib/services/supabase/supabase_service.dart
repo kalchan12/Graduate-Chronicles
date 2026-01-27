@@ -678,7 +678,8 @@ class SupabaseService {
             full_name,
             username,
             major,
-            school
+            school,
+            institutional_id
           )
         ''')
         .eq('batch_id', batchId)
@@ -698,6 +699,7 @@ class SupabaseService {
             'username': userData?['username'],
             'major': userData?['major'],
             'school': userData?['school'],
+            'institutional_id': userData?['institutional_id'],
           }..remove('users');
         })
         .where((entry) {

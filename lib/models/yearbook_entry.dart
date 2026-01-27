@@ -46,6 +46,7 @@ class YearbookEntry {
   final String? username;
   final String? major;
   final String? school;
+  final String? institutionalId;
 
   const YearbookEntry({
     required this.id,
@@ -62,6 +63,7 @@ class YearbookEntry {
     this.username,
     this.major,
     this.school,
+    this.institutionalId,
   });
 
   factory YearbookEntry.fromMap(Map<String, dynamic> map) {
@@ -82,6 +84,7 @@ class YearbookEntry {
       username: map['username'] as String?,
       major: map['major'] as String?,
       school: map['school'] as String?,
+      institutionalId: map['institutional_id'] as String?,
     );
   }
 
@@ -113,6 +116,7 @@ class YearbookEntry {
     String? username,
     String? major,
     String? school,
+    String? institutionalId,
   }) {
     return YearbookEntry(
       id: id ?? this.id,
@@ -128,6 +132,7 @@ class YearbookEntry {
       username: username ?? this.username,
       major: major ?? this.major,
       school: school ?? this.school,
+      institutionalId: institutionalId ?? this.institutionalId,
     );
   }
 }

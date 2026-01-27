@@ -37,8 +37,10 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
   String _query = '';
   String _selectedSchool = 'All';
   String _selectedMajor = 'All';
+  String _selectedProgram = 'All';
 
   final List<String> _schools = ['All', 'SoEE', 'SoMCME', 'SoCEA', 'SoANS'];
+  final List<String> _programs = ['All', 'Regular', 'Extension', 'Weekend'];
 
   // Majors Map (Matches Signup Logic)
   static const Map<String, List<String>> _schoolMajors = {
@@ -80,13 +82,26 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
       final matchesSchool =
           _selectedSchool == 'All' || entry.school == _selectedSchool;
 
+      final program = _getProgramFromId(entry.institutionalId);
+      final matchesProgram =
+          _selectedProgram == 'All' || program == _selectedProgram;
+
       // When filtering by school, only show majors from that school if 'All' major is selected
       // But if a specific major is selected, match strictly.
       final matchesMajor =
           _selectedMajor == 'All' || entry.major == _selectedMajor;
 
-      return matchesQuery && matchesSchool && matchesMajor;
+      return matchesQuery && matchesSchool && matchesProgram && matchesMajor;
     }).toList();
+  }
+
+  String _getProgramFromId(String? id) {
+    if (id == null || id.isEmpty) return 'Regular'; // Default fallback
+    final prefix = id.toUpperCase();
+    if (prefix.startsWith('UGE')) return 'Extension';
+    if (prefix.startsWith('UGW')) return 'Weekend';
+    if (prefix.startsWith('UGR')) return 'Regular';
+    return 'Regular'; // Default for others
   }
 
   @override
@@ -215,6 +230,50 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
                                   _selectedSchool = val;
                                   _selectedMajor = 'All'; // Reset major
                                 });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Program Filter
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedProgram,
+                            isExpanded: true,
+                            dropdownColor: DesignSystem.scaffoldBg,
+                            style: const TextStyle(color: Colors.white),
+                            icon: const Icon(
+                              Icons.category_outlined,
+                              color: Colors.white54,
+                              size: 18,
+                            ),
+                            items: _programs.map((prog) {
+                              return DropdownMenuItem<String>(
+                                value: prog,
+                                child: Text(
+                                  prog == 'All' ? 'Program' : prog,
+                                  style: const TextStyle(fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _selectedProgram = val);
                               }
                             },
                           ),
