@@ -668,14 +668,17 @@ class SupabaseService {
           user_id,
           batch_id,
           yearbook_photo_url,
+          yearbook_photo_url,
           yearbook_bio,
+          more_pictures,
           status,
           created_at,
           updated_at,
           users!yearbook_entries_user_id_fkey (
             full_name,
             username,
-            major
+            major,
+            school
           )
         ''')
         .eq('batch_id', batchId)
@@ -694,6 +697,7 @@ class SupabaseService {
             'full_name': userData?['full_name'],
             'username': userData?['username'],
             'major': userData?['major'],
+            'school': userData?['school'],
           }..remove('users');
         })
         .where((entry) {
@@ -719,7 +723,11 @@ class SupabaseService {
           yearbook_bio,
           status,
           created_at,
-          updated_at
+          yearbook_bio,
+          status,
+          created_at,
+          updated_at,
+          more_pictures
         ''')
         .eq('user_id', publicUserId)
         .eq('batch_id', batchId)
@@ -746,6 +754,7 @@ class SupabaseService {
     required String batchId,
     required String yearbookPhotoUrl,
     String? yearbookBio,
+    List<String>? morePictures,
   }) async {
     // Get public.users.id (not auth.users.id)
     final publicUserId = await _getPublicUserId();
@@ -756,6 +765,7 @@ class SupabaseService {
       'yearbook_photo_url': yearbookPhotoUrl,
       'yearbook_bio': yearbookBio,
       'status': 'pending',
+      'more_pictures': [], // Default empty list
     });
   }
 
@@ -763,10 +773,12 @@ class SupabaseService {
     required String entryId,
     String? yearbookPhotoUrl,
     String? yearbookBio,
+    List<String>? morePictures,
   }) async {
     final data = <String, dynamic>{};
     if (yearbookPhotoUrl != null) data['yearbook_photo_url'] = yearbookPhotoUrl;
     if (yearbookBio != null) data['yearbook_bio'] = yearbookBio;
+    if (morePictures != null) data['more_pictures'] = morePictures;
 
     if (data.isEmpty) return;
 

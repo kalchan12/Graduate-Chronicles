@@ -39,11 +39,13 @@ class YearbookEntry {
   final String status; // pending, approved, rejected
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<String> morePictures;
 
   // User data from JOIN (NOT stored in yearbook_entries table)
   final String? fullName;
   final String? username;
   final String? major;
+  final String? school;
 
   const YearbookEntry({
     required this.id,
@@ -54,10 +56,12 @@ class YearbookEntry {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.morePictures = const [],
     // Joined data
     this.fullName,
     this.username,
     this.major,
+    this.school,
   });
 
   factory YearbookEntry.fromMap(Map<String, dynamic> map) {
@@ -70,10 +74,14 @@ class YearbookEntry {
       status: map['status'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
+      morePictures: map['more_pictures'] == null
+          ? []
+          : List<String>.from(map['more_pictures']),
       // Joined user data (may be null if not included in query)
       fullName: map['full_name'] as String?,
       username: map['username'] as String?,
       major: map['major'] as String?,
+      school: map['school'] as String?,
     );
   }
 
@@ -87,6 +95,7 @@ class YearbookEntry {
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'more_pictures': morePictures,
     };
   }
 
@@ -99,9 +108,11 @@ class YearbookEntry {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<String>? morePictures,
     String? fullName,
     String? username,
     String? major,
+    String? school,
   }) {
     return YearbookEntry(
       id: id ?? this.id,
@@ -112,9 +123,11 @@ class YearbookEntry {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      morePictures: morePictures ?? this.morePictures,
       fullName: fullName ?? this.fullName,
       username: username ?? this.username,
       major: major ?? this.major,
+      school: school ?? this.school,
     );
   }
 }

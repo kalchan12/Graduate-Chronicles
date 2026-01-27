@@ -4,7 +4,7 @@ import '../widgets/custom_app_bar.dart';
 import '../../theme/design_system.dart';
 import '../../state/yearbook_state.dart';
 import '../../models/yearbook_entry.dart';
-import '../profile/profile_screen.dart';
+import 'widgets/yearbook_profile_dialog.dart';
 
 import '../widgets/global_background.dart';
 
@@ -35,7 +35,30 @@ class YearbookFilterScreen extends ConsumerStatefulWidget {
 
 class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
   String _query = '';
+  String _selectedSchool = 'All';
   String _selectedMajor = 'All';
+
+  final List<String> _schools = ['All', 'SoEE', 'SoMCME', 'SoCEA', 'SoANS'];
+
+  // Majors Map (Matches Signup Logic)
+  static const Map<String, List<String>> _schoolMajors = {
+    'SoEE': [
+      'Computer Science and Engineering',
+      'Electrical and Computer Engineering',
+      'Electrical Power and Control Engineering',
+    ],
+    'SoMCME': [
+      'Mechanical Engineering',
+      'Chemical Engineering',
+      'Materials Science and Engineering',
+    ],
+    'SoCEA': [
+      'Architecture',
+      'Water Resources Engineering',
+      'Civil Engineering',
+    ],
+    'SoANS': ['Physics', 'Chemistry', 'Biology', 'Geology'],
+  };
 
   @override
   void initState() {
@@ -53,9 +76,16 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
           (entry.fullName?.toLowerCase().contains(_query.toLowerCase()) ??
               false) ||
           (entry.major?.toLowerCase().contains(_query.toLowerCase()) ?? false);
+
+      final matchesSchool =
+          _selectedSchool == 'All' || entry.school == _selectedSchool;
+
+      // When filtering by school, only show majors from that school if 'All' major is selected
+      // But if a specific major is selected, match strictly.
       final matchesMajor =
           _selectedMajor == 'All' || entry.major == _selectedMajor;
-      return matchesQuery && matchesMajor;
+
+      return matchesQuery && matchesSchool && matchesMajor;
     }).toList();
   }
 
@@ -65,7 +95,23 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
     final filteredList = _filteredEntries;
 
     // Majors list including "All"
-    final majorsList = ['All', ...yearbookState.majors];
+    // Majors list logic
+    List<String> majorsList = ['All'];
+    if (_selectedSchool != 'All') {
+      majorsList.addAll(_schoolMajors[_selectedSchool] ?? []);
+    } else {
+      // If no school selected, maybe show all? Or keep empty?
+      // Existing code showed all but that might be overwhelming.
+      // Let's stick to dependent logic: Select school -> Select Major.
+      // If All schools, major filter is effectively disabled or limited.
+      // Or we can aggregate all.
+      for (var list in _schoolMajors.values) {
+        for (var major in list) {
+          if (!majorsList.contains(major)) majorsList.add(major);
+        }
+      }
+      majorsList.sort();
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -121,46 +167,103 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
                     ),
 
                     const SizedBox(height: 12),
+                  ],
+                ),
+              ),
 
-                    // Major Filter Dropdown
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
+              // Filter Row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: [
+                    // School Filter
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedSchool,
+                            isExpanded: true,
+                            dropdownColor: DesignSystem.scaffoldBg,
+                            style: const TextStyle(color: Colors.white),
+                            icon: const Icon(
+                              Icons.school_outlined,
+                              color: Colors.white54,
+                              size: 18,
+                            ),
+                            items: _schools.map((school) {
+                              return DropdownMenuItem<String>(
+                                value: school,
+                                child: Text(
+                                  school == 'All' ? 'School' : school,
+                                  style: const TextStyle(fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedSchool = val;
+                                  _selectedMajor = 'All'; // Reset major
+                                });
+                              }
+                            },
+                          ),
                         ),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: majorsList.contains(_selectedMajor)
-                              ? _selectedMajor
-                              : 'All',
-                          isExpanded: true,
-                          dropdownColor: DesignSystem.scaffoldBg,
-                          style: const TextStyle(color: Colors.white),
-                          icon: const Icon(
-                            Icons.class_outlined,
-                            color: Colors.white54,
-                          ), // Filter icon
-                          items: majorsList.map((major) {
-                            return DropdownMenuItem<String>(
-                              value: major,
-                              child: Text(
-                                major == 'All' ? 'All Majors' : major,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedMajor = val);
-                              // Ideally trigger a backend filter too if dataset is large,
-                              // but client side is fine for now as per previous logic.
-                            }
-                          },
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Major Filter
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: majorsList.contains(_selectedMajor)
+                                ? _selectedMajor
+                                : 'All',
+                            isExpanded: true,
+                            dropdownColor: DesignSystem.scaffoldBg,
+                            style: const TextStyle(color: Colors.white),
+                            icon: const Icon(
+                              Icons.class_outlined,
+                              color: Colors.white54,
+                              size: 18,
+                            ),
+                            items: majorsList.map((major) {
+                              return DropdownMenuItem<String>(
+                                value: major,
+                                child: Text(
+                                  major == 'All' ? 'All Majors' : major,
+                                  style: const TextStyle(fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _selectedMajor = val);
+                              }
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -273,136 +376,7 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.50,
-        minChildSize: 0.30,
-        maxChildSize: 0.85,
-        builder: (_, controller) => Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: DesignSystem.scaffoldBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 24,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: ListView(
-            controller: controller,
-            children: [
-              // Yearbook Photo
-              Center(
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    image: entry.yearbookPhotoUrl.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(entry.yearbookPhotoUrl),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color: entry.yearbookPhotoUrl.isEmpty
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : null,
-                  ),
-                  child: entry.yearbookPhotoUrl.isEmpty
-                      ? const Icon(
-                          Icons.person_rounded,
-                          color: Colors.white24,
-                          size: 48,
-                        )
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Name
-              Center(
-                child: Text(
-                  entry.fullName ?? 'Unknown',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Major
-              if (entry.major != null)
-                Center(
-                  child: Text(
-                    entry.major!,
-                    style: const TextStyle(color: Colors.white54, fontSize: 14),
-                  ),
-                ),
-
-              // Bio
-              if (entry.yearbookBio != null &&
-                  entry.yearbookBio!.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    entry.yearbookBio!,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 24),
-
-              // Actions
-              Center(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: DesignSystem.purpleAccent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('View Profile'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (ctx) => YearbookProfileDialog(entry: entry),
     );
   }
 }
@@ -492,6 +466,21 @@ class _StudentCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white54,
                         fontSize: 11,
+                      ),
+                    ),
+                  ],
+                  // Quote (Bio)
+                  if (entry.yearbookBio != null &&
+                      entry.yearbookBio!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '"${entry.yearbookBio}"',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
                   ],
