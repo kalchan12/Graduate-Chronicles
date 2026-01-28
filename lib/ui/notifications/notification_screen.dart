@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers.dart';
+import '../../state/notification_state.dart';
 import '../../theme/design_system.dart';
 
 /*
@@ -9,7 +9,6 @@ import '../../theme/design_system.dart';
   Central hub for user notifications.
   Features:
   - Tabbed filtering (All, Mentions, System, Requests).
-  - Chronological grouping (New vs Earlier).
   - Rich notification cards with badges and actions.
 */
 class NotificationScreen extends ConsumerWidget {
@@ -17,15 +16,7 @@ class NotificationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifications = ref.watch(notificationsProvider);
-
-    // Simple grouping logic based on string (Mock)
-    final newNotifications = notifications
-        .where((n) => n.time.contains('m ago'))
-        .toList();
-    final earlierNotifications = notifications
-        .where((n) => !n.time.contains('m ago'))
-        .toList();
+    final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
       backgroundColor: DesignSystem.scaffoldBg,
@@ -49,7 +40,9 @@ class NotificationScreen extends ConsumerWidget {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // Mark all is not yet implemented in notifier, but individual is
+                        },
                         child: const Text(
                           'Mark all as read',
                           style: TextStyle(color: DesignSystem.purpleAccent),
@@ -78,40 +71,43 @@ class NotificationScreen extends ConsumerWidget {
             ),
 
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  if (newNotifications.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+              child: notificationsAsync.when(
+                data: (notifications) {
+                  if (notifications.isEmpty) {
+                    return const Center(
                       child: Text(
-                        'NEW',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        'No notifications yet',
+                        style: TextStyle(color: Colors.white54),
                       ),
-                    ),
-                    ...newNotifications.map((n) => _NotificationCard(item: n)),
-                  ],
+                    );
+                  }
 
-                  if (earlierNotifications.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        'EARLIER',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  return RefreshIndicator(
+                    onRefresh: () =>
+                        ref.read(notificationsProvider.notifier).refresh(),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: notifications.length + 1, // +1 for padding
+                      itemBuilder: (context, index) {
+                        if (index == notifications.length) {
+                          return const SizedBox(height: 80);
+                        }
+                        return _NotificationCard(item: notifications[index]);
+                      },
                     ),
-                    ...earlierNotifications.map(
-                      (n) => _NotificationCard(item: n),
-                    ),
-                  ],
-                  const SizedBox(height: 80), // Bottom padding
-                ],
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: DesignSystem.purpleAccent,
+                  ),
+                ),
+                error: (error, stack) => Center(
+                  child: Text(
+                    'Error: $error',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
               ),
             ),
           ],
@@ -138,14 +134,27 @@ class NotificationScreen extends ConsumerWidget {
   }
 }
 
-class _NotificationCard extends StatelessWidget {
+class _NotificationCard extends ConsumerWidget {
   final NotificationItem item;
   const _NotificationCard({required this.item});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Mark as read if not read (optional, can be done on tap or seen)
+    // For now, let's keep it manual or implicit on action.
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: item.isRead
+            ? Colors.transparent
+            : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: item.isRead
+            ? null
+            : Border.all(color: DesignSystem.purpleAccent.withOpacity(0.2)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -154,10 +163,11 @@ class _NotificationCard extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: const Color(0xFF3A2738),
-                backgroundImage:
-                    item.iconType == 'like' || item.iconType == 'mention'
-                    ? const AssetImage('assets/images/user_placeholder.png')
-                    : null, // Mock logic
+                // We could fetch sender avatar if backend provided it.
+                // For now use placeholder.
+                backgroundImage: const AssetImage(
+                  'assets/images/user_placeholder.png',
+                ),
                 child: _getAvatarChild(item),
               ),
               Positioned(
@@ -197,48 +207,68 @@ class _NotificationCard extends StatelessWidget {
                   item.time,
                   style: const TextStyle(color: Colors.white38, fontSize: 12),
                 ),
+
+                // ACTIONS for Connection Request
+                if (item.iconType == 'connection_request' &&
+                    item.referenceId != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            ref
+                                .read(notificationsProvider.notifier)
+                                .acceptConnectionRequest(
+                                  item.id,
+                                  item.referenceId!,
+                                );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: DesignSystem.purpleAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 0),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text('Accept'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            ref
+                                .read(notificationsProvider.notifier)
+                                .denyConnectionRequest(
+                                  item.id,
+                                  item.referenceId!,
+                                );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white24),
+                            foregroundColor: Colors.white70,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 0),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text('Deny'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
+          // Follow back logic (if still relevant)
           if (item.iconType == 'follow')
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF32113F),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Follow Back',
-                  style: TextStyle(
-                    color: DesignSystem.purpleAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          if (item.metaImage != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Container(
-                width: 48,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.image,
-                  size: 16,
-                  color: Colors.white54,
-                ), // Placeholder
-              ),
-            ),
+            // ... (kept minimal)
+            const SizedBox.shrink(),
         ],
       ),
     );
@@ -248,13 +278,19 @@ class _NotificationCard extends StatelessWidget {
     if (item.iconType == 'alert' ||
         item.iconType == 'system' ||
         item.iconType == 'milestone') {
-      return null; // Will use icon badge or similar mainly
+      return null;
     }
     // Initials for users
-    return Text(
-      item.title[0],
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-    );
+    if (item.title.isNotEmpty) {
+      return Text(
+        item.title[0],
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+    return null;
   }
 
   Widget _getIconBadge(String type) {
@@ -274,6 +310,14 @@ class _NotificationCard extends StatelessWidget {
         icon = Icons.chat_bubble;
         color = Colors.blueAccent;
         break;
+      case 'connection_request':
+        icon = Icons.person_add;
+        color = DesignSystem.purpleAccent;
+        break;
+      case 'connection_accepted':
+        icon = Icons.check_circle;
+        color = Colors.greenAccent;
+        break;
       case 'follow':
         icon = Icons.person_add;
         color = DesignSystem.purpleAccent;
@@ -289,12 +333,6 @@ class _NotificationCard extends StatelessWidget {
       default:
         icon = Icons.notifications;
         color = DesignSystem.purpleAccent;
-    }
-
-    if (type == 'milestone' || type == 'alert') {
-      // For these types the main avatar IS the icon usually, but let's stick to badge style or update main avatar.
-      // Design uses main large icon for Alert/Milestone.
-      // Let's keep it simple with badge.
     }
 
     return Container(

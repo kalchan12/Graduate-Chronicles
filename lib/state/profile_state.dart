@@ -168,3 +168,26 @@ final profileAchievementsProvider = Provider<List<Map<String, String>>>((ref) {
     },
   ];
 });
+
+// Provider to fetch any user's profile by ID (for visiting)
+final otherUserProfileProvider = FutureProvider.family<UserProfile?, String>((
+  ref,
+  userId,
+) async {
+  final service = ref.read(supabaseServiceProvider);
+  final data = await service.getFullProfile(userId);
+  if (data != null) {
+    return UserProfile.fromMap(data);
+  }
+  return null;
+});
+
+// Provider to fetch connection status with a target AUTH ID
+final connectionStatusProvider = FutureProvider.family<String, String?>((
+  ref,
+  targetAuthId,
+) async {
+  if (targetAuthId == null) return 'none';
+  final service = ref.read(supabaseServiceProvider);
+  return await service.getConnectionStatus(targetAuthId);
+});

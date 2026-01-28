@@ -158,7 +158,7 @@ class BatchSummary {
 }
 
 // Mock feed provider returning a list of feed items.
-final feedProvider = Provider<List<FeedItem>>((ref) {
+final mockFeedProvider = Provider<List<FeedItem>>((ref) {
   return [
     FeedItem(
       id: '1',

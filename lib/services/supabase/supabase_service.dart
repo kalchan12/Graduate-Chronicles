@@ -1374,4 +1374,263 @@ class SupabaseService {
     final response = await queryBuilder.order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response as List);
   }
+
+  // ========== SOCIAL FEATURES (Connect & Notifications) ==========
+
+  // 1. Connection Requests
+
+  /// Send a connection request to a target user
+  Future<void> sendConnectionRequest(String targetUserId) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    await _client.from('connection_requests').insert({
+      'sender_id': myId,
+      'receiver_id': targetUserId,
+      'status': 'pending',
+    });
+  }
+
+  /// Respond to a connection request (Accept/Deny)
+  Future<void> respondToConnectionRequest(
+    String requestId,
+    String status,
+  ) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    await _client
+        .from('connection_requests')
+        .update({
+          'status': status,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', requestId);
+  }
+
+  /// Get connection status between current user and target user
+  /// Returns: 'none', 'pending_sent', 'pending_received', 'accepted', 'denied'
+  Future<String> getConnectionStatus(String targetUserId) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) return 'none';
+
+    // 1. Check if I sent a request
+    final myRequest = await _client
+        .from('connection_requests')
+        .select('status')
+        .eq('sender_id', myId)
+        .eq('receiver_id', targetUserId)
+        .maybeSingle();
+
+    if (myRequest != null) {
+      final status = myRequest['status'] as String;
+      if (status == 'accepted') return 'accepted';
+      if (status == 'pending') return 'pending_sent';
+    }
+
+    // 2. Check if they sent a request
+    final theirRequest = await _client
+        .from('connection_requests')
+        .select('status')
+        .eq('sender_id', targetUserId)
+        .eq('receiver_id', myId)
+        .maybeSingle();
+
+    if (theirRequest != null) {
+      final status = theirRequest['status'] as String;
+      // If they sent it and it's accepted, we are connected
+      if (status == 'accepted') return 'accepted';
+      // If they sent it and it's pending, I have a request to answer
+      if (status == 'pending') return 'pending_received';
+    }
+
+    return 'none';
+  }
+
+  // 2. Notifications
+
+  /// Fetch notifications  // 4. Notifications
+  Future<List<Map<String, dynamic>>> fetchNotifications() async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    return await _client
+        .from('notifications')
+        .select('*')
+        .eq('user_id', myId)
+        .order('created_at', ascending: false);
+  }
+
+  /// Mark notification as read
+  Future<void> markNotificationAsRead(String notificationId) async {
+    await _client.from('notifications').update({'is_read': true}).match({
+      'id': notificationId,
+    });
+  }
+
+  // ========== POSTS SYSTEM ==========
+
+  /// Upload media for a post
+  Future<String> uploadPostMedia(String filePath) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    final file = File(filePath);
+    final fileExt = filePath.split('.').last;
+    final fileName = '${DateTime.now().toIso8601String()}_${myId}.$fileExt';
+    final path = '$myId/$fileName';
+
+    try {
+      // 1. Upload
+      await _client.storage
+          .from('post_uploads')
+          .upload(
+            path,
+            file,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
+
+      // 2. Get Public URL
+      final url = _client.storage.from('post_uploads').getPublicUrl(path);
+      return url;
+    } catch (e) {
+      // If error, might be compression issue or network.
+      // For now, assume simpler upload.
+      rethrow;
+    }
+  }
+
+  /// Create a new post
+  Future<void> createPost({
+    required String description,
+    required List<String> mediaUrls,
+    String mediaType = 'image',
+  }) async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // CRITICAL: Lookup the user's user_id from users table
+    // posts.user_id references users(user_id), NOT auth.users(id)
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+
+    final userId = userRow['user_id'] as String;
+
+    // Insert with .select() to verify success
+    final result = await _client.from('posts').insert({
+      'user_id': userId,
+      'description': description,
+      'media_urls': mediaUrls,
+      'media_type': mediaType,
+    }).select();
+
+    if (result.isEmpty) {
+      throw Exception(
+        'Post insert failed - RLS may have blocked the operation',
+      );
+    }
+  }
+
+  /// Fetch posts for the feed (paginated)
+  Future<List<Map<String, dynamic>>> fetchPosts({
+    int limit = 10,
+    int offset = 0,
+  }) async {
+    // Explicitly name FK to avoid PostgREST "ambiguous relationship" error
+    // FK name follows pattern: [table]_[column]_fkey
+    final response = await _client
+        .from('posts')
+        .select('*, users!posts_user_id_fkey(full_name, username)')
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
+
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  /// Toggle Like on a post
+  /// Returns true if liked, false if unliked (after action)
+  Future<bool> toggleLike(String postId) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    // Check if already liked
+    final existing = await _client
+        .from('post_likes')
+        .select()
+        .eq('post_id', postId)
+        .eq('user_id', myId)
+        .maybeSingle();
+
+    if (existing != null) {
+      // Unlike
+      await _client
+          .from('post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', myId);
+      return false;
+    } else {
+      // Like
+      await _client.from('post_likes').insert({
+        'post_id': postId,
+        'user_id': myId,
+      });
+      return true;
+    }
+  }
+
+  /// Check if current user liked a post
+  Future<bool> hasLikedPost(String postId) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) return false;
+
+    final count = await _client
+        .from('post_likes')
+        .count(CountOption.exact)
+        .eq('post_id', postId)
+        .eq('user_id', myId);
+
+    return count > 0;
+  }
+
+  /// Add a comment
+  Future<void> addComment(String postId, String content) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    await _client.from('post_comments').insert({
+      'post_id': postId,
+      'user_id': myId,
+      'content': content,
+    });
+  }
+
+  /// Fetch comments for a post
+  Future<List<Map<String, dynamic>>> fetchComments(String postId) async {
+    final response = await _client
+        .from('post_comments')
+        .select('*, users!post_comments_user_id_fkey(full_name, username)')
+        .eq('post_id', postId)
+        .order('created_at', ascending: true); // Oldest first usually
+
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  /// Report a post
+  Future<void> reportPost(String postId, String reason) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    await _client.from('post_reports').insert({
+      'post_id': postId,
+      'reporter_id': myId,
+      'reason': reason,
+    });
+
+    // Optimistic update or trigger could flag the post
+    // await _client.from('posts').update({'is_reported': true}).eq('id', postId);
+  }
 }

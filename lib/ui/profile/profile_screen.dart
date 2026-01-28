@@ -7,7 +7,8 @@ import '../../state/portfolio_state.dart';
 import '../../core/providers/current_user_provider.dart'; // Added
 import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
-import '../messages/message_detail_screen.dart'; // Re-added if it was missing
+import '../messages/message_detail_screen.dart';
+import 'posts/create_post_screen.dart';
 
 import '../widgets/global_background.dart';
 
@@ -23,7 +24,8 @@ import '../widgets/global_background.dart';
   - Custom toast notification for actions
 */
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId; // Optional: If null, shows current user
+  const ProfileScreen({super.key, this.userId});
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -31,23 +33,29 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _selectedTab = 0;
-  bool _isConnectionSent = false;
+  bool _isConnectionLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Refresh profile to ensure latest data (e.g. after edits elsewhere)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(profileProvider.notifier).refresh();
-      // Also refresh current user for role
-      ref.read(currentUserProvider.notifier).refresh();
-
-      // Load Portfolio Data (Dependent on user ID)
-      final profile = ref.read(profileProvider);
-      if (profile.id.isNotEmpty) {
-        ref.read(portfolioProvider.notifier).loadPortfolio(profile.id);
-      }
+      _loadData();
     });
+  }
+
+  Future<void> _loadData() async {
+    // 1. Refresh current user regardless (for My Profile check)
+    ref.read(profileProvider.notifier).refresh();
+    ref.read(currentUserProvider.notifier).refresh();
+
+    // 2. Determine whose profile we are viewing
+    final myProfile = ref.read(profileProvider);
+    final targetId = widget.userId ?? myProfile.id;
+
+    // 3. Load Portfolio
+    if (targetId.isNotEmpty) {
+      ref.read(portfolioProvider.notifier).loadPortfolio(targetId);
+    }
   }
 
   void _showCustomToast(String message) {
@@ -107,55 +115,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
   }
 
-  void _showProfileImage() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: const BackButton(color: Colors.white),
-          ),
-          body: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Center(
-              child: Hero(
-                tag: 'profile_image',
-                child: ref.read(profileProvider).profileImage != null
-                    ? Image.network(ref.read(profileProvider).profileImage!)
-                    : const Icon(Icons.person, size: 150, color: Colors.white),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // We still watch the provider for other fields (name, degree, bio)
-    // BUT we use local state for the image to guarantee freshness.
-    final profile = ref.watch(profileProvider);
+    // 1. Determine Current User (Me)
+    final myProfile = ref.watch(profileProvider);
     final currentUserAsync = ref.watch(currentUserProvider);
     final role = currentUserAsync.value?.role;
 
-    // If needed, show loading if profile is empty OR check a loading state in provider
-    // For now we assume optimistic rendering or empty state is fine
+    // 2. Determine Target Profile (Displayed User)
+    final targetId = widget.userId ?? myProfile.id;
+    final isOwner = targetId == myProfile.id || widget.userId == null;
+
+    // 3. Fetch logic
+    UserProfile displayProfile = myProfile; // Default to me
+    AsyncValue<UserProfile?>? visitedProfileAsync;
+
+    if (!isOwner) {
+      // If visiting, watch the other profile provider
+      visitedProfileAsync = ref.watch(otherUserProfileProvider(targetId));
+      if (visitedProfileAsync?.value != null) {
+        displayProfile = visitedProfileAsync!.value!;
+      }
+    }
+
+    // 4. Connection Status (If visiting)
+    String connectionStatus = 'none';
+    if (!isOwner && displayProfile.authUserId != null) {
+      final statusAsync = ref.watch(
+        connectionStatusProvider(displayProfile.authUserId!),
+      );
+      connectionStatus = statusAsync.value ?? 'none';
+    }
+
+    // Handle Loading
+    if (!isOwner && visitedProfileAsync?.isLoading == true) {
+      return const Scaffold(
+        backgroundColor: DesignSystem.scaffoldBg,
+        body: Center(
+          child: CircularProgressIndicator(color: DesignSystem.purpleAccent),
+        ),
+      );
+    }
+
+    // Safety check if profile not found
+    if (!isOwner &&
+        visitedProfileAsync?.value == null &&
+        visitedProfileAsync?.isLoading == false) {
+      return const Scaffold(
+        backgroundColor: DesignSystem.scaffoldBg,
+        body: Center(
+          child: Text('User not found', style: TextStyle(color: Colors.white)),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
         child: RefreshIndicator(
           onRefresh: () async {
-            await ref.read(profileProvider.notifier).refresh();
-            await ref.read(currentUserProvider.notifier).refresh();
-            final profile = ref.read(profileProvider);
-            if (profile.id.isNotEmpty) {
+            if (isOwner) {
+              await ref.read(profileProvider.notifier).refresh();
+            } else {
+              // Invalidate to force refetch
+              ref.invalidate(otherUserProfileProvider(targetId));
+              if (displayProfile.authUserId != null) {
+                ref.invalidate(
+                  connectionStatusProvider(displayProfile.authUserId!),
+                );
+              }
+            }
+            if (targetId.isNotEmpty) {
               await ref
                   .read(portfolioProvider.notifier)
-                  .loadPortfolio(profile.id);
+                  .loadPortfolio(targetId);
             }
           },
           child: ListView(
@@ -170,39 +203,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Admin Access Button
-                    if (role == 'admin')
-                      IconButton(
-                        icon: const Icon(
-                          Icons.dashboard_customize,
-                          color: Color(0xFFE94CFF),
-                        ),
-                        tooltip: 'Admin Dashboard',
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/admin/dashboard'),
-                      )
-                    else
-                      IconButton(
-                        icon: const Icon(
-                          Icons.add_moderator,
-                          color: Colors.white70,
-                        ),
-                        tooltip: 'Request Admin Access',
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/admin/signup'),
-                      ),
-
-                    IconButton(
-                      icon: const Icon(Icons.settings, color: Colors.white),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SettingsMainScreen(),
+                    // Owner Only Actions
+                    if (isOwner) ...[
+                      // Admin Access Button
+                      if (role == 'admin')
+                        IconButton(
+                          icon: const Icon(
+                            Icons.dashboard_customize,
+                            color: Color(0xFFE94CFF),
                           ),
-                        );
-                      },
-                    ),
+                          tooltip: 'Admin Dashboard',
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/admin/dashboard'),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(
+                            Icons.add_moderator,
+                            color: Colors.white70,
+                          ),
+                          tooltip: 'Request Admin Access',
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/admin/signup'),
+                        ),
+
+                      IconButton(
+                        icon: const Icon(Icons.settings, color: Colors.white),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsMainScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -216,8 +252,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   children: [
                     // PART 3: UI Rendering (Provider State)
+                    // NOTE: Use displayProfile instead of profile
                     GestureDetector(
-                      onTap: _showProfileImage,
+                      onTap: () {
+                        // Show image
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              backgroundColor: Colors.black,
+                              appBar: AppBar(
+                                backgroundColor: Colors.transparent,
+                                leading: const BackButton(color: Colors.white),
+                              ),
+                              body: Center(
+                                child: Hero(
+                                  tag: 'profile_image',
+                                  child: displayProfile.profileImage != null
+                                      ? Image.network(
+                                          displayProfile.profileImage!,
+                                        )
+                                      : const Icon(
+                                          Icons.person,
+                                          size: 150,
+                                          color: Colors.white,
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                       child: Hero(
                         tag: 'profile_image',
                         child: Container(
@@ -243,9 +307,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ),
                             child: ClipOval(
-                              child: profile.profileImage != null
+                              child: displayProfile.profileImage != null
                                   ? Image.network(
-                                      profile.profileImage!,
+                                      displayProfile.profileImage!,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) =>
@@ -272,7 +336,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          profile.name,
+                          displayProfile.name,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -297,9 +361,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    if (profile.username.isNotEmpty) ...[
+                    if (displayProfile.username.isNotEmpty) ...[
                       Text(
-                        profile.username,
+                        displayProfile.username,
                         style: const TextStyle(
                           color: DesignSystem.purpleAccent,
                           fontSize: 14,
@@ -309,7 +373,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       const SizedBox(height: 4),
                     ],
                     Text(
-                      '${profile.degree} | ${profile.year}',
+                      '${displayProfile.degree} | ${displayProfile.year}',
                       style: const TextStyle(
                         color: Color(0xFFBDB1C9),
                         fontSize: 15,
@@ -324,38 +388,93 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isConnectionSent = !_isConnectionSent;
-                                });
-                                if (_isConnectionSent) {
-                                  _showCustomToast('Connection Request Sent');
-                                } else {
-                                  _showCustomToast(
-                                    'Connection Request Cancelled',
+                              onTap: () async {
+                                if (isOwner) {
+                                  // Post Action
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CreatePostScreen(),
+                                    ),
                                   );
+                                } else {
+                                  // Connect Action
+                                  if (connectionStatus == 'none') {
+                                    // Send Request
+                                    try {
+                                      setState(
+                                        () => _isConnectionLoading = true,
+                                      );
+                                      final service = ref.read(
+                                        supabaseServiceProvider,
+                                      );
+                                      if (displayProfile.authUserId != null) {
+                                        await service.sendConnectionRequest(
+                                          displayProfile.authUserId!,
+                                        );
+                                        _showCustomToast('Request Sent');
+                                        ref.invalidate(
+                                          connectionStatusProvider(
+                                            displayProfile.authUserId!,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      _showCustomToast('Failed to send');
+                                    } finally {
+                                      if (mounted) {
+                                        setState(
+                                          () => _isConnectionLoading = false,
+                                        );
+                                      }
+                                    }
+                                  } else if (connectionStatus ==
+                                      'pending_sent') {
+                                    // Maybe cancel? For now, just show toast
+                                    _showCustomToast('Request already sent');
+                                  }
                                 }
                               },
                               child: Container(
-                                height: 42, // Reduced height
+                                height: 42,
                                 decoration: BoxDecoration(
-                                  color: _isConnectionSent
-                                      ? const Color(0xFF2D2433)
-                                      : DesignSystem.purpleAccent,
+                                  color: isOwner
+                                      ? DesignSystem.purpleAccent
+                                      : (connectionStatus == 'accepted'
+                                            ? const Color(0xFF2D2433)
+                                            : DesignSystem.purpleAccent),
                                   borderRadius: BorderRadius.circular(21),
-                                  border: _isConnectionSent
+                                  border:
+                                      (connectionStatus == 'accepted' ||
+                                          connectionStatus == 'pending_sent')
                                       ? Border.all(color: Colors.white24)
                                       : null,
                                 ),
                                 child: Center(
-                                  child: Text(
-                                    _isConnectionSent ? 'Sent' : 'Connect',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
+                                  child: _isConnectionLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Text(
+                                          isOwner
+                                              ? 'Post'
+                                              : (connectionStatus == 'accepted'
+                                                    ? 'Connected'
+                                                    : (connectionStatus ==
+                                                              'pending_sent'
+                                                          ? 'Sent'
+                                                          : 'Connect')),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -364,7 +483,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () async {
-                                final authUserId = profile.authUserId;
+                                final authUserId = displayProfile.authUserId;
                                 if (authUserId == null) {
                                   _showCustomToast('User not found');
                                   return;
@@ -383,9 +502,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       MaterialPageRoute(
                                         builder: (_) => MessageDetailScreen(
                                           conversationId: convoId,
-                                          participantName: profile.name,
+                                          participantName: displayProfile.name,
                                           participantAvatar:
-                                              profile.profileImage,
+                                              displayProfile.profileImage,
                                         ),
                                       ),
                                     );
@@ -424,7 +543,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
 
               // Bio Section
-              if (profile.bio.isNotEmpty)
+              if (displayProfile.bio.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                   child: Container(
@@ -434,7 +553,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      profile.bio,
+                      displayProfile.bio,
                       style: const TextStyle(
                         color: Color(0xFFD6C9E6),
                         height: 1.5,
@@ -499,14 +618,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   }
 
                   List<Map<String, dynamic>> items = [];
-                  if (_selectedTab == 0)
+                  if (_selectedTab == 0) {
                     items = portfolio.achievements;
-                  else if (_selectedTab == 1)
+                  } else if (_selectedTab == 1) {
                     items = portfolio.resumes;
-                  else if (_selectedTab == 2)
+                  } else if (_selectedTab == 2) {
                     items = portfolio.certificates;
-                  else if (_selectedTab == 3)
+                  } else if (_selectedTab == 3) {
                     items = portfolio.links;
+                  }
 
                   if (items.isEmpty) {
                     return Padding(
