@@ -134,6 +134,13 @@ class FeedNotifier extends AsyncNotifier<List<PostItem>> {
     updatedList[index] = post.copyWith(commentsCount: post.commentsCount + 1);
     state = AsyncValue.data(updatedList);
   }
+
+  void removePost(String postId) {
+    final currentState = state.value;
+    if (currentState == null) return;
+    final updatedList = currentState.where((p) => p.id != postId).toList();
+    state = AsyncValue.data(updatedList);
+  }
 }
 
 final feedProvider = AsyncNotifierProvider<FeedNotifier, List<PostItem>>(

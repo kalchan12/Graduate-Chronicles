@@ -257,9 +257,17 @@ class SupabaseService {
       if (profilePictureUrl != null) {
         updates['profile_picture'] = profilePictureUrl;
       }
-
       await _client.from('profile').update(updates).eq('user_id', userId);
     }
+  }
+
+  Future<Map<String, dynamic>?> fetchUserProfile(String authUserId) async {
+    final res = await _client
+        .from('users')
+        .select('full_name, major, role, username')
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+    return res;
   }
 
   /*
@@ -679,7 +687,8 @@ class SupabaseService {
             username,
             major,
             school,
-            institutional_id
+            institutional_id,
+            user_id
           )
         ''')
         .eq('batch_id', batchId)
@@ -700,6 +709,8 @@ class SupabaseService {
             'major': userData?['major'],
             'school': userData?['school'],
             'institutional_id': userData?['institutional_id'],
+            'public_user_id':
+                userData?['user_id'], // Map nested public ID to flat key
           }..remove('users');
         })
         .where((entry) {
@@ -1662,5 +1673,23 @@ class SupabaseService {
       'reporter_id': userId,
       'reason': reason,
     });
+  }
+
+  /// Delete a post
+  Future<void> deletePost(String postId) async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Lookup real user_id
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userId = userRow['user_id'] as String;
+
+    // Delete (RLS will enforce ownership)
+    // We add user_id filter purely as an extra safety/sanity check
+    await _client.from('posts').delete().eq('id', postId).eq('user_id', userId);
   }
 }

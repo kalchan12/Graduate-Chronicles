@@ -23,6 +23,11 @@ class PortfolioState {
   final int views;
   final bool isLiked;
 
+  // Owner Details (fetched separately to support viewing others)
+  final String? ownerName;
+  final String? ownerDegree;
+  final String? ownerRole;
+
   const PortfolioState({
     this.achievements = const [],
     this.resumes = const [],
@@ -35,6 +40,9 @@ class PortfolioState {
     this.likes = 0,
     this.views = 0,
     this.isLiked = false,
+    this.ownerName,
+    this.ownerDegree,
+    this.ownerRole,
   });
 
   PortfolioState copyWith({
@@ -49,6 +57,9 @@ class PortfolioState {
     int? likes,
     int? views,
     bool? isLiked,
+    String? ownerName,
+    String? ownerDegree,
+    String? ownerRole,
   }) {
     return PortfolioState(
       achievements: achievements ?? this.achievements,
@@ -62,6 +73,9 @@ class PortfolioState {
       likes: likes ?? this.likes,
       views: views ?? this.views,
       isLiked: isLiked ?? this.isLiked,
+      ownerName: ownerName ?? this.ownerName,
+      ownerDegree: ownerDegree ?? this.ownerDegree,
+      ownerRole: ownerRole ?? this.ownerRole,
     );
   }
 }
@@ -113,6 +127,9 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         }
       }
 
+      // 3. Fetch Owner Profile Info
+      final profile = await service.fetchUserProfile(authId);
+
       state = state.copyWith(
         achievements: data['achievement'] ?? [],
         resumes: data['resume'] ?? [],
@@ -125,6 +142,9 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         views: stats['views'],
         isLiked: stats['isLiked'],
         isLoading: false,
+        ownerName: profile?['full_name'],
+        ownerDegree: profile?['major'],
+        ownerRole: profile?['role'],
       );
     } catch (e) {
       print('Portfolio Load Error: $e');
@@ -154,6 +174,9 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         stats = await service.getPortfolioStats(portfolioId);
       }
 
+      // 3. Fetch Owner Profile Info
+      final profile = await service.fetchUserProfile(user.id);
+
       state = state.copyWith(
         achievements: data['achievement'] ?? [],
         resumes: data['resume'] ?? [],
@@ -166,6 +189,9 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         views: stats['views'],
         isLiked: stats['isLiked'],
         isLoading: false,
+        ownerName: profile?['full_name'],
+        ownerDegree: profile?['major'],
+        ownerRole: profile?['role'],
       );
     } catch (e) {
       print('Current Portfolio Load Error: $e');

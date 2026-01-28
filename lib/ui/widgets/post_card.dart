@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/posts_state.dart';
+import '../../state/profile_state.dart';
 import '../../services/supabase/supabase_service.dart';
 import 'comments_sheet.dart';
 
@@ -58,6 +59,9 @@ class _PostCardState extends ConsumerState<PostCard>
   }
 
   void _showOptions() {
+    final myProfile = ref.read(profileProvider);
+    final isOwner = myProfile.id == widget.post.userId;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF2E1A36),
@@ -68,6 +72,18 @@ class _PostCardState extends ConsumerState<PostCard>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isOwner)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.redAccent),
+                title: const Text(
+                  'Delete Post',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDelete();
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.flag, color: Colors.orangeAccent),
               title: const Text(
@@ -88,6 +104,68 @@ class _PostCardState extends ConsumerState<PostCard>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2E1A36),
+        title: const Text(
+          'Delete post?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'This action cannot be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              try {
+                final service = ref.read(supabaseServiceProvider);
+                await service.deletePost(widget.post.id);
+
+                // Update Local State
+                ref.read(feedProvider.notifier).removePost(widget.post.id);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Post deleted'),
+                      backgroundColor: Colors.green.shade700,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete: $e'),
+                      backgroundColor: Colors.red.shade700,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }

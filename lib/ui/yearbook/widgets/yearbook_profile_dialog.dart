@@ -303,11 +303,12 @@ class YearbookProfileDialog extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(context).pop();
                             // Navigate to Portfolio
-                            // Note: Currently goes to current user portfolio as per existing routes
-                            // Ideally this would accept entry.userId
+                            // Pass Public ID if available (which it should be), else fallback to Auth ID (might fail but better than nothing)
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const PortfolioHubScreen(),
+                                builder: (_) => PortfolioHubScreen(
+                                  userId: entry.publicUserId ?? entry.userId,
+                                ),
                               ),
                             );
                           },
@@ -338,10 +339,10 @@ class YearbookProfileDialog extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(context).pop();
                             // Navigate to Profile
-                            // Note: Currently goes to current user profile
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const ProfileScreen(),
+                                builder: (_) =>
+                                    ProfileScreen(userId: entry.userId),
                               ),
                             );
                           },

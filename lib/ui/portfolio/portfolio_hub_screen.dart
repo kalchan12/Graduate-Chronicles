@@ -23,7 +23,8 @@ import '../widgets/toast_helper.dart';
   - Floating action button to manage portfolio items.
 */
 class PortfolioHubScreen extends ConsumerStatefulWidget {
-  const PortfolioHubScreen({super.key});
+  final String? userId; // Optional: If null, shows current user (owner)
+  const PortfolioHubScreen({super.key, this.userId});
 
   @override
   ConsumerState<PortfolioHubScreen> createState() => _PortfolioHubScreenState();
@@ -37,8 +38,24 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
+      _loadData();
     });
+  }
+
+  Future<void> _loadData() async {
+    // Determine target ID
+    final myProfile = ref.read(profileProvider);
+    final targetId = widget.userId ?? myProfile.id;
+
+    if (targetId.isNotEmpty) {
+      if (widget.userId == null) {
+        // Owner/Default
+        ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
+      } else {
+        // Visitor
+        ref.read(portfolioProvider.notifier).loadPortfolio(targetId);
+      }
+    }
   }
 
   Future<void> _launchUrl(String urlString) async {
@@ -49,6 +66,11 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
   }
 
   Future<void> _pickAndUploadImage(String type) async {
+    // Safety check: Only owner can upload
+    final myProfile = ref.read(profileProvider);
+    final isOwner = widget.userId == null || widget.userId == myProfile.id;
+    if (!isOwner) return;
+
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
@@ -98,6 +120,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     final portfolio = ref.watch(portfolioProvider);
     final userProfile = ref.watch(profileProvider);
 
+    final myProfile = ref.watch(profileProvider);
+    final isOwner = widget.userId == null || widget.userId == myProfile.id;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
@@ -106,9 +131,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
             // -- Main Scrollable Content --
             RefreshIndicator(
               onRefresh: () async {
-                await ref
-                    .read(portfolioProvider.notifier)
-                    .loadCurrentPortfolio();
+                await _loadData();
               },
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 100),
@@ -127,7 +150,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                             right: 0,
                             height: 240, // Taller cover
                             child: GestureDetector(
-                              onTap: () => _pickAndUploadImage('cover'),
+                              onTap: isOwner
+                                  ? () => _pickAndUploadImage('cover')
+                                  : null,
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
@@ -183,32 +208,33 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                                   ),
 
                                   // Edit Overlay hint (Floating) - Moved to Top Right
-                                  Positioned(
-                                    top: 0,
-                                    right: 0,
-                                    child: SafeArea(
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 8,
-                                        ),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.3,
-                                            ),
-                                            shape: BoxShape.circle,
+                                  if (isOwner)
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: SafeArea(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 8,
                                           ),
-                                          child: const Icon(
-                                            Icons.add_a_photo,
-                                            color: Colors.white,
-                                            size: 18,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_a_photo,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
 
                                   if (_isUploading)
                                     Container(
@@ -236,7 +262,10 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                             left: 0,
                             right: 0,
                             child: Center(
-                              child: _buildAvatar(portfolio.profileImageUrl),
+                              child: _buildAvatar(
+                                portfolio.profileImageUrl,
+                                isOwner,
+                              ),
                             ),
                           ),
                         ],
@@ -245,11 +274,14 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
 
                     const SizedBox(height: 16),
 
-                    // -- Name & Role (Dynamic from ProfileState) --
+                    // -- Name & Role (Dynamic from Portfolio State) --
+                    // Uses ownerName if available (other user), otherwise falls back to userProfile (me) or "Student"
                     Text(
-                      userProfile.name.isNotEmpty
-                          ? userProfile.name
-                          : 'Student',
+                      (portfolio.ownerName != null && portfolio.ownerName!.isNotEmpty)
+                          ? portfolio.ownerName!
+                          : (isOwner && userProfile.name.isNotEmpty
+                              ? userProfile.name
+                              : 'Student'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -259,9 +291,11 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      userProfile.degree.isNotEmpty
-                          ? '${userProfile.degree} @ Graduate Chronicles'
-                          : 'Graduate Student',
+                      (portfolio.ownerDegree != null && portfolio.ownerDegree!.isNotEmpty)
+                          ? '${portfolio.ownerDegree} @ Graduate Chronicles'
+                          : (isOwner && userProfile.degree.isNotEmpty
+                              ? '${userProfile.degree} @ Graduate Chronicles'
+                              : 'Graduate Student'),
                       style: TextStyle(
                         color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
                         fontSize: 15,
@@ -321,11 +355,13 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                         portfolio.resumes.isEmpty &&
                         portfolio.certificates.isEmpty &&
                         portfolio.links.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(32.0),
+                      Padding(
+                        padding: const EdgeInsets.all(32.0),
                         child: Text(
-                          "No portfolio items yet. Tap + to add!",
-                          style: TextStyle(color: Colors.white54),
+                          isOwner
+                              ? "No portfolio items yet. Tap + to add!"
+                              : "No portfolio items shared.",
+                          style: const TextStyle(color: Colors.white54),
                         ),
                       ),
                   ],
@@ -334,27 +370,30 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
             ),
 
             // -- Floating Add Button --
-            Positioned(
-              bottom: 24,
-              right: 24,
-              child: FloatingActionButton(
-                onPressed: () {
-                  // Navigate to Portfolio Management Screen to add items
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PortfolioManagementScreen(),
-                    ),
-                  ).then((_) {
-                    // Refresh on return
-                    ref.read(portfolioProvider.notifier).loadCurrentPortfolio();
-                  });
-                },
-                backgroundColor: DesignSystem.purpleAccent,
-                elevation: 8,
-                child: const Icon(Icons.add, color: Colors.white, size: 28),
+            if (isOwner)
+              Positioned(
+                bottom: 24,
+                right: 24,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    // Navigate to Portfolio Management Screen to add items
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PortfolioManagementScreen(),
+                      ),
+                    ).then((_) {
+                      // Refresh on return
+                      ref
+                          .read(portfolioProvider.notifier)
+                          .loadCurrentPortfolio();
+                    });
+                  },
+                  backgroundColor: DesignSystem.purpleAccent,
+                  elevation: 8,
+                  child: const Icon(Icons.add, color: Colors.white, size: 28),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -403,9 +442,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     );
   }
 
-  Widget _buildAvatar(String? imageUrl) {
+  Widget _buildAvatar(String? imageUrl, bool isOwner) {
     return GestureDetector(
-      onTap: () => _pickAndUploadImage('profile'),
+      onTap: isOwner ? () => _pickAndUploadImage('profile') : null,
       child: Stack(
         alignment: Alignment.bottomRight,
         children: [
