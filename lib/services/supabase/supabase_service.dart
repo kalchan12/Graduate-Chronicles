@@ -1402,6 +1402,45 @@ class SupabaseService {
     });
   }
 
+  // ========== ADMIN: CONTENT MODERATION ==========
+
+  Future<List<Map<String, dynamic>>> fetchReportedPosts() async {
+    // Join post_reports -> posts -> users (owner)
+    // Note: This relies on Policies allowing admin access
+    try {
+      final res = await _client
+          .from('post_reports')
+          .select('*, posts(*, users(full_name, username, institutional_id))')
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      print('Error fetching reported posts: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> banPost(String postId) async {
+    // Hard delete the post.
+    // This will cascade delete the reports.
+    try {
+      await _client.from('posts').delete().eq('id', postId);
+      print('Post $postId banned/deleted.');
+    } catch (e) {
+      print('Error banning post: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> dismissReport(String reportId) async {
+    // Delete the report but keep the post.
+    try {
+      await _client.from('post_reports').delete().eq('id', reportId);
+    } catch (e) {
+      print('Error dismissing report: $e');
+      rethrow;
+    }
+  }
+
   /// Respond to a connection request (Accept/Deny)
   Future<void> respondToConnectionRequest(
     String requestId,

@@ -24,6 +24,7 @@ class _ContentMonitoringScreenState
   int _selectedTab = 0; // 0: Reported, 1: Yearbook
   List<Map<String, dynamic>> _pendingYearbookEntries = [];
   List<Map<String, dynamic>> _yearbookBatches = [];
+  List<Map<String, dynamic>> _reportedPosts = []; // New state for reports
   bool _isLoading = false;
 
   @override
@@ -31,6 +32,67 @@ class _ContentMonitoringScreenState
     super.initState();
     _loadPendingEntries();
     _loadBatches();
+    _loadReportedPosts(); // Load reports
+  }
+
+  Future<void> _loadReportedPosts() async {
+    // Only set loading if it's the first load to avoid flickering if we want silent refresh
+    // But for now, let's just do simple loading
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final reports = await service.fetchReportedPosts();
+      if (mounted) {
+        setState(
+          () => _reportedPosts = List<Map<String, dynamic>>.from(reports),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error loading reported posts: $e');
+    }
+  }
+
+  Future<void> _handleBanPost(String postId) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.banPost(postId);
+      await _loadReportedPosts(); // Refresh list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post banned and removed.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error banning post: $e')));
+      }
+    }
+  }
+
+  Future<void> _handleDismissReport(String reportId) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.dismissReport(reportId);
+      await _loadReportedPosts(); // Refresh list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Report dismissed.'),
+            backgroundColor: Colors.grey,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error dismissing report: $e')));
+      }
+    }
   }
 
   Future<void> _loadBatches() async {
@@ -38,7 +100,9 @@ class _ContentMonitoringScreenState
       final service = ref.read(supabaseServiceProvider);
       final batches = await service.fetchYearbookBatches();
       if (mounted) {
-        setState(() => _yearbookBatches = batches);
+        setState(
+          () => _yearbookBatches = List<Map<String, dynamic>>.from(batches),
+        );
       }
     } catch (e) {
       debugPrint('Error loading batches: $e');
@@ -193,7 +257,7 @@ class _ContentMonitoringScreenState
       final service = ref.read(supabaseServiceProvider);
       final entries = await service.fetchPendingYearbookEntries();
       setState(() {
-        _pendingYearbookEntries = entries;
+        _pendingYearbookEntries = List<Map<String, dynamic>>.from(entries);
       });
     } catch (e) {
       debugPrint('Error loading pending entries: $e');
@@ -354,149 +418,226 @@ class _ContentMonitoringScreenState
   }
 
   Widget _buildReportedContent() {
+    if (_reportedPosts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white24,
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No reported content',
+              style: TextStyle(color: Colors.white54, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Static Reported Item Example
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0x1F2A2438),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.redAccent.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withValues(alpha: 0.1),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.redAccent,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'FLAGGED: HARASSMENT',
-                        style: TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '2h ago',
-                        style: TextStyle(
-                          color: Colors.redAccent.withValues(alpha: 0.7),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+          ...List.generate(_reportedPosts.length, (index) {
+            final report = _reportedPosts[index];
+            final post = report['posts'];
+
+            // Handle case where post might be null (already deleted but report lingers?)
+            if (post == null) return const SizedBox.shrink();
+
+            final user = post['users'];
+            final reason = report['reason'] ?? 'No reason provided';
+            final createdAt =
+                DateTime.tryParse(report['created_at'] ?? '') ?? DateTime.now();
+            final timeAgo = DateTime.now().difference(createdAt).inHours;
+            final timeLabel = timeAgo > 24
+                ? '${(timeAgo / 24).floor()}d ago'
+                : '${timeAgo}h ago';
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0x1F2A2438),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.3),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.1),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                      ),
+                      child: Row(
                         children: [
-                          const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.white10,
-                            child: Icon(Icons.person, color: Colors.white38),
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(width: 8),
+                          Text(
+                            'FLAGGED: ${reason.toString().toUpperCase()}',
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const Spacer(),
+                          // Status Label
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              (report['status'] ?? 'pending')
+                                  .toString()
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            timeLabel,
+                            style: TextStyle(
+                              color: Colors.redAccent.withValues(alpha: 0.7),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              const Text(
-                                '@jake_runner',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                              const CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Colors.white10,
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white38,
                                 ),
                               ),
-                              Text(
-                                'ID: #89281',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                  fontSize: 11,
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '@${user?['username'] ?? 'unknown'}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'ID: #${user?['institutional_id'] ?? 'N/A'}',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            post['description'] ?? 'No description',
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Actions
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () =>
+                                      _handleDismissReport(report['id']),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: Colors.white24,
+                                    ),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'DISMISS',
+                                  ), // Keeps logic as "Pending" or removed from list?
+                                  // Wait, dismissing usually removes from list but keeps post.
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => _handleBanPost(post['id']),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'BAN POST',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Why does everyone think the gala was good? It was a total disaster. The organizers are incompetent... [See more]',
-                        style: TextStyle(color: Colors.white70, height: 1.4),
-                      ),
-                      const SizedBox(height: 16),
-                      // Actions
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {},
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white24),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text('DISMISS'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text(
-                                'REMOVE POST',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          }),
 
           const SizedBox(height: 30),
           _SectionHeader('Community Events (Mock)'),
           const SizedBox(height: 12),
-          _EventCard(
+          const _EventCard(
             title: 'Mentorship: Tech Careers',
             subtitle: 'Request by Tech Club • Requires Approval',
             status: 'PENDING',
