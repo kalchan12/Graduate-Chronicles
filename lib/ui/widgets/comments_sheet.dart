@@ -103,16 +103,12 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                             children: [
                               CircleAvatar(
                                 radius: 16,
-                                backgroundImage: user['avatar_url'] != null
-                                    ? NetworkImage(user['avatar_url'])
-                                    : null,
-                                child: user['avatar_url'] == null
-                                    ? const Icon(
-                                        Icons.person,
-                                        size: 16,
-                                        color: Colors.white,
-                                      )
-                                    : null,
+                                backgroundColor: Colors.grey[800],
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: Colors.white54,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(

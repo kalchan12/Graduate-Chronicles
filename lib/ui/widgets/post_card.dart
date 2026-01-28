@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/posts_state.dart';
+import '../../services/supabase/supabase_service.dart';
 import 'comments_sheet.dart';
 
 class PostCard extends ConsumerStatefulWidget {
@@ -75,13 +76,7 @@ class _PostCardState extends ConsumerState<PostCard>
               ),
               onTap: () {
                 Navigator.pop(context);
-                // Handle report logic (toast + api)
-                // For now just toast
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Report submitted. We will review this.'),
-                  ),
-                );
+                _showReportDialog();
               },
             ),
             ListTile(
@@ -90,6 +85,99 @@ class _PostCardState extends ConsumerState<PostCard>
               onTap: () {
                 Navigator.pop(context);
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReportDialog() {
+    String? selectedReason;
+    final reasons = [
+      'Spam or misleading',
+      'Harassment or bullying',
+      'Inappropriate content',
+      'Violence',
+      'Other',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF2E1A36),
+          title: const Text(
+            'Report Post',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: reasons
+                .map(
+                  (reason) => RadioListTile<String>(
+                    title: Text(
+                      reason,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    value: reason,
+                    groupValue: selectedReason,
+                    activeColor: Colors.orangeAccent,
+                    onChanged: (value) =>
+                        setDialogState(() => selectedReason = value),
+                  ),
+                )
+                .toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: selectedReason == null
+                  ? null
+                  : () async {
+                      Navigator.pop(context);
+                      try {
+                        final service = ref.read(supabaseServiceProvider);
+                        await service.reportPost(
+                          widget.post.id,
+                          selectedReason!,
+                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Report submitted. We will review this.',
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Failed to report: ${e.toString().contains('unique') ? 'Already reported' : 'Try again'}',
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orangeAccent,
+                disabledBackgroundColor: Colors.grey,
+              ),
+              child: const Text('Submit'),
             ),
           ],
         ),

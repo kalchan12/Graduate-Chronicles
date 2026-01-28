@@ -1553,15 +1553,23 @@ class SupabaseService {
   /// Toggle Like on a post
   /// Returns true if liked, false if unliked (after action)
   Future<bool> toggleLike(String postId) async {
-    final myId = _client.auth.currentUser?.id;
-    if (myId == null) throw Exception('Not authenticated');
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Lookup real user_id
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userId = userRow['user_id'] as String;
 
     // Check if already liked
     final existing = await _client
         .from('post_likes')
         .select()
         .eq('post_id', postId)
-        .eq('user_id', myId)
+        .eq('user_id', userId)
         .maybeSingle();
 
     if (existing != null) {
@@ -1570,13 +1578,13 @@ class SupabaseService {
           .from('post_likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', myId);
+          .eq('user_id', userId);
       return false;
     } else {
       // Like
       await _client.from('post_likes').insert({
         'post_id': postId,
-        'user_id': myId,
+        'user_id': userId,
       });
       return true;
     }
@@ -1584,26 +1592,43 @@ class SupabaseService {
 
   /// Check if current user liked a post
   Future<bool> hasLikedPost(String postId) async {
-    final myId = _client.auth.currentUser?.id;
-    if (myId == null) return false;
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) return false;
+
+    // Lookup real user_id
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .maybeSingle();
+    if (userRow == null) return false;
+    final userId = userRow['user_id'] as String;
 
     final count = await _client
         .from('post_likes')
         .count(CountOption.exact)
         .eq('post_id', postId)
-        .eq('user_id', myId);
+        .eq('user_id', userId);
 
     return count > 0;
   }
 
   /// Add a comment
   Future<void> addComment(String postId, String content) async {
-    final myId = _client.auth.currentUser?.id;
-    if (myId == null) throw Exception('Not authenticated');
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Lookup real user_id
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userId = userRow['user_id'] as String;
 
     await _client.from('post_comments').insert({
       'post_id': postId,
-      'user_id': myId,
+      'user_id': userId,
       'content': content,
     });
   }
@@ -1614,23 +1639,28 @@ class SupabaseService {
         .from('post_comments')
         .select('*, users!post_comments_user_id_fkey(full_name, username)')
         .eq('post_id', postId)
-        .order('created_at', ascending: true); // Oldest first usually
+        .order('created_at', ascending: true);
 
     return List<Map<String, dynamic>>.from(response as List);
   }
 
   /// Report a post
   Future<void> reportPost(String postId, String reason) async {
-    final myId = _client.auth.currentUser?.id;
-    if (myId == null) throw Exception('Not authenticated');
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Lookup real user_id
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userId = userRow['user_id'] as String;
 
     await _client.from('post_reports').insert({
       'post_id': postId,
-      'reporter_id': myId,
+      'reporter_id': userId,
       'reason': reason,
     });
-
-    // Optimistic update or trigger could flag the post
-    // await _client.from('posts').update({'is_reported': true}).eq('id', postId);
   }
 }
