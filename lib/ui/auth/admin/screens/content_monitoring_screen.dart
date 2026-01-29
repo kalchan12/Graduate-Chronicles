@@ -36,18 +36,25 @@ class _ContentMonitoringScreenState
   }
 
   Future<void> _loadReportedPosts() async {
-    // Only set loading if it's the first load to avoid flickering if we want silent refresh
-    // But for now, let's just do simple loading
+    debugPrint('DEBUG: _loadReportedPosts() called');
     try {
       final service = ref.read(supabaseServiceProvider);
+      debugPrint('DEBUG: Calling fetchReportedPosts...');
       final reports = await service.fetchReportedPosts();
+      debugPrint(
+        'DEBUG: fetchReportedPosts returned ${reports.length} reports',
+      );
       if (mounted) {
-        setState(
-          () => _reportedPosts = List<Map<String, dynamic>>.from(reports),
-        );
+        setState(() {
+          _reportedPosts = List<Map<String, dynamic>>.from(reports);
+          debugPrint(
+            'DEBUG: _reportedPosts updated, count: ${_reportedPosts.length}',
+          );
+        });
       }
-    } catch (e) {
-      debugPrint('Error loading reported posts: $e');
+    } catch (e, stack) {
+      debugPrint('ERROR loading reported posts: $e');
+      debugPrint('Stack: $stack');
     }
   }
 
@@ -378,9 +385,20 @@ class _ContentMonitoringScreenState
 
                     // Content
                     Expanded(
-                      child: _selectedTab == 0
-                          ? _buildReportedContent()
-                          : _buildYearbookApproval(),
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          if (_selectedTab == 0) {
+                            await _loadReportedPosts();
+                          } else {
+                            await _loadBatches();
+                          }
+                        },
+                        color: const Color(0xFF9B2CFF),
+                        backgroundColor: const Color(0xFF2E0F3B),
+                        child: _selectedTab == 0
+                            ? _buildReportedContent()
+                            : _buildYearbookApproval(),
+                      ),
                     ),
                   ],
                 ),
@@ -450,7 +468,9 @@ class _ContentMonitoringScreenState
             // Handle case where post might be null (already deleted but report lingers?)
             if (post == null) return const SizedBox.shrink();
 
-            final user = post['users'];
+            final reporter = report['reporter'];
+            final owner = post['owner'];
+
             final reason = report['reason'] ?? 'No reason provided';
             final createdAt =
                 DateTime.tryParse(report['created_at'] ?? '') ?? DateTime.now();
@@ -490,16 +510,19 @@ class _ContentMonitoringScreenState
                             size: 20,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            'FLAGGED: ${reason.toString().toUpperCase()}',
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              letterSpacing: 1,
+                          Expanded(
+                            child: Text(
+                              'FLAGGED: ${reason.toString().toUpperCase()}',
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                letterSpacing: 1,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
+
                           // Status Label
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -537,6 +560,29 @@ class _ContentMonitoringScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Reporter Info
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.flag,
+                                size: 16,
+                                color: Colors.white.withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Reported by: @${reporter?['username'] ?? 'Unknown'}',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(color: Colors.white10),
+                          const SizedBox(height: 12),
+
                           Row(
                             children: [
                               const CircleAvatar(
@@ -552,14 +598,14 @@ class _ContentMonitoringScreenState
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '@${user?['username'] ?? 'unknown'}',
+                                    '@${owner?['username'] ?? 'unknown'}',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   Text(
-                                    'ID: #${user?['institutional_id'] ?? 'N/A'}',
+                                    'ID: #${owner?['institutional_id'] ?? 'N/A'}',
                                     style: TextStyle(
                                       color: Colors.white.withValues(
                                         alpha: 0.4,
@@ -598,10 +644,7 @@ class _ContentMonitoringScreenState
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'DISMISS',
-                                  ), // Keeps logic as "Pending" or removed from list?
-                                  // Wait, dismissing usually removes from list but keeps post.
+                                  child: const Text('DISMISS'),
                                 ),
                               ),
                               const SizedBox(width: 12),

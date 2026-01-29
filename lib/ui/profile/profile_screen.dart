@@ -7,7 +7,8 @@ import '../../state/portfolio_state.dart';
 import '../../core/providers/current_user_provider.dart'; // Added
 import '../widgets/custom_app_bar.dart';
 import '../../settings/settings_main_screen.dart';
-import '../messages/message_detail_screen.dart';
+import '../../messaging/providers/messaging_provider.dart';
+import '../../messaging/ui/chat_screen.dart';
 import 'posts/create_post_screen.dart';
 
 import '../widgets/global_background.dart';
@@ -490,17 +491,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 }
 
                                 try {
-                                  final service = ref.read(
-                                    supabaseServiceProvider,
-                                  );
-                                  final convoId = await service
+                                  final convoId = await ref
+                                      .read(conversationsProvider.notifier)
                                       .startConversation(authUserId);
 
                                   if (mounted) {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => MessageDetailScreen(
+                                        builder: (_) => ChatScreen(
                                           conversationId: convoId,
                                           participantName: displayProfile.name,
                                           participantAvatar:

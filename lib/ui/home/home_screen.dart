@@ -12,7 +12,7 @@ import '../../state/posts_state.dart';
 import '../widgets/post_card.dart';
 
 import '../profile/profile_screen.dart';
-import '../discovery/user_discovery_screen.dart';
+import '../../messaging/ui/discover_screen.dart';
 
 // Home feed screen implemented to match the provided static HTML layout.
 /*
@@ -258,9 +258,7 @@ class _HomeAppBar extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const UserDiscoveryScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const DiscoverScreen()),
                   );
                 },
                 icon: const Icon(Icons.search, color: Colors.white),

@@ -1052,209 +1052,6 @@ class SupabaseService {
         .eq('portfolio_id', portfolioId);
   }
 
-  // --- User Discovery ---
-
-  Future<List<Map<String, dynamic>>> fetchDiscoverableUsers() async {
-    final userId = _client.auth.currentUser?.id;
-
-    // FILTERS FIRST, then order.
-
-    // We need two queries depending on auth? No, just filter applier.
-    // We'll use the joined query strategy, but correct order.
-
-    var joinedQuery = _client
-        .from('users')
-        .select('*, profile(profile_picture)');
-
-    if (userId != null) {
-      joinedQuery = joinedQuery.neq('auth_user_id', userId);
-    }
-
-    // order() is a modifier, comes last.
-    final res = await joinedQuery.order('created_at', ascending: false);
-
-    final List<Map<String, dynamic>> users = [];
-
-    for (var row in (res as List)) {
-      final user = Map<String, dynamic>.from(row);
-
-      // Fix Profile Picture URL
-      // profile is a single object or list depending on relationship (1:1 -> object)
-      final profile = user['profile'];
-      String? avatarUrl;
-
-      if (profile != null && profile['profile_picture'] != null) {
-        final path = profile['profile_picture'];
-        avatarUrl = _client.storage.from('avatar').getPublicUrl(path);
-      }
-
-      user['avatar_url'] = avatarUrl;
-      users.add(user);
-    }
-
-    return users;
-  }
-
-  // --- Messaging System ---
-
-  Future<String> startConversation(String targetUserId) async {
-    final currentUserId = _client.auth.currentUser?.id;
-    if (currentUserId == null) throw Exception('Not authenticated');
-
-    // 1. Try to reuse existing conversation via secure RPC
-    // The RPC 'get_conversation_id' bypasses RLS to check for an existing chat ID
-    try {
-      final data = await _client.rpc(
-        'get_conversation_id',
-        params: {'target_user_id': targetUserId},
-      );
-
-      if (data != null) {
-        return data as String;
-      }
-    } catch (e) {
-      // If RPC is missing or fails, log it but proceed to try creating (or fail if critical)
-      print('RPC get_conversation_id error (ignoring): $e');
-    }
-
-    // 2. Create New Conversation (Strict Order Required by RLS)
-
-    // Step A: Create Conversation Row (No user_id, public creation allowed)
-    final convoRes = await _client
-        .from('conversations')
-        .insert({})
-        .select('id')
-        .single();
-    final convoId = convoRes['id'] as String;
-
-    // Step B: Add SELF (Allowed by RLS rule: "user_id = auth.uid()")
-    await _client.from('conversation_participants').insert({
-      'conversation_id': convoId,
-      'user_id': currentUserId,
-    });
-
-    // Step C: Add TARGET (Allowed by RLS rule: "EXISTS... I am a participant")
-    // This MUST happen after Step B.
-    await _client.from('conversation_participants').insert({
-      'conversation_id': convoId,
-      'user_id': targetUserId,
-    });
-
-    return convoId;
-  }
-
-  // Need helper to resolve Public ID -> Auth ID if we use Public IDs in UI
-  // I already have `getAuthIdFromPublicId`.
-
-  Future<List<Map<String, dynamic>>> fetchConversations() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Not authenticated');
-
-    // Get my conversations
-    final myConvos = await _client
-        .from('conversation_participants')
-        .select('conversation_id, conversations(updated_at)')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false); // Order by join? tricky.
-
-    // We want to sort by updated_at of conversation usually.
-    // For now, simple list.
-
-    final List<Map<String, dynamic>> fullConvos = [];
-
-    for (var c in (myConvos as List)) {
-      final convoId = c['conversation_id'];
-
-      // Get Other Participants (names, avatars)
-      final participants = await _client
-          .from('conversation_participants')
-          .select('user_id')
-          .eq('conversation_id', convoId)
-          .neq('user_id', userId); // Exclude me
-
-      if ((participants as List).isEmpty) continue; // Just me?
-
-      final otherAuthId = participants.first['user_id'];
-
-      // Get details for snippet
-      final userDetails = await _client
-          .from('users')
-          .select('full_name, username')
-          .eq('auth_user_id', otherAuthId)
-          .maybeSingle();
-
-      // Get Avatar
-      final profileParams = await _client
-          .from('profile')
-          .select('profile_picture')
-          .eq('user_id', otherAuthId)
-          .maybeSingle();
-      String? avatar;
-      if (profileParams != null && profileParams['profile_picture'] != null) {
-        avatar = _client.storage
-            .from('avatar')
-            .getPublicUrl(profileParams['profile_picture']);
-      }
-
-      // Get Last Message
-      final lastMsg = await _client
-          .from('messages')
-          .select('content, created_at, sender_id')
-          .eq('conversation_id', convoId)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      fullConvos.add({
-        'id': convoId,
-        'other_user_name': userDetails?['full_name'] ?? 'User',
-        'other_user_avatar': avatar,
-        'target_auth_id': otherAuthId, // Useful for navigation
-        'last_message': lastMsg?['content'],
-        'last_message_time': lastMsg?['created_at'],
-      });
-    }
-
-    return fullConvos;
-  }
-
-  Future<List<Map<String, dynamic>>> fetchMessages(
-    String conversationId,
-  ) async {
-    final res = await _client
-        .from('messages')
-        .select()
-        .eq('conversation_id', conversationId)
-        .order('created_at', ascending: true); // Oldest first for chat list
-
-    return List<Map<String, dynamic>>.from(res);
-  }
-
-  Stream<List<Map<String, dynamic>>> getMessagesStream(String conversationId) {
-    return _client
-        .from('messages')
-        .stream(primaryKey: ['id'])
-        .eq('conversation_id', conversationId)
-        .order('created_at', ascending: true);
-  }
-
-  Future<void> sendMessage(String conversationId, String content) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Not authenticated');
-
-    await _client.from('messages').insert({
-      'conversation_id': conversationId,
-      'sender_id': userId,
-      'content': content,
-    });
-
-    // Update conversation updated_at
-    await _client
-        .from('conversations')
-        .update({'updated_at': DateTime.now().toIso8601String()})
-        .eq('id', conversationId);
-  }
-
   // --- Admin Access System ---
 
   /*
@@ -1405,14 +1202,69 @@ class SupabaseService {
   // ========== ADMIN: CONTENT MODERATION ==========
 
   Future<List<Map<String, dynamic>>> fetchReportedPosts() async {
-    // Join post_reports -> posts -> users (owner)
-    // Note: This relies on Policies allowing admin access
+    // SIMPLIFIED APPROACH: Fetch reports first, then enrich manually
+    // This avoids complex nested PostgREST joins that may fail silently
     try {
-      final res = await _client
+      print('DEBUG: Fetching reported posts (simplified approach)...');
+
+      // Step 1: Fetch raw reports with status = pending
+      final reports = await _client
           .from('post_reports')
-          .select('*, posts(*, users(full_name, username, institutional_id))')
+          .select('*')
+          .eq('status', 'pending')
           .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(res);
+
+      print('DEBUG: Raw reports count: ${reports.length}');
+
+      if (reports.isEmpty) {
+        print('DEBUG: No pending reports found.');
+        return [];
+      }
+
+      // Step 2: Enrich each report with post and user data
+      final enrichedReports = <Map<String, dynamic>>[];
+
+      for (final report in reports) {
+        final postId = report['post_id'];
+        final reporterId = report['reporter_id'];
+
+        // Fetch post data
+        Map<String, dynamic>? postData;
+        try {
+          postData = await _client
+              .from('posts')
+              .select('*, owner:users!user_id(username, institutional_id)')
+              .eq('id', postId)
+              .maybeSingle();
+        } catch (e) {
+          print('DEBUG: Error fetching post $postId: $e');
+        }
+
+        // Fetch reporter data
+        Map<String, dynamic>? reporterData;
+        try {
+          reporterData = await _client
+              .from('users')
+              .select('username, institutional_id')
+              .eq('user_id', reporterId)
+              .maybeSingle();
+        } catch (e) {
+          print('DEBUG: Error fetching reporter $reporterId: $e');
+        }
+
+        enrichedReports.add({
+          ...report,
+          'posts': postData,
+          'reporter': reporterData,
+        });
+      }
+
+      print('DEBUG: Enriched reports count: ${enrichedReports.length}');
+      if (enrichedReports.isNotEmpty) {
+        print('DEBUG: Sample enriched report: ${enrichedReports.first}');
+      }
+
+      return enrichedReports;
     } catch (e) {
       print('Error fetching reported posts: $e');
       rethrow;
@@ -1439,6 +1291,36 @@ class SupabaseService {
       print('Error dismissing report: $e');
       rethrow;
     }
+  }
+
+  // ... (keeping other methods)
+
+  // ... at the bottom ...
+
+  /// Report a post
+  Future<void> reportPost(
+    String postId,
+    String reason,
+    String postOwnerId,
+  ) async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Lookup real user_id
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userId = userRow['user_id'] as String;
+
+    await _client.from('post_reports').insert({
+      'post_id': postId,
+      'reporter_id': userId,
+      'post_owner_id': postOwnerId, // Added
+      'reason': reason,
+      'status': 'pending', // Explicitly set
+    });
   }
 
   /// Respond to a connection request (Accept/Deny)
@@ -1692,26 +1574,6 @@ class SupabaseService {
         .order('created_at', ascending: true);
 
     return List<Map<String, dynamic>>.from(response as List);
-  }
-
-  /// Report a post
-  Future<void> reportPost(String postId, String reason) async {
-    final authId = _client.auth.currentUser?.id;
-    if (authId == null) throw Exception('Not authenticated');
-
-    // Lookup real user_id
-    final userRow = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .single();
-    final userId = userRow['user_id'] as String;
-
-    await _client.from('post_reports').insert({
-      'post_id': postId,
-      'reporter_id': userId,
-      'reason': reason,
-    });
   }
 
   /// Delete a post

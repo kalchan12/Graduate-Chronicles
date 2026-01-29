@@ -15,6 +15,7 @@ import '../ui/auth/admin/screens/user_monitoring_screen.dart';
 import '../ui/auth/admin/screens/content_monitoring_screen.dart'; // Will add later
 import '../ui/auth/admin/screens/yearbook_entries_approval_screen.dart';
 import '../ui/portfolio/portfolio_management_screen.dart';
+import '../messaging/ui/conversations_screen.dart';
 
 /*
   The root widget of the application.
@@ -59,7 +60,7 @@ class App extends StatelessWidget {
         '/admin/monitoring': (_) => const ContentMonitoringScreen(),
         '/admin/yearbook_entries': (_) => const YearbookEntriesApprovalScreen(),
         '/notifications': (_) => const NotificationScreen(),
-        '/messages': (_) => const MessageListScreen(),
+        '/messages': (_) => const ConversationsScreen(),
         '/portfolio_management': (_) => const PortfolioManagementScreen(),
       },
       home: const SplashScreen(),

@@ -4,6 +4,7 @@ import '../../state/posts_state.dart';
 import '../../state/profile_state.dart';
 import '../../services/supabase/supabase_service.dart';
 import 'comments_sheet.dart';
+import 'toast_helper.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final PostItem post;
@@ -180,10 +181,13 @@ class _PostCardState extends ConsumerState<PostCard>
       'Other',
     ];
 
+    // Store the scaffold context BEFORE opening the dialog
+    final scaffoldContext = context;
+
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF2E1A36),
           title: const Text(
             'Report Post',
@@ -209,7 +213,7 @@ class _PostCardState extends ConsumerState<PostCard>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'Cancel',
                 style: TextStyle(color: Colors.white54),
@@ -219,34 +223,31 @@ class _PostCardState extends ConsumerState<PostCard>
               onPressed: selectedReason == null
                   ? null
                   : () async {
-                      Navigator.pop(context);
+                      // Close dialog first
+                      Navigator.pop(dialogContext);
+
                       try {
                         final service = ref.read(supabaseServiceProvider);
                         await service.reportPost(
                           widget.post.id,
                           selectedReason!,
+                          widget.post.userId,
                         );
+                        // Use ToastHelper for modern toast
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text(
-                                'Report submitted. We will review this.',
-                              ),
-                              backgroundColor: Colors.green.shade700,
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          ToastHelper.show(
+                            scaffoldContext,
+                            'Report submitted. Thanks for keeping the community safe!',
                           );
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Failed to report: ${e.toString().contains('unique') ? 'Already reported' : 'Try again'}',
-                              ),
-                              backgroundColor: Colors.red.shade700,
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          ToastHelper.show(
+                            scaffoldContext,
+                            e.toString().contains('unique')
+                                ? 'You already reported this post'
+                                : 'Failed to report. Please try again.',
+                            isError: true,
                           );
                         }
                       }
