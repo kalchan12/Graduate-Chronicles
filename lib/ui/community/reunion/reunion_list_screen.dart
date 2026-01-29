@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/reunion_state.dart';
+import '../../../services/supabase/supabase_service.dart';
 import '../../widgets/toast_helper.dart';
 import '../../widgets/global_background.dart';
 
@@ -27,6 +28,36 @@ class _ReunionListScreenState extends ConsumerState<ReunionListScreen> {
 
   void _showToast(String message) {
     ToastHelper.show(context, message);
+  }
+
+  void _handleJoin(String reunionId) async {
+    try {
+      await ref.read(reunionProvider.notifier).joinReunion(reunionId);
+      if (mounted) _showToast('Successfully joined reunion!');
+    } catch (e) {
+      if (mounted) _showToast('Failed to join: ${e.toString()}');
+    }
+  }
+
+  void _handleLeave(String reunionId) async {
+    try {
+      await ref.read(reunionProvider.notifier).leaveReunion(reunionId);
+      if (mounted) _showToast('You have left the reunion.');
+    } catch (e) {
+      if (mounted) _showToast('Failed to leave: ${e.toString()}');
+    }
+  }
+
+  void _showParticipantsModal(String reunionId, String title) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) =>
+          _ParticipantsList(reunionId: reunionId, title: title),
+    );
   }
 
   @override
@@ -252,18 +283,18 @@ class _ReunionListScreenState extends ConsumerState<ReunionListScreen> {
                         itemCount: reunions.length > 3 ? 3 : reunions.length,
                         itemBuilder: (context, index) {
                           final item = reunions[index];
+                          final id = item['id'] as String;
                           return Padding(
                             padding: const EdgeInsets.only(right: 16),
                             child: _FeaturedEventCard(
-                              title: item['title'] ?? 'Untitled Event',
-                              location: item['location_value'] ?? 'No Location',
-                              date: item['event_date'] ?? 'No Date',
-                              goingCount: 0, // Mocked for now
+                              event: item,
                               color: index % 2 == 0
                                   ? const Color(0xFF5D28BC)
                                   : const Color(0xFFBC287B),
-                              onJoin: () =>
-                                  _showToast('Joined ${item['title']}'),
+                              onJoin: () => _handleJoin(id),
+                              onLeave: () => _handleLeave(id),
+                              onShowParticipants: () =>
+                                  _showParticipantsModal(id, item['title']),
                             ),
                           );
                         },
@@ -315,15 +346,13 @@ class _ReunionListScreenState extends ConsumerState<ReunionListScreen> {
                       itemCount: filteredReunions.length,
                       itemBuilder: (context, index) {
                         final item = filteredReunions[index];
+                        final id = item['id'] as String;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: _EventListItem(
-                            title: item['title'] ?? 'Untitled Event',
-                            date: item['event_date'] ?? 'No Date',
-                            location: item['location_value'] ?? 'No Location',
-                            isOnline: item['location_type'] == 'virtual',
-                            onJoin: () =>
-                                _showToast('Request sent to join event'),
+                            event: item,
+                            onJoin: () => _handleJoin(id),
+                            onLeave: () => _handleLeave(id),
                           ),
                         );
                       },
@@ -340,6 +369,122 @@ class _ReunionListScreenState extends ConsumerState<ReunionListScreen> {
             Navigator.pushNamed(context, '/community/reunion/create'),
         backgroundColor: DesignSystem.purpleAccent,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _ParticipantsList extends ConsumerStatefulWidget {
+  final String reunionId;
+  final String title;
+
+  const _ParticipantsList({required this.reunionId, required this.title});
+
+  @override
+  ConsumerState<_ParticipantsList> createState() => _ParticipantsListState();
+}
+
+class _ParticipantsListState extends ConsumerState<_ParticipantsList> {
+  List<Map<String, dynamic>> _participants = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipants();
+  }
+
+  Future<void> _loadParticipants() async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final data = await service.fetchReunionParticipants(widget.reunionId);
+      if (mounted) {
+        setState(() {
+          _participants = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      height: 500,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Going to ${widget.title}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white54),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(
+                color: DesignSystem.purpleAccent,
+              ),
+            )
+          else if (_participants.isEmpty)
+            const Center(
+              child: Text(
+                'No one is going yet. Be the first!',
+                style: TextStyle(color: Colors.white54),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: _participants.length,
+                itemBuilder: (context, index) {
+                  final user =
+                      _participants[index]; // Map with user details (full_name, etc)
+                  // Note: Our service logic returns { "full_name": ..., "username": ... }
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.white10,
+                      child: Text(
+                        (user['full_name'] as String? ?? 'U')[0].toUpperCase(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    title: Text(
+                      user['full_name'] ?? 'Unknown User',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '@${user['username'] ?? ''}',
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -387,24 +532,28 @@ class _TabChip extends StatelessWidget {
 }
 
 class _FeaturedEventCard extends StatelessWidget {
-  final String title;
-  final String location;
-  final String date;
-  final int goingCount;
+  final Map<String, dynamic> event;
   final Color color;
   final VoidCallback onJoin;
+  final VoidCallback onLeave;
+  final VoidCallback onShowParticipants;
 
   const _FeaturedEventCard({
-    required this.title,
-    required this.location,
-    required this.date,
-    required this.goingCount,
+    required this.event,
     required this.color,
     required this.onJoin,
+    required this.onLeave,
+    required this.onShowParticipants,
   });
 
   @override
   Widget build(BuildContext context) {
+    final title = event['title'] ?? 'Untitled Event';
+    final location = event['location_value'] ?? 'No Location';
+    final date = event['event_date'] ?? 'No Date';
+    final goingCount = event['going_count'] ?? 0;
+    final isJoined = event['is_joined'] ?? false;
+
     return Container(
       width: 280,
       padding: const EdgeInsets.all(20),
@@ -468,76 +617,79 @@ class _FeaturedEventCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  SizedBox(
-                    width: 48,
-                    height: 24,
-                    child: Stack(
-                      children: [
-                        const CircleAvatar(
-                          radius: 12,
-                          backgroundColor: Colors.white24,
-                          child: Icon(
-                            Icons.person,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Positioned(
-                          left: 16,
-                          child: const CircleAvatar(
+              GestureDetector(
+                onTap: onShowParticipants,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      height: 24,
+                      child: Stack(
+                        children: [
+                          const CircleAvatar(
                             radius: 12,
-                            backgroundColor: Colors.white38,
+                            backgroundColor: Colors.white24,
                             child: Icon(
                               Icons.person,
                               size: 12,
                               color: Colors.white,
                             ),
                           ),
-                        ),
-                        Positioned(
-                          left: 32,
-                          child: CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.white,
-                            child: Text(
-                              '+${goingCount > 99 ? '99' : goingCount}',
-                              style: TextStyle(
-                                color: color,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
+                          Positioned(
+                            left: 16,
+                            child: const CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white38,
+                              child: Icon(
+                                Icons.person,
+                                size: 12,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            left: 32,
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white,
+                              child: Text(
+                                '+${goingCount > 99 ? '99' : goingCount}',
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$goingCount Going',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(width: 8),
+                    Text(
+                      '$goingCount Going',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               ElevatedButton(
-                onPressed: onJoin,
+                onPressed: isJoined ? onLeave : onJoin,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: color,
+                  backgroundColor: isJoined ? Colors.black26 : Colors.white,
+                  foregroundColor: isJoined ? Colors.white : color,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Join',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  isJoined ? 'Joined' : 'Join',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -549,22 +701,25 @@ class _FeaturedEventCard extends StatelessWidget {
 }
 
 class _EventListItem extends StatelessWidget {
-  final String title;
-  final String date;
-  final String location;
-  final bool isOnline;
+  final Map<String, dynamic> event;
   final VoidCallback onJoin;
+  final VoidCallback onLeave;
 
   const _EventListItem({
-    required this.title,
-    required this.date,
-    required this.location,
-    this.isOnline = false,
+    required this.event,
     required this.onJoin,
+    required this.onLeave,
   });
 
   @override
   Widget build(BuildContext context) {
+    final title = event['title'] ?? 'Untitled Event';
+    final date = event['event_date'] ?? 'No Date';
+    final location = event['location_value'] ?? 'No Location';
+    final isOnline = event['location_type'] == 'virtual';
+    final isJoined = event['is_joined'] ?? false;
+    final goingCount = event['going_count'] ?? 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -616,6 +771,16 @@ class _EventListItem extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.people, size: 12, color: Colors.white38),
+                    const SizedBox(width: 2),
+                    Text(
+                      '$goingCount',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -645,9 +810,11 @@ class _EventListItem extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           ElevatedButton(
-            onPressed: onJoin,
+            onPressed: isJoined ? onLeave : onJoin,
             style: ElevatedButton.styleFrom(
-              backgroundColor: DesignSystem.purpleAccent,
+              backgroundColor: isJoined
+                  ? const Color(0xFF3B2F4D)
+                  : DesignSystem.purpleAccent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               minimumSize: const Size(0, 36),
@@ -655,7 +822,10 @@ class _EventListItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Join', style: TextStyle(fontSize: 13)),
+            child: Text(
+              isJoined ? 'Joined' : 'Join',
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
         ],
       ),

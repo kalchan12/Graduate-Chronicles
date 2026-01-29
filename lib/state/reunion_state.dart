@@ -90,6 +90,34 @@ class ReunionNotifier extends Notifier<ReunionState> {
       rethrow;
     }
   }
+
+  Future<void> joinReunion(String reunionId) async {
+    // Optimistic update could be done here, but safe simply to call service then refresh
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.joinReunion(reunionId);
+      // Refresh to update counts and status
+      await loadReunions();
+    } catch (e) {
+      print('Join Reunion Error: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to join: $e',
+      ); // Optional: show error
+      rethrow;
+    }
+  }
+
+  Future<void> leaveReunion(String reunionId) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.leaveReunion(reunionId);
+      await loadReunions();
+    } catch (e) {
+      print('Leave Reunion Error: $e');
+      state = state.copyWith(errorMessage: 'Failed to leave: $e');
+      rethrow;
+    }
+  }
 }
 
 final reunionProvider = NotifierProvider<ReunionNotifier, ReunionState>(

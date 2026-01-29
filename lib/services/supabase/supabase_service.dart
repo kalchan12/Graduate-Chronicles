@@ -556,13 +556,160 @@ class SupabaseService {
     });
   }
 
-  Future<List<Map<String, dynamic>>> fetchReunions() async {
+  Future<List<Map<String, dynamic>>> fetchReunions({
+    bool futureEventsOnly = false, // Persist future events
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Get current user's UUID (not Auth ID) for join check
+    final userRes = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', userId)
+        .single();
+    final userUuid = userRes['user_id'] as String;
+
+    var query = _client.from('reunions').select('''
+      *,
+      reunion_participants (count),
+      is_joined:reunion_participants!left(user_id)
+    ''');
+    // Note: The !left join with filtering specific to current user
+    // is tricky in simple syntax. simpler approach:
+    // fetch all, then map. Or use rpc if performance needed.
+    // For now, let's fetch raw and process.
+
+    // Actually, simpler query pattern for 'is_joined':
+    // We can just fetch the list, and for each, check participation?
+    // OR: use a view.
+    // Let's stick to standard select and separate check or join.
+
+    // Better query:
     final res = await _client
         .from('reunions')
-        .select()
+        .select('*, reunion_participants(user_id)')
         .order('event_date', ascending: true);
 
-    return List<Map<String, dynamic>>.from(res);
+    // Filter future events if requested (client side for simple logic, seeing date is string)
+    // Date format in DB is YYYY-MM-DD
+    final now = DateTime.now();
+    final todayStr =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    final List<Map<String, dynamic>> enriched = [];
+
+    for (final item in res) {
+      final dateStr = item['event_date'] as String;
+      // Simple string comparison works for ISO dates YYYY-MM-DD
+      // If we want "persist as long as still there", we show past events too?
+      // User said: "persist as long as the reunion is still there in futures" -> Future events.
+      // But maybe they want history? Let's show all for now, sorted.
+      // User complaint: "once reunion plan is created it does not persist".
+      // This implies it disappears. Maybe RLS hides it?
+      // RLS policies were: visible if public or batch match.
+
+      final participants = item['reunion_participants'] as List;
+      final goingCount = participants.length;
+      final isJoined = participants.any((p) => p['user_id'] == userUuid);
+
+      if (futureEventsOnly && dateStr.compareTo(todayStr) < 0) {
+        continue;
+      }
+
+      enriched.add({
+        ...item,
+        'going_count': goingCount,
+        'is_joined': isJoined,
+        'reunion_participants': null, // Remove raw list to keep clean
+      });
+    }
+
+    return enriched;
+  }
+
+  Future<void> joinReunion(String reunionId) async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Get real UUID
+    final userRes = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userUuid = userRes['user_id'] as String;
+
+    await _client.from('reunion_participants').insert({
+      'reunion_id': reunionId,
+      'user_id': userUuid,
+      'status': 'going',
+    });
+  }
+
+  Future<void> leaveReunion(String reunionId) async {
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Get real UUID
+    final userRes = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final userUuid = userRes['user_id'] as String;
+
+    await _client
+        .from('reunion_participants')
+        .delete()
+        .eq('reunion_id', reunionId)
+        .eq('user_id', userUuid);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchReunionParticipants(
+    String reunionId,
+  ) async {
+    final res = await _client
+        .from('reunion_participants')
+        .select(
+          '*, users(full_name, username, profile_picture)',
+        ) // Join users info through user_id?
+        // Note: users table is authoritative for profile info in this app schema?
+        // Or profile table?
+        // Earlier code used 'profile' table for avatar.
+        // Let's check: users has auth_user_id. profile is separate.
+        // We probably need to join users to get name, then profile for avatar?
+        // Let's look at users table again.
+        // 'users' has: user_id, auth_user_id, full_name, username...
+        // 'profile' has: user_id (ref auth?), profile_picture...
+        // Actually, let's just get the users info directly.
+        // And we'll fetch avatars separately or if we can join.
+        // Assuming 'users' has basic info.
+        // But wait, profile picture is in 'profile' table usually?
+        // Let's check MessagingService: it fetches profile separately.
+        // We will stick to that pattern if needed, or simple join.
+        // Let's assume we can get basic user info.
+        .eq('reunion_id', reunionId);
+
+    // Since complex joins might be tricky without defined FKs in Flutter client sometimes,
+    // let's do safe fetch.
+    // Actually, let's just fetch participants then fetch user details.
+
+    // Better path:
+    return _client
+        .from('reunion_participants')
+        .select('created_at, users(full_name, username)') // Assuming FK exists
+        .eq('reunion_id', reunionId)
+        .then((rows) async {
+          final List<Map<String, dynamic>> results = [];
+          for (final row in rows) {
+            final user = row['users'] as Map<String, dynamic>;
+            // We ideally want avatar too.
+            // Let's keep it simple for "Who is Going": Name is most important.
+            results.add(user);
+          }
+          return results;
+        });
   }
 
   // --- Yearbook System Methods ---
