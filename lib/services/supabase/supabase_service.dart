@@ -1642,4 +1642,40 @@ class SupabaseService {
     // We add user_id filter purely as an extra safety/sanity check
     await _client.from('posts').delete().eq('id', postId).eq('user_id', userId);
   }
+
+  /// Check if user details are unique (for Signup)
+  /// Returns a String error message if a conflict is found, or null if unique.
+  Future<String?> checkUserUniqueness({
+    required String username,
+    required String email,
+    String? institutionalId,
+  }) async {
+    // 1. Check Username
+    final usernameRes = await _client
+        .from('users')
+        .select('user_id')
+        .eq('username', username)
+        .maybeSingle();
+    if (usernameRes != null) return 'Username already taken';
+
+    // 2. Check Email (in users table, separate from Auth)
+    final emailRes = await _client
+        .from('users')
+        .select('user_id')
+        .eq('email', email)
+        .maybeSingle();
+    if (emailRes != null) return 'Email already registered';
+
+    // 3. Check Institutional ID (if provided)
+    if (institutionalId != null && institutionalId.isNotEmpty) {
+      final idRes = await _client
+          .from('users')
+          .select('user_id')
+          .eq('institutional_id', institutionalId)
+          .maybeSingle();
+      if (idRes != null) return 'Institutional ID already registered';
+    }
+
+    return null; // All good
+  }
 }

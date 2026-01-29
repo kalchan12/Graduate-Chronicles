@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/design_system.dart';
 import '../../../state/signup_state.dart';
+import '../../../services/supabase/supabase_service.dart';
 
 /*
   Signup Step 1: Basic Account Information.
@@ -27,6 +28,7 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final TextEditingController _confirmPassword = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -183,30 +185,82 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // On Next, we don't need to manually set fields again because onChanged does it.
-                            // But for safety or if onChanged didn't fire (e.g. initial empty), validation checks state.
-                            // Actually, removing fields from initState doesn't sync if text field changes without onChanged.
-                            // onChanged is present.
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  if (notifier.validateStep1()) {
+                                    setState(() => _isLoading = true);
+                                    try {
+                                      final service = ref.read(
+                                        supabaseServiceProvider,
+                                      );
+                                      // Note: Institutional ID is collected in Step 2.
+                                      // Step 1 collects Username, Email.
+                                      final error = await service
+                                          .checkUserUniqueness(
+                                            username: state.username,
+                                            email: state.email,
+                                          );
 
-                            if (notifier.validateStep1()) {
-                              Navigator.of(
-                                context,
-                              ).pushReplacementNamed('/signup2');
-                            }
-                          },
+                                      if (error != null) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(error),
+                                              backgroundColor: Colors.redAccent,
+                                            ),
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      if (mounted) {
+                                        Navigator.of(
+                                          context,
+                                        ).pushReplacementNamed('/signup2');
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Verification failed: $e',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted)
+                                        setState(() => _isLoading = false);
+                                    }
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Next',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Next',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
                         ),
                       ),
+
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => Navigator.of(
@@ -286,65 +340,84 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
   }
 
   Widget _buildPasswordStrengthIndicator(String password) {
+    if (password.isEmpty) return const SizedBox.shrink();
+
     // Password Strength Rules:
-    // 0: Weak - letters only OR numbers only (or too short)
-    // 1: Medium - letters + numbers
-    // 2: Strong - letters + numbers + special characters
+    // 0: Weak - < 8 chars OR just letters/numbers
+    // 1: Medium - 8+ chars AND (letters + numbers)
+    // 2: Strong - 8+ chars AND (letters + numbers + special)
+    // 3: Secure - 12+ chars AND (letters + numbers + special)
 
     int strength = 0;
-    if (password.length >= 8) {
-      bool hasLetters = password.contains(RegExp(r'[a-zA-Z]'));
-      bool hasDigits = password.contains(RegExp(r'[0-9]'));
-      bool hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
-      if (hasLetters && hasDigits && hasSpecial) {
-        strength = 2; // Strong
-      } else if (hasLetters && hasDigits) {
-        strength = 1; // Medium
-      } else {
-        strength = 0; // Weak (only letters OR only numbers)
-      }
+    bool hasLetters = password.contains(RegExp(r'[a-zA-Z]'));
+    bool hasDigits = password.contains(RegExp(r'[0-9]'));
+    bool hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+    bool isLongEnough = password.length >= 8;
+    bool isVeryLong = password.length >= 12;
+
+    if (hasLetters && hasDigits && hasSpecial && isVeryLong) {
+      strength = 3;
+    } else if (hasLetters && hasDigits && hasSpecial && isLongEnough) {
+      strength = 2;
+    } else if (hasLetters && hasDigits && isLongEnough) {
+      strength = 1;
+    } else {
+      strength = 0;
     }
 
     final color = switch (strength) {
+      3 => const Color(0xFF00FF9D), // Secure Green
       2 => Colors.greenAccent,
-      1 => Colors.amber,
+      1 => Colors.orangeAccent,
       _ => Colors.redAccent,
     };
 
     final text = switch (strength) {
+      3 => 'Very Strong',
       2 => 'Strong',
       1 => 'Medium',
       _ => 'Weak',
     };
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Bars
-        ...List.generate(3, (index) {
-          // 0 -> Weak (Index 0 active)
-          // 1 -> Medium (Index 0, 1 active)
-          // 2 -> Strong (Index 0, 1, 2 active)
-          bool active = index <= strength;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.only(right: 6),
-            height: 4,
-            width: 24,
-            decoration: BoxDecoration(
-              color: active ? color : Colors.white10,
-              borderRadius: BorderRadius.circular(2),
+        Row(
+          children: List.generate(4, (index) {
+            bool active = index <= strength;
+            return Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.only(right: 6),
+                height: 6, // Thicker bar
+                decoration: BoxDecoration(
+                  color: active ? color : Colors.white10,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          );
-        }),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
+            // Optional: Helper text
+            if (strength < 2)
+              const Text(
+                'Use letters, numbers & symbols',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+          ],
         ),
       ],
     );

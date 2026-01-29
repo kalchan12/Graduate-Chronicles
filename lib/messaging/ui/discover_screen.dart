@@ -5,6 +5,7 @@ import '../../theme/design_system.dart';
 import '../../ui/widgets/global_background.dart';
 import '../../ui/widgets/custom_app_bar.dart';
 import 'chat_screen.dart';
+import '../../ui/profile/profile_screen.dart';
 
 /// Screen for discovering and searching users to start conversations.
 ///
@@ -263,7 +264,15 @@ class _UserTile extends StatelessWidget {
     final avatar = user['avatar_url'] as String?;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        // Navigate to Profile
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(userId: user['user_id']),
+          ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -333,33 +342,39 @@ class _UserTile extends StatelessWidget {
             ),
 
             // Chat button
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
                 ),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    color: DesignSystem.purpleAccent,
-                    size: 16,
+                decoration: BoxDecoration(
+                  color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
                   ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Chat',
-                    style: TextStyle(
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
                       color: DesignSystem.purpleAccent,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                      size: 16,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 6),
+                    Text(
+                      'Chat',
+                      style: TextStyle(
+                        color: DesignSystem.purpleAccent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

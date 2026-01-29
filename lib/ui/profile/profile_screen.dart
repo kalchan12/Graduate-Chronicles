@@ -691,14 +691,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 8), // Reduced from 12
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: isSelected ? Colors.white : const Color(0xFFBDB1C9),
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-              fontSize: 14,
+              fontSize: 12,
             ),
           ),
         ),

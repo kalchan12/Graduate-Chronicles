@@ -220,7 +220,7 @@ class MessagingService {
     // Base query: get users except self
     var query = _client
         .from('users')
-        .select('auth_user_id, full_name, username');
+        .select('user_id, auth_user_id, full_name, username');
 
     // Execute and filter locally due to Supabase limitations
     final List<dynamic> results = await query;
@@ -229,7 +229,9 @@ class MessagingService {
 
     for (final row in results) {
       final authId = row['auth_user_id'] as String?;
-      if (authId == null || authId == userId) continue;
+      final userId = row['user_id'] as String?; // Get UUID
+
+      if (authId == null || authId == currentUserId) continue;
 
       // Apply search filter if provided
       if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -243,21 +245,25 @@ class MessagingService {
       }
 
       // Get avatar
-      final profile = await _client
-          .from('profile')
-          .select('profile_picture')
-          .eq('user_id', authId)
-          .maybeSingle();
-
+      // Use user_id (UUID) to fetch profile, not auth_user_id
       String? avatarUrl;
-      if (profile != null && profile['profile_picture'] != null) {
-        avatarUrl = _client.storage
-            .from('avatar')
-            .getPublicUrl(profile['profile_picture']);
+      if (userId != null) {
+        final profile = await _client
+            .from('profile')
+            .select('profile_picture')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (profile != null && profile['profile_picture'] != null) {
+          avatarUrl = _client.storage
+              .from('avatar')
+              .getPublicUrl(profile['profile_picture']);
+        }
       }
 
       users.add({
-        'auth_user_id': authId,
+        'user_id': userId, // Return UUID for navigation
+        'auth_user_id': authId, // Keep auth ID for chat start
         'full_name': row['full_name'] ?? 'User',
         'username': row['username'] ?? '',
         'avatar_url': avatarUrl,
