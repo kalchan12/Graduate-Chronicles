@@ -20,10 +20,8 @@ class SetNewPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
-  final TextEditingController _currentCtrl = TextEditingController();
   final TextEditingController _newCtrl = TextEditingController();
   final TextEditingController _confirmCtrl = TextEditingController();
-  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
@@ -38,15 +36,15 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
 
   @override
   void dispose() {
-    _currentCtrl.dispose();
     _newCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    if (ref.read(forgotProvider.notifier).validateReset()) {
-      _showSuccessDialog();
+  Future<void> _submit() async {
+    final notifier = ref.read(forgotProvider.notifier);
+    if (await notifier.finalizeReset()) {
+      if (mounted) _showSuccessDialog();
     }
   }
 
@@ -196,44 +194,6 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Current Password',
-                            style: TextStyle(color: Color(0xFFD6C9E6)),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _currentCtrl,
-                          obscureText: _obscureCurrent,
-                          decoration: InputDecoration(
-                            hintText: 'Enter current password',
-                            filled: true,
-                            fillColor: const Color(0xFF241228),
-                            prefixIcon: const Icon(
-                              Icons.lock_outline,
-                              color: Color(0xFFBDB1C9),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureCurrent
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.white54,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscureCurrent = !_obscureCurrent,
-                              ),
-                            ),
-                          ),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        const SizedBox(height: 14),
 
                         const Align(
                           alignment: Alignment.centerLeft,
@@ -346,13 +306,22 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text(
-                              'Set New Password',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: state.isSubmitting
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Set New Password',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 8),

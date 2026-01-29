@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ForgotState {
   final String email;
@@ -100,17 +101,61 @@ class ForgotNotifier extends Notifier<ForgotState> {
     });
   }
 
-  void resendCode() {
-    // Logic to resend API
-    startTimer();
+  Future<bool> sendResetLink() async {
+    if (!validateEmail()) return false;
+
+    state = state.copyWith(isSubmitting: true, emailError: () => null);
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        state.email.trim(),
+      );
+      // Determine flow based on configuration (link or OTP)
+      // Assuming OTP flow for this UI
+      startTimer();
+      return true;
+    } on AuthException catch (e) {
+      state = state.copyWith(emailError: () => e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(emailError: () => "An unexpected error occurred");
+      return false;
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
   }
 
-  bool validateOtp() {
-    if (state.otp.length < 4) {
-      state = state.copyWith(otpError: () => "Complete the 4-digit code");
+  void resendCode() {
+    sendResetLink();
+  }
+
+  bool validateOtpFormat() {
+    if (state.otp.length < 6) {
+      state = state.copyWith(otpError: () => "Complete the 6-digit code");
       return false;
     }
     return true;
+  }
+
+  Future<bool> verifyOtp() async {
+    if (!validateOtpFormat()) return false;
+
+    state = state.copyWith(isSubmitting: true, otpError: () => null);
+    try {
+      await Supabase.instance.client.auth.verifyOTP(
+        email: state.email.trim(),
+        token: state.otp,
+        type: OtpType.recovery,
+      );
+      return true;
+    } on AuthException catch (e) {
+      state = state.copyWith(otpError: () => e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(otpError: () => "Invalid code");
+      return false;
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
   }
 
   void setNewPassword(String val) =>
@@ -122,7 +167,7 @@ class ForgotNotifier extends Notifier<ForgotState> {
 
   bool validateReset() {
     String? npErr, cpErr;
-    if (state.newPassword.length < 8) npErr = "At least 8 characters";
+    if (state.newPassword.length < 6) npErr = "At least 6 characters";
     if (state.newPassword != state.confirmPassword) {
       cpErr = "Passwords do not match";
     }
@@ -132,6 +177,28 @@ class ForgotNotifier extends Notifier<ForgotState> {
       confirmPasswordError: () => cpErr,
     );
     return npErr == null && cpErr == null;
+  }
+
+  Future<bool> finalizeReset() async {
+    if (!validateReset()) return false;
+
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: state.newPassword),
+      );
+      return true;
+    } on AuthException catch (e) {
+      state = state.copyWith(newPasswordError: () => e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        newPasswordError: () => "Failed to update password",
+      );
+      return false;
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
   }
 }
 

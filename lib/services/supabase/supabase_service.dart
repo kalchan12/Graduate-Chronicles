@@ -1388,7 +1388,9 @@ class SupabaseService {
 
     return await _client
         .from('notifications')
-        .select('*')
+        .select(
+          'id, title, description, created_at, is_read, type, user_id, reference_id',
+        )
         .eq('user_id', myId)
         .order('created_at', ascending: false);
   }
@@ -1471,11 +1473,34 @@ class SupabaseService {
     int limit = 10,
     int offset = 0,
   }) async {
-    // Explicitly name FK to avoid PostgREST "ambiguous relationship" error
-    // FK name follows pattern: [table]_[column]_fkey
+    // Join users AND profile to get the avatar
+    // Note: This relies on profile table having a FK to user_id or auth_user_id.
+    // Based on getFullProfile, profile.user_id FK exists.
+    // users table also has user_id.
+    // The relationship from posts -> users is 'posts_user_id_fkey'.
+    // The relationship from users -> profile is not always auto-detected if not strict.
+    // Try: nested select.
+
+    // We select users data, AND we want profile picture.
+    // Since complex nested joins can be tricky with exact FK names, we might need a workaround
+    // or assume standard naming.
+    // Let's try to fetch profile data via the users table if possible: users(..., profile(...))
+    // IF users has a One-to-One to profile.
+
+    // Fallback/Simpler: Just fetch posts + users. The UI uses userAvatar.
+    // If we can't join profile easily, we might need to fix it later or use a different strategy.
+    // But let's try the deep join:
+    // select('*, users!posts_user_id_fkey(full_name, username, profile(profile_picture))')
+
+    // If that fails, we can just use the public bucket URL logic in the UI if we know the path pattern?
+    // No, path has random timestamp.
+
+    // Let's try the join. If it errors, I'll fix it.
     final response = await _client
         .from('posts')
-        .select('*, users!posts_user_id_fkey(full_name, username)')
+        .select(
+          '*, users!posts_user_id_fkey(full_name, username, profile(profile_picture))',
+        )
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
 
@@ -1504,6 +1529,14 @@ class SupabaseService {
         .eq('user_id', userId)
         .maybeSingle();
 
+    // Fetch current count to update (Manual Counter)
+    final postRes = await _client
+        .from('posts')
+        .select('likes_count')
+        .eq('id', postId)
+        .single();
+    int currentCount = postRes['likes_count'] ?? 0;
+
     if (existing != null) {
       // Unlike
       await _client
@@ -1511,6 +1544,15 @@ class SupabaseService {
           .delete()
           .eq('post_id', postId)
           .eq('user_id', userId);
+
+      // Decrement
+      if (currentCount > 0) {
+        await _client
+            .from('posts')
+            .update({'likes_count': currentCount - 1})
+            .eq('id', postId);
+      }
+
       return false;
     } else {
       // Like
@@ -1518,6 +1560,13 @@ class SupabaseService {
         'post_id': postId,
         'user_id': userId,
       });
+
+      // Increment
+      await _client
+          .from('posts')
+          .update({'likes_count': currentCount + 1})
+          .eq('id', postId);
+
       return true;
     }
   }

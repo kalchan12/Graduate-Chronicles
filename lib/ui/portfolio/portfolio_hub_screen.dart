@@ -178,14 +178,13 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                                         ? Image.network(
                                             portfolio.coverImageUrl!,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (c, e, s) =>
-                                                Image.asset(
-                                                  'assets/images/dog.png',
-                                                  fit: BoxFit.cover,
-                                                ),
+                                            errorBuilder: (c, e, s) => Image.asset(
+                                              'assets/images/user_placeholder.png',
+                                              fit: BoxFit.cover,
+                                            ),
                                           )
                                         : Image.asset(
-                                            'assets/images/dog.png',
+                                            'assets/images/user_placeholder.png',
                                             fit: BoxFit.cover,
                                           ),
                                   ),
@@ -277,11 +276,12 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     // -- Name & Role (Dynamic from Portfolio State) --
                     // Uses ownerName if available (other user), otherwise falls back to userProfile (me) or "Student"
                     Text(
-                      (portfolio.ownerName != null && portfolio.ownerName!.isNotEmpty)
+                      (portfolio.ownerName != null &&
+                              portfolio.ownerName!.isNotEmpty)
                           ? portfolio.ownerName!
                           : (isOwner && userProfile.name.isNotEmpty
-                              ? userProfile.name
-                              : 'Student'),
+                                ? userProfile.name
+                                : 'Student'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -291,11 +291,12 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      (portfolio.ownerDegree != null && portfolio.ownerDegree!.isNotEmpty)
+                      (portfolio.ownerDegree != null &&
+                              portfolio.ownerDegree!.isNotEmpty)
                           ? '${portfolio.ownerDegree} @ Graduate Chronicles'
                           : (isOwner && userProfile.degree.isNotEmpty
-                              ? '${userProfile.degree} @ Graduate Chronicles'
-                              : 'Graduate Student'),
+                                ? '${userProfile.degree} @ Graduate Chronicles'
+                                : 'Graduate Student'),
                       style: TextStyle(
                         color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
                         fontSize: 15,

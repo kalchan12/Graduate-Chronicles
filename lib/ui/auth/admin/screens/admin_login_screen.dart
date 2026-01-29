@@ -69,7 +69,8 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () =>
+                          Navigator.of(context).pushReplacementNamed('/login'),
                     ),
                     const Expanded(
                       child: Text(
@@ -269,7 +270,9 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
                       const SizedBox(height: 40),
                       TextButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushReplacementNamed('/login'),
                         icon: const Icon(
                           Icons.arrow_back,
                           color: Color(0xFFBDB1C9),

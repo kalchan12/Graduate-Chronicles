@@ -21,10 +21,10 @@ class PasswordResetScreen extends ConsumerStatefulWidget {
 
 class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
   final List<TextEditingController> _controllers = List.generate(
-    4,
+    6,
     (_) => TextEditingController(),
   );
-  final List<FocusNode> _focus = List.generate(4, (_) => FocusNode());
+  final List<FocusNode> _focus = List.generate(6, (_) => FocusNode());
 
   @override
   void initState() {
@@ -33,8 +33,8 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
     // (If user comes back, or if we want to restore)
     // For now simple empty or pre-fill from state
     final otp = ref.read(forgotProvider).otp;
-    if (otp.length == 4) {
-      for (int i = 0; i < 4; i++) {
+    if (otp.length == 6) {
+      for (int i = 0; i < 6; i++) {
         _controllers[i].text = otp[i];
       }
     }
@@ -68,8 +68,8 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
 
   Widget _pinField(int index) {
     return SizedBox(
-      width: 64,
-      height: 64,
+      width: 48,
+      height: 56,
       child: TextField(
         controller: _controllers[index],
         focusNode: _focus[index],
@@ -173,14 +173,14 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Please enter the 4-digit code sent to ${state.email}.',
+                          'Please enter the 6-digit code sent to ${state.email}.',
                           style: const TextStyle(color: Color(0xFFD6C9E6)),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 18),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: List.generate(4, (i) => _pinField(i)),
+                          children: List.generate(6, (i) => _pinField(i)),
                         ),
                         if (state.otpError != null)
                           Padding(
@@ -198,8 +198,9 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () {
-                              if (notifier.validateOtp()) {
+                            onPressed: () async {
+                              final success = await notifier.verifyOtp();
+                              if (success && context.mounted) {
                                 Navigator.of(context).pushNamed('/forgot/set');
                               }
                             },
@@ -209,13 +210,22 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text(
-                              'Verify',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: state.isSubmitting
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Verify',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 12),

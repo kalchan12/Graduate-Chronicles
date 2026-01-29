@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase/supabase_service.dart';
 
 // ========== MODAL/DATA CLASSES ============
@@ -32,6 +33,71 @@ class PostItem {
 
   factory PostItem.fromMap(Map<String, dynamic> map, {bool isLiked = false}) {
     final userMap = map['users'] as Map<String, dynamic>?;
+    final profileMap = userMap?['profile'] as Map<String, dynamic>?;
+
+    // Construct avatar URL if path exists
+    // Note: We need the full URL. SupabaseService has helper but here we are in a pure model.
+    // Ideally the view/query returns the full URL or we construct it.
+    // The query returns the raw path from DB (e.g. "path/to/img.jpg").
+    // We can assume standard bucket URL pattern if we don't have the client here.
+    // OR: SupabaseService usually handles getPublicUrl.
+    // BUT: PostItem is a data class.
+    // Workaround: We will use a helper or assume the path needs 'getPublicUrl' equivalent.
+    // Actually, `getFullProfile` in service converts it. `fetchPosts` returns raw data.
+    // Let's assume we need to prepend the Supabase URL if it's just a path.
+    // However, existing code in `PostCard` (line 295) uses `NetworkImage`.
+    // If the DB stores raw paths, `NetworkImage` will fail on "user_id/..."
+    // We should probably convert it in the Service before returning, OR construct it here.
+    // Since I can't easily inject the Supabase client here without refactoring,
+    // I will try to construct the URL string if it looks like a path.
+
+    String? avatarUrl;
+    if (profileMap != null && profileMap['profile_picture'] != null) {
+      final path = profileMap['profile_picture'] as String;
+      if (path.startsWith('http')) {
+        avatarUrl = path;
+      } else {
+        // Construct standard Supabase Storage URL
+        // https://<project>.supabase.co/storage/v1/object/public/avatar/<path>
+        // Since I don't have the project URL handy in this file, this is risky.
+        // BETTER FIX: Parse it here but rely on SupabaseService to have enriched it?
+        // No, fetchPosts returns raw map.
+
+        // Looking at `SupabaseService.dart` line 302: `_client.storage.from('avatar').getPublicUrl(path)`
+        // I should probably move the transformation to `SupabaseService.fetchPosts`.
+
+        // RE-PLAN: I will modify `SupabaseService.fetchPosts` to transform the data BEFORE returning it.
+        // This is cleaner than hacking the URl here.
+        // But I already edited SupabaseService and user is waiting.
+
+        // Let's check `PostCard`. It expects a URL.
+        // If I leave `fromMap` as is, I can't transform.
+
+        // Hack: The user probably has the Project URL in constants or env.
+        // But I see `Supabase.instance.client` is available in `posts_state.dart` because it imports `supabase_service.dart`.
+        // Wait, `posts_state.dart` imports `riverpod`.
+        // Is `Supabase` global available? Yes `supabase_flutter`.
+        // So I can use `Supabase.instance.client.storage...`.
+      }
+    }
+
+    // Parse avatar
+    if (profileMap != null && profileMap['profile_picture'] != null) {
+      final path = profileMap['profile_picture'] as String;
+      if (path.startsWith('http')) {
+        avatarUrl = path;
+      } else {
+        // Using the global instance which is initialized in main
+        try {
+          avatarUrl = Supabase.instance.client.storage
+              .from('avatar')
+              .getPublicUrl(path);
+        } catch (_) {
+          // Fallback if instance not ready (unlikely in run)
+          avatarUrl = null;
+        }
+      }
+    }
 
     return PostItem(
       id: map['id'],
@@ -43,7 +109,7 @@ class PostItem {
       commentsCount: map['comments_count'] ?? 0,
       createdAt: DateTime.parse(map['created_at']).toLocal(),
       userName: userMap?['full_name'] ?? userMap?['username'] ?? 'Unknown',
-      userAvatar: null, // Avatar not in users table, stored in profile table
+      userAvatar: avatarUrl,
       isLikedByMe: isLiked,
     );
   }

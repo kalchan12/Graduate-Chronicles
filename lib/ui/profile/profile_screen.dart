@@ -121,7 +121,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // 1. Determine Current User (Me)
     final myProfile = ref.watch(profileProvider);
     final currentUserAsync = ref.watch(currentUserProvider);
-    final role = currentUserAsync.value?.role;
 
     // 2. Determine Target Profile (Displayed User)
     final targetId = widget.userId ?? myProfile.id;
@@ -206,28 +205,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     // Owner Only Actions
                     if (isOwner) ...[
-                      // Admin Access Button
-                      if (role == 'admin')
-                        IconButton(
-                          icon: const Icon(
-                            Icons.dashboard_customize,
-                            color: Color(0xFFE94CFF),
-                          ),
-                          tooltip: 'Admin Dashboard',
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/admin/dashboard'),
-                        )
-                      else
-                        IconButton(
-                          icon: const Icon(
-                            Icons.add_moderator,
-                            color: Colors.white70,
-                          ),
-                          tooltip: 'Request Admin Access',
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/admin/signup'),
-                        ),
-
                       IconButton(
                         icon: const Icon(Icons.settings, color: Colors.white),
                         onPressed: () {

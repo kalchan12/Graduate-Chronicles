@@ -34,10 +34,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final notifier = ref.read(forgotProvider.notifier);
-    if (notifier.validateEmail()) {
-      notifier.startTimer();
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+
+    final success = await notifier.sendResetLink();
+    if (success && mounted) {
       Navigator.of(context).pushNamed('/forgot/verify');
     }
   }
@@ -172,13 +175,22 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text(
-                              'Send Reset Link',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: state.isSubmitting
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Send Reset Link',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 8),
