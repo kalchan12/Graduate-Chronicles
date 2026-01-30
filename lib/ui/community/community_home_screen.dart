@@ -107,6 +107,22 @@ class CommunityHomeScreen extends StatelessWidget {
                           Navigator.pushNamed(context, '/community/mentorship'),
                     ),
 
+                    const SizedBox(height: 24),
+
+                    // Events Card
+                    _ModernNavCard(
+                      title: 'Events',
+                      subtitle: 'Celebrate milestones with your peers.',
+                      buttonText: 'View Gallery',
+                      gradientColors: [
+                        const Color(0xFFFF4081),
+                        const Color(0xFFC51162),
+                      ],
+                      icon: Icons.celebration_rounded,
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/community/events'),
+                    ),
+
                     const SizedBox(height: 32),
                   ],
                 ),

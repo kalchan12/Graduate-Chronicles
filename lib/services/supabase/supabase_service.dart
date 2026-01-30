@@ -1825,4 +1825,217 @@ class SupabaseService {
 
     return null; // All good
   }
+
+  // --- Community Events Feature ---
+
+  /*
+    Fetch Filter Options: Batches, Schools, Majors, Programs
+    Returns a Map with Lists of options.
+  */
+  Future<Map<String, List<String>>> fetchFilterOptions() async {
+    // For now, simpler implementation:
+    // - Batches: query 'yearbook_batches' or 'community_events.batch_year' distinct?
+    //   User asked for "admin approved batches" for posting.
+    //   For filtering, we can check existing event data OR reference data.
+
+    // - Schools, Majors: query 'users' distinct? or static list.
+    // - Program: query 'users' distinct?
+
+    // Fetch batches from yearbook_batches (Authorized batches)
+    final batchesRes = await _client
+        .from('yearbook_batches')
+        .select('batch_year')
+        .order('batch_year', ascending: false);
+    final batches = (batchesRes as List)
+        .map((e) => e['batch_year'].toString())
+        .toList();
+
+    return {
+      'batches': batches,
+      'schools': [
+        'SoEE',
+        'SoMCME',
+        'SoCEA',
+        'SoANS',
+      ], // Static or fetch distinct from users
+      'programs': ['Regular', 'Extension', 'Weekend'],
+    };
+  }
+
+  /*
+    Fetch User Profile Data for Event Metadata.
+    Returns map with graduation_year, school, major.
+    Also attempts to determine program if recorded (assuming column exists or derived).
+  */
+  Future<Map<String, dynamic>> _fetchUserMetadata() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Note: 'program' column depends on schema. If not in users, we default to 'Regular' or null.
+    // If user's table updated, add 'program'.
+    // For now, we will handle potential missing column gracefully or mocking it.
+
+    final userRes = await _client
+        .from('users')
+        .select('graduation_year, school, major') // Add program if it exists
+        .eq('auth_user_id', userId)
+        .single();
+
+    return userRes;
+  }
+
+  /*
+    Create Community Event.
+    Uploads multiple media files and inserts event with user metadata.
+  */
+  Future<void> createCommunityEvent({
+    required List<File> mediaFiles,
+    required String mediaType, // 'image' or 'video'
+    String? caption,
+    required String category, // '100 Day', '50 Day', 'Other'
+    required int batchYear, // Selected by user (must be validated ideally)
+    String? program, // e.g. 'Regular'
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // 1. Upload Media Files
+    List<String> uploadedUrls = [];
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+    for (var i = 0; i < mediaFiles.length; i++) {
+      final file = mediaFiles[i];
+      final ext = file.path.split('.').last;
+      final path = '$userId/event_${timestamp}_$i.$ext';
+
+      await _client.storage
+          .from('events_upload') // Updated bucket name
+          .upload(path, file, fileOptions: const FileOptions(upsert: true));
+
+      final url = _client.storage.from('events_upload').getPublicUrl(path);
+      uploadedUrls.add(url);
+    }
+
+    // 2. Fetch User Metadata (for school/major auto-tagging)
+    final userData = await _fetchUserMetadata();
+
+    // 3. Insert Event
+    await _client.from('community_events').insert({
+      'user_id': userId,
+      'media_urls': uploadedUrls, // Array
+      'media_type': mediaType,
+      'caption': caption,
+      'category': category,
+      'batch_year': batchYear, // User selected admin-approved batch
+      'school': userData['school'],
+      'major': userData['major'],
+      'program': program ?? 'Regular', // Default if not provided
+    });
+  }
+
+  /*
+    Fetch Community Events.
+    Supports filtering by Category, Batch, School, Major, Program.
+  */
+  Future<List<Map<String, dynamic>>> fetchCommunityEvents({
+    String? category,
+    int? batchYear,
+    String? school,
+    String? major,
+    String? program,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+
+    // Base Query
+    var query = _client.from('community_events').select('''
+      *,
+      users!inner (full_name, username, role),
+      community_event_likes (count)
+    ''');
+
+    if (category != null) {
+      query = query.eq('category', category);
+    }
+    if (batchYear != null) {
+      query = query.eq('batch_year', batchYear);
+    }
+    if (school != null) {
+      query = query.eq('school', school);
+    }
+    if (major != null) {
+      query = query.eq('major', major);
+    }
+    if (program != null) {
+      query = query.eq('program', program);
+    }
+
+    // Apply Order last
+    final res = await query.order('created_at', ascending: false);
+    if (res.isEmpty) return [];
+
+    // Determine 'is_liked' status efficiently
+    final eventIds = res.map((e) => e['id']).toList();
+    Set<String> likedEventIds = {};
+
+    if (userId != null && eventIds.isNotEmpty) {
+      final likesRes = await _client
+          .from('community_event_likes')
+          .select('event_id')
+          .eq('user_id', userId)
+          .inFilter('event_id', eventIds);
+
+      likedEventIds = (likesRes as List)
+          .map((r) => r['event_id'] as String)
+          .toSet();
+    }
+
+    return res.map((e) {
+      final data = e as Map<String, dynamic>;
+      final user = data['users'] as Map<String, dynamic>?;
+      final likes = data['community_event_likes'] as List<dynamic>?;
+      final count = (likes != null && likes.isNotEmpty)
+          ? likes[0]['count'] as int
+          : 0;
+
+      return {
+        ...data,
+        'username': user?['username'],
+        'user_full_name': user?['full_name'],
+        // 'user_role': user?['role'],
+        'like_count': count,
+        'is_liked_by_me': likedEventIds.contains(data['id']),
+      };
+    }).toList();
+  }
+
+  /*
+    Toggle Like on Event.
+  */
+  Future<void> toggleEventLike(String eventId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Check if liked
+    final existing = await _client
+        .from('community_event_likes')
+        .select()
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (existing != null) {
+      // Unlike
+      await _client
+          .from('community_event_likes')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('user_id', userId);
+    } else {
+      // Like
+      await _client.from('community_event_likes').insert({
+        'event_id': eventId,
+        'user_id': userId,
+      });
+    }
+  }
 }
