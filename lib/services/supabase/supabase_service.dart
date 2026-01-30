@@ -120,6 +120,7 @@ class SupabaseService {
     required String role,
     required String? institutionalId,
     required String? major,
+    required String? program, // Added program
     required int? graduationYear,
     required String? school, // School abbreviation string
     required List<String> interests,
@@ -145,6 +146,7 @@ class SupabaseService {
         'role': role,
         'institutional_id': institutionalId,
         'major': major,
+        'program': program, // Insert program
         'graduation_year': graduationYear,
         'school': school,
         'interests': interests,
@@ -264,7 +266,9 @@ class SupabaseService {
   Future<Map<String, dynamic>?> fetchUserProfile(String authUserId) async {
     final res = await _client
         .from('users')
-        .select('full_name, major, role, username')
+        .select(
+          'full_name, major, role, username, program',
+        ) // Fetch program too
         .eq('auth_user_id', authUserId)
         .maybeSingle();
     return res;

@@ -25,7 +25,8 @@ class SignupState {
   final String? role;
   final String? userId;
   final String? major;
-  final String? school; // New field
+  final String? school;
+  final String? program; // Added Program
   final String? graduationYear;
 
   // Step 2 Errors
@@ -61,6 +62,7 @@ class SignupState {
     this.userId,
     this.major,
     this.school,
+    this.program,
     this.graduationYear,
     this.roleError,
     this.userIdError,
@@ -89,6 +91,7 @@ class SignupState {
     String? userId,
     String? major,
     String? school,
+    String? program,
     String? graduationYear,
     String? Function()? roleError,
     String? Function()? userIdError,
@@ -124,6 +127,7 @@ class SignupState {
       userId: userId ?? this.userId,
       major: major ?? this.major,
       school: school ?? this.school,
+      program: program ?? this.program,
       graduationYear: graduationYear ?? this.graduationYear,
       roleError: roleError != null ? roleError() : this.roleError,
       userIdError: userIdError != null ? userIdError() : this.userIdError,
@@ -170,7 +174,32 @@ class SignupNotifier extends Notifier<SignupState> {
       state = state.copyWith(school: value, schoolError: () => null);
     }
     if (key == 'userId') {
-      state = state.copyWith(userId: value, userIdError: () => null);
+      // Auto-identify role/program when ID changes
+      final id = value.trim().toUpperCase();
+      String? detectedProgram;
+      String? detectedRole;
+
+      if (id.startsWith('ASTU/AC-')) {
+        detectedRole = 'Staff';
+      } else if (id.startsWith('PGE/')) {
+        detectedRole = 'Alumni'; // Masters are Alumni
+        detectedProgram = 'Masters';
+      } else if (id.startsWith('UGE/')) {
+        detectedProgram = 'Extension';
+      } else if (id.startsWith('UGR/')) {
+        detectedProgram = 'Regular';
+      } else if (id.startsWith('UGW/')) {
+        detectedProgram = 'Weekend';
+      }
+
+      state = state.copyWith(
+        userId: value,
+        userIdError: () => null,
+        program: detectedProgram,
+        // Only override role if it's Staff or Alumni (Masters), otherwise keep user selection?
+        // User request: "Identify them". Stronger enforcement:
+        role: detectedRole ?? state.role, // If detected, force it.
+      );
     }
     // majorNameOther removed
     if (key == 'graduationYear') {
@@ -253,15 +282,49 @@ class SignupNotifier extends Notifier<SignupState> {
       rErr = "Role is required";
     }
 
-    // User ID validation - required for all roles
+    // User ID validation - Strict Format Checks
     final idVal = state.userId?.trim() ?? '';
     if (idVal.isEmpty) {
       uErr = "ID is required";
     } else {
-      // Strict format: ABC/12345/26
-      final idRegex = RegExp(r'^[A-Z]{3}/\d{5}/\d{2}$');
-      if (!idRegex.hasMatch(idVal)) {
-        uErr = "Invalid format. Use ABC/12345/26";
+      // Regex Patterns
+      final staffRegex = RegExp(
+        r'^ASTU/Ac-\d{4}$',
+        caseSensitive: false,
+      ); // e.g. ASTU/Ac-0000
+      final mastersRegex = RegExp(r'^PGE/\d{5}/\d{2}$', caseSensitive: false);
+      final extensionRegex = RegExp(r'^UGE/\d{5}/\d{2}$', caseSensitive: false);
+      final regularRegex = RegExp(r'^UGR/\d{5}/\d{2}$', caseSensitive: false);
+      final weekendRegex = RegExp(r'^UGW/\d{5}/\d{2}$', caseSensitive: false);
+
+      bool isValid = false;
+
+      if (staffRegex.hasMatch(idVal)) {
+        isValid = true;
+        if (state.role != 'Staff' && state.role != 'Alumni') {
+          // Staff can be Alumni, but mostly Staff. Ideally role is Staff.
+          // If user selected Student, this ID is invalid for Student?
+          // The prompt says "ASTU... indicates this user is a staff".
+          // We might just warn if role mismatches, or enforce it.
+          // Let's ensure format is valid for *some* role.
+        }
+      } else if (mastersRegex.hasMatch(idVal)) {
+        isValid = true;
+        // Masters means Alumni
+        if (state.role != 'Alumni' && state.role != 'Graduate') {
+          // Maybe allow Graduate too? Prompt says "he or she is only can be alumini".
+          uErr = "PGE IDs are for Alumni/Masters only.";
+        }
+      } else if (regularRegex.hasMatch(idVal) ||
+          extensionRegex.hasMatch(idVal) ||
+          weekendRegex.hasMatch(idVal)) {
+        isValid = true;
+        // Normal students
+      }
+
+      if (!isValid) {
+        uErr =
+            "Invalid ID Format. Use correct prefix (UGR, UGE, UGW, PGE, ASTU/Ac-)";
       }
     }
 
@@ -314,6 +377,7 @@ class SignupNotifier extends Notifier<SignupState> {
         role: state.role!, // Validated by step 2
         institutionalId: state.userId,
         major: state.major,
+        program: state.program, // Pass Program
         school: state.school, // Pass school abbreviation
         graduationYear: int.tryParse(
           state.graduationYear ?? '',

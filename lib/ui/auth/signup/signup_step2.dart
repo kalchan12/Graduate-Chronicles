@@ -185,6 +185,14 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
                         errorText: state.userIdError,
                         onChanged: (val) => notifier.setField('userId', val),
                       ),
+                      const SizedBox(height: 8),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Accepted: UGR (Regular), UGE (Extension), UGW (Weekend), PGE (Masters), ASTU/Ac- (Staff)',
+                          style: TextStyle(color: Colors.white38, fontSize: 11),
+                        ),
+                      ),
                       const SizedBox(height: 16),
 
                       // School Dropdown - Abbreviations only
