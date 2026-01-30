@@ -8,8 +8,7 @@ import '../widgets/global_background.dart';
   The central landing page for the Community module.
   Features:
   - Navigation cards for Reunions and Mentorship
-  - Quick action buttons (Create Event, Update Profile etc.)
-  - User greeting and notification entry
+  - Modern card design
 */
 class CommunityHomeScreen extends StatelessWidget {
   const CommunityHomeScreen({super.key});
@@ -23,59 +22,37 @@ class CommunityHomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Custom Header similar to existing app bar style
+              // Header
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: DesignSystem.purpleAccent,
-                        image: DecorationImage(
-                          image: AssetImage(
-                            'assets/images/user_avatar.png',
-                          ), // Placeholder or use Icon
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                      ), // Fallback
-                    ),
-                    const SizedBox(width: 12),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Welcome back',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                          style: DesignSystem.theme.textTheme.bodyMedium
+                              ?.copyWith(color: Colors.white70),
                         ),
                         Text(
                           'Community Hub',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: DesignSystem.theme.textTheme.titleLarge,
                         ),
                       ],
                     ),
-                    const Spacer(),
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: const Icon(
-                        Icons.notifications,
+                        Icons.notifications_outlined,
                         color: Colors.white,
                       ),
                     ),
@@ -87,87 +64,50 @@ class CommunityHomeScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
-                    const Text(
+                    Text(
                       'Your Community',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                      style: DesignSystem.theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Stay connected with alumni & mentors.',
+                      style: DesignSystem.theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white54,
                       ),
                     ),
-                    const Text(
-                      'Stay connected with alumni & mentors.',
-                      style: TextStyle(color: Colors.white54, fontSize: 14),
-                    ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
                     // Reunion Card
-                    _NavCard(
+                    _ModernNavCard(
                       title: 'Reunions',
                       subtitle: 'Reconnect with your batch of 2023.',
                       buttonText: 'Find Events',
-                      color: const Color(0xFF9B2CFF),
-                      icon: Icons.calendar_month,
-                      imageAsset: 'assets/images/reunion_bg.png', // Placeholder
+                      gradientColors: [
+                        const Color(0xFF9B2CFF),
+                        const Color(0xFF7A1BBF),
+                      ],
+                      icon: Icons.calendar_month_rounded,
                       onTap: () =>
                           Navigator.pushNamed(context, '/community/reunion'),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // Mentorship Card
-                    _NavCard(
+                    _ModernNavCard(
                       title: 'Mentorship',
                       subtitle: 'Guidance from experienced alumni.',
                       buttonText: 'Find a Mentor',
-                      color: const Color(0xFF536DFE), // Distinct color
-                      icon: Icons.search,
-                      imageAsset:
-                          'assets/images/mentorship_bg.png', // Placeholder
+                      gradientColors: [
+                        const Color(0xFF536DFE),
+                        const Color(0xFF3D5AFE),
+                      ],
+                      icon: Icons.school_rounded,
                       onTap: () =>
                           Navigator.pushNamed(context, '/community/mentorship'),
                     ),
 
                     const SizedBox(height: 32),
-
-                    // Quick Actions
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _QuickAction(
-                          icon: Icons.add,
-                          label: 'Create Event',
-                          onTap: () => Navigator.pushNamed(
-                            context,
-                            '/community/reunion/create',
-                          ),
-                        ),
-                        _QuickAction(
-                          icon: Icons.edit,
-                          label: 'Update Profile',
-                          onTap: () {},
-                        ),
-                        _QuickAction(
-                          icon: Icons.groups,
-                          label: 'My Groups',
-                          onTap: () {},
-                        ),
-                        _QuickAction(
-                          icon: Icons.bookmark,
-                          label: 'Saved',
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -179,22 +119,20 @@ class CommunityHomeScreen extends StatelessWidget {
   }
 }
 
-class _NavCard extends StatelessWidget {
+class _ModernNavCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String buttonText;
-  final Color color;
+  final List<Color> gradientColors;
   final IconData icon;
-  final String imageAsset;
   final VoidCallback onTap;
 
-  const _NavCard({
+  const _ModernNavCard({
     required this.title,
     required this.subtitle,
     required this.buttonText,
-    required this.color,
+    required this.gradientColors,
     required this.icon,
-    required this.imageAsset,
     required this.onTap,
   });
 
@@ -203,115 +141,106 @@ class _NavCard extends StatelessWidget {
     return Container(
       height: 200,
       decoration: BoxDecoration(
-        color: const Color(0xFF2A1727),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            gradientColors[0].withValues(alpha: 0.2),
+            gradientColors[1].withValues(alpha: 0.1),
+          ],
         ),
-      ),
-      child: Stack(
-        children: [
-          // Placeholder for background image
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Colors.white.withValues(alpha: 0.05), // bg placeholder
-              ),
-              child: const Center(
-                child: Icon(Icons.image, color: Colors.white10, size: 64),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: onTap,
-                    icon: const SizedBox.shrink(), // No icon or custom
-                    label: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(buttonText),
-                        const SizedBox(width: 8),
-                        Icon(icon, size: 16),
-                      ],
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        border: Border.all(
+          color: gradientColors[0].withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        GestureDetector(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
           onTap: onTap,
-          child: Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFF231B26),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Icon(icon, color: DesignSystem.purpleAccent),
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Background Icon Decoration
+              Positioned(
+                right: -20,
+                bottom: -20,
+                child: Icon(
+                  icon,
+                  size: 140,
+                  color: gradientColors[0].withValues(alpha: 0.1),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: gradientColors[0].withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: gradientColors[0].withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 24),
+                    ),
+                    const Spacer(),
+                    Text(
+                      title,
+                      style: DesignSystem.theme.textTheme.titleMedium?.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: DesignSystem.theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Text(
+                          buttonText,
+                          style: DesignSystem.theme.textTheme.labelLarge
+                              ?.copyWith(
+                                color: DesignSystem.warmYellow,
+                                fontSize: 14,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: DesignSystem.warmYellow,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
+      ),
     );
   }
 }
