@@ -8,6 +8,8 @@ import '../../state/profile_state.dart';
 import 'yearbook_filter_screen.dart';
 import 'yearbook_submission_screen.dart';
 import '../widgets/toast_helper.dart';
+import '../widgets/featured_carousel.dart';
+import '../../services/supabase/supabase_service.dart';
 
 import '../widgets/global_background.dart';
 
@@ -65,6 +67,25 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
                 showLeading: false,
               ),
               const SizedBox(height: 8),
+
+              // Featured Graduates Carousel
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: ref
+                    .read(supabaseServiceProvider)
+                    .fetchRandomYearbookEntries(limit: 5),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  final items = snapshot.data!
+                      .map((m) => FeaturedItem.fromMap(m))
+                      .toList();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: FeaturedCarousel(items: items, height: 140),
+                  );
+                },
+              ),
 
               // CTA for Graduates
               if (isGraduate) ...[
@@ -407,70 +428,197 @@ class _BatchGridItem extends StatelessWidget {
         ),
       ),
       child: Container(
-        decoration: DesignSystem.cardDecoration().copyWith(
-          color: const Color(0xFF1E0A25),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [const Color(0xFF2E1A36), const Color(0xFF1E0A25)],
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                    child: const Icon(
-                      Icons.school_rounded,
-                      color: Colors.white24,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF251029).withValues(alpha: 0.95),
+              const Color(0xFF151019).withValues(alpha: 0.9),
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Class of ${batch.batchYear}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  if (batch.batchSubtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      batch.batchSubtitle!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+            BoxShadow(
+              color: DesignSystem.purpleAccent.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              // Background gradient overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.topRight,
+                      radius: 1.5,
+                      colors: [
+                        DesignSystem.purpleAccent.withValues(alpha: 0.15),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFF3A2738).withValues(alpha: 0.6),
+                            const Color(0xFF251029).withValues(alpha: 0.4),
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                DesignSystem.purpleAccent.withValues(
+                                  alpha: 0.2,
+                                ),
+                                Colors.transparent,
+                              ],
+                            ),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.school_rounded,
+                            color: Colors.white.withValues(alpha: 0.7),
+                            size: 36,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Info section with glassmorphic feel
+                  Container(
+                    padding: const EdgeInsets.all(14.0),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.03),
+                          Colors.white.withValues(alpha: 0.06),
+                        ],
+                      ),
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: DesignSystem.purpleAccent.withValues(
+                                  alpha: 0.2,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: DesignSystem.purpleAccent.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '${batch.batchYear}',
+                                style: const TextStyle(
+                                  color: DesignSystem.purpleAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Class of ${batch.batchYear}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        if (batch.batchSubtitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            batch.batchSubtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              // Subtle shimmer overlay
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.08),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

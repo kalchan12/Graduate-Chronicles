@@ -315,6 +315,48 @@ class SupabaseService {
   }
 
   /*
+    Fetch Random Profiles.
+    Returns a list of random user profiles for featured sections.
+  */
+  Future<List<Map<String, dynamic>>> fetchRandomProfiles({
+    int limit = 5,
+  }) async {
+    try {
+      // PostgreSQL random() for random ordering
+      final res = await _client
+          .from('users')
+          .select('user_id, full_name, major, role, username, program')
+          .order('random()', ascending: true)
+          .limit(limit);
+
+      // Enrich with profile pictures
+      final List<Map<String, dynamic>> enriched = [];
+      for (final user in res) {
+        final profileRes = await _client
+            .from('profile')
+            .select('profile_picture')
+            .eq('user_id', user['user_id'])
+            .maybeSingle();
+
+        final Map<String, dynamic> item = Map.from(user);
+        if (profileRes != null && profileRes['profile_picture'] != null) {
+          item['profile_picture_url'] = _client.storage
+              .from('avatar')
+              .getPublicUrl(profileRes['profile_picture']);
+        }
+        item['title'] = user['full_name'] ?? 'Unknown';
+        item['description'] = user['major'] ?? user['role'] ?? '';
+        item['image_url'] = item['profile_picture_url'];
+        enriched.add(item);
+      }
+      return enriched;
+    } catch (e) {
+      print('Error fetching random profiles: $e');
+      return [];
+    }
+  }
+
+  /*
     Update Profile Settings (Split update).
     Updates 'users' table (Identity) AND 'profile' table (Rich content).
   */
@@ -798,6 +840,48 @@ class SupabaseService {
         .maybeSingle();
 
     return res;
+  }
+
+  /*
+    Fetch Random Yearbook Entries.
+    Returns random approved yearbook entries for featured carousels.
+  */
+  Future<List<Map<String, dynamic>>> fetchRandomYearbookEntries({
+    int limit = 5,
+    int? batchYear,
+  }) async {
+    try {
+      var query = _client
+          .from('yearbook_entries')
+          .select(
+            'id, photo_url, quote, batch_id, user_id, users!inner (full_name), yearbook_batches!inner(batch_year)',
+          )
+          .eq('is_approved', true);
+
+      if (batchYear != null) {
+        query = query.eq('yearbook_batches.batch_year', batchYear);
+      }
+
+      final res = await query.order('random()', ascending: true).limit(limit);
+
+      return res.map((e) {
+        final data = e as Map<String, dynamic>;
+        final user = data['users'] as Map<String, dynamic>?;
+        final batch = data['yearbook_batches'] as Map<String, dynamic>?;
+        final year = batch?['batch_year'];
+
+        return {
+          'id': data['id'],
+          'title': user?['full_name'] ?? 'Graduate',
+          'description': data['quote'] ?? 'Yearbook Entry',
+          'image_url': data['photo_url'],
+          'badge': year != null ? 'GRAD $year' : 'GRAD',
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching random yearbook entries: $e');
+      return [];
+    }
   }
 
   /// Create a new yearbook batch (Admin only - enforced at UI layer)
@@ -1935,6 +2019,38 @@ class SupabaseService {
       'major': userData['major'],
       'program': program ?? 'Regular', // Default if not provided
     });
+  }
+
+  /*
+    Fetch Random Community Events.
+    Returns random events for featured carousels.
+  */
+  Future<List<Map<String, dynamic>>> fetchRandomEvents({int limit = 5}) async {
+    try {
+      final res = await _client
+          .from('community_events')
+          .select(
+            'id, caption, cover_url, category, created_at, users!inner (full_name)',
+          )
+          .order('random()', ascending: true)
+          .limit(limit);
+
+      return res.map((e) {
+        final data = e as Map<String, dynamic>;
+        final user = data['users'] as Map<String, dynamic>?;
+        return {
+          'id': data['id'],
+          'title': data['caption'] ?? 'Event',
+          'description':
+              '${data['category']} • ${user?['full_name'] ?? 'Unknown'}',
+          'image_url': data['cover_url'],
+          'badge': data['category'],
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching random events: $e');
+      return [];
+    }
   }
 
   /*

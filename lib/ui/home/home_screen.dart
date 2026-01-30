@@ -10,6 +10,8 @@ import 'story_card.dart';
 import '../stories/story_uploader.dart';
 import '../../state/posts_state.dart';
 import '../widgets/post_card.dart';
+import '../widgets/featured_carousel.dart';
+import '../../services/supabase/supabase_service.dart';
 
 import '../profile/profile_screen.dart';
 import '../../messaging/ui/discover_screen.dart';
@@ -119,19 +121,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                   child: Text(
-                    'Featured Graduate',
+                    'Featured Graduates',
                     style: Theme.of(
                       context,
                     ).textTheme.titleLarge?.copyWith(fontSize: 20),
                   ),
                 ),
 
-                // Featured Graduate card
+                // Featured Graduate carousel (data-driven from yearbook entries)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _FeaturedCard(
-                    profileName: profile.name,
-                    degreeLine: '${profile.degree} | ${profile.year}',
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: ref
+                        .read(supabaseServiceProvider)
+                        .fetchRandomYearbookEntries(limit: 5, batchYear: 2026),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      final items = snapshot.data!
+                          .map((m) => FeaturedItem.fromMap(m))
+                          .toList();
+                      return FeaturedCarousel(
+                        items: items,
+                        height: 160,
+                        onItemTap: (item) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ProfileScreen(),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
 
@@ -297,127 +319,8 @@ class _HomeAppBar extends StatelessWidget {
 
 /*
   _StoryAvatar class removed in favor of the specialized StoryCard component.
+  _FeaturedCard class removed in favor of FeaturedCarousel widget.
 */
-
-class _FeaturedCard extends StatelessWidget {
-  final String profileName;
-  final String degreeLine;
-  const _FeaturedCard({required this.profileName, required this.degreeLine});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: DesignSystem.cardDecoration().copyWith(
-        color: const Color(0xFF251029), // Richer dark purple
-        borderRadius: BorderRadius.circular(20),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Container(
-              color: const Color(0xFF3A2738),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Icon(Icons.image, size: 48, color: Colors.white12),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Featured',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profileName,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontSize: 22),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  degreeLine,
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Meet $profileName and discover their journey.',
-                        style: const TextStyle(
-                          color: Color(0xFFD6C9E6),
-                          fontSize: 13,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to Profile
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: DesignSystem.purpleAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: const Text(
-                        'View Profile',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _BatchCard extends StatelessWidget {
   final String title;

@@ -5,6 +5,7 @@ import '../../../services/supabase/supabase_service.dart';
 import '../../../theme/design_system.dart';
 import '../../../models/community_event.dart';
 import '../../widgets/global_background.dart';
+import '../../widgets/featured_carousel.dart';
 
 /*
   EventsScreen
@@ -367,6 +368,25 @@ class _EventsFeedState extends ConsumerState<EventsFeed> {
       backgroundColor: Colors.transparent,
       body: Column(
         children: [
+          // Featured Events Carousel
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: ref
+                .read(supabaseServiceProvider)
+                .fetchRandomEvents(limit: 5),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              final items = snapshot.data!
+                  .map((m) => FeaturedItem.fromMap(m))
+                  .toList();
+              return Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 12),
+                child: FeaturedCarousel(items: items, height: 140),
+              );
+            },
+          ),
+
           // Filter Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
