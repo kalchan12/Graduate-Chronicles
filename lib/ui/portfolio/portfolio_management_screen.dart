@@ -32,8 +32,9 @@ class PortfolioManagementScreen extends ConsumerWidget {
         child: SafeArea(
           child: currentUser.when(
             data: (userId) {
-              if (userId == null)
+              if (userId == null) {
                 return const Center(child: Text("Not logged in"));
+              }
               // Trigger load if not loaded?
               // Better: Just use a FutureBuilder or useEffect.
               // We'll rely on the provider having data or loading it.
@@ -144,22 +145,73 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: DesignSystem.purpleAccent,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: DesignSystem.purpleAccent,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.5),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.add_circle, color: Colors.white),
-          onPressed: onAdd,
-        ),
-      ],
+          InkWell(
+            onTap: onAdd,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
+                border: Border.all(
+                  color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.add,
+                    color: DesignSystem.purpleAccent,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "ADD",
+                    style: TextStyle(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -182,18 +234,126 @@ class _ItemCard extends ConsumerWidget {
         item['issuing_organization'] ??
         '';
 
-    return Card(
-      color: Colors.white10,
-      child: ListTile(
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        subtitle: Text(subtitle, style: const TextStyle(color: Colors.white70)),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete, color: Colors.redAccent),
-          onPressed: () {
-            ref
-                .read(portfolioProvider.notifier)
-                .deleteItem(item['portfolio_id'], type);
+    IconData icon;
+    Color iconColor;
+
+    switch (type) {
+      case 'achievement':
+        icon = Icons.emoji_events_rounded;
+        iconColor = const Color(0xFFFFD700);
+        break;
+      case 'resume':
+        icon = Icons.description_rounded;
+        iconColor = const Color(0xFF64B5F6);
+        break;
+      case 'certificate':
+        icon = Icons.workspace_premium_rounded;
+        iconColor = const Color(0xFF81C784);
+        break;
+      case 'link':
+        icon = Icons.link_rounded;
+        iconColor = DesignSystem.purpleAccent;
+        break;
+      default:
+        icon = Icons.article_rounded;
+        iconColor = Colors.white70;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF1F1F2E).withValues(alpha: 0.8),
+            const Color(0xFF151019).withValues(alpha: 0.9),
+          ],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // Optional: Edit functionality could go here
           },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon Container
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: iconColor.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 12,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Delete Action
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Colors.white.withValues(alpha: 0.4),
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    ref
+                        .read(portfolioProvider.notifier)
+                        .deleteItem(item['portfolio_id'], type);
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

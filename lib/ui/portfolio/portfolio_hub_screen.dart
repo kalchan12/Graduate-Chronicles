@@ -481,12 +481,19 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
 
   Widget _buildStatsRow(BuildContext context, PortfolioState portfolio) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(30),
+        color: const Color(0xFF151019).withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -500,31 +507,34 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   builder: (_) => const PortfolioViewedScreen(),
                 ),
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.visibility_outlined,
-                    color: DesignSystem.purpleAccent,
-                    size: 18,
+                  Text(
+                    '${portfolio.views}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Column(
+                  const SizedBox(height: 4),
+                  Row(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${portfolio.views}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      Icon(
+                        Icons.visibility_outlined,
+                        color: DesignSystem.purpleAccent.withValues(alpha: 0.7),
+                        size: 14,
                       ),
+                      const SizedBox(width: 4),
                       Text(
                         'VIEWS',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
@@ -536,16 +546,15 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
             VerticalDivider(
               color: Colors.white.withValues(alpha: 0.1),
               thickness: 1,
+              width: 32,
             ),
 
             // LIKES
             GestureDetector(
               onTap: () {
-                // Toggle Like
                 ref.read(portfolioProvider.notifier).toggleLike();
               },
               onLongPress: () {
-                // View Liked Screen (if we want to keep it accessible)
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -553,33 +562,38 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   ),
                 );
               },
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    portfolio.isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: portfolio.isLiked
-                        ? Colors.pinkAccent
-                        : Colors.white70,
-                    size: 18,
+                  Text(
+                    '${portfolio.likes}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Column(
+                  const SizedBox(height: 4),
+                  Row(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${portfolio.likes}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      Icon(
+                        portfolio.isLiked
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: portfolio.isLiked
+                            ? Colors.pinkAccent
+                            : DesignSystem.purpleAccent.withValues(alpha: 0.7),
+                        size: 14,
                       ),
+                      const SizedBox(width: 4),
                       Text(
                         'LIKES',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
@@ -597,30 +611,51 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
-            Icons.verified_user,
-            size: 16,
-            color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: DesignSystem.purpleAccent,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.5),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-              fontSize: 13,
-            ),
-          ),
-          const Spacer(),
           if (trailing.isNotEmpty)
-            Text(
-              trailing,
-              style: TextStyle(
-                color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Text(
+                trailing,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
         ],
@@ -658,30 +693,45 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     String? imageUrl,
   }) {
     return Container(
-      width: 240,
+      width: 260,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF151019),
         borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF1F1F2E).withValues(alpha: 0.9),
+            const Color(0xFF151019).withValues(alpha: 0.95),
+          ],
+        ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               image: imageUrl != null
                   ? DecorationImage(
                       image: NetworkImage(imageUrl),
                       fit: BoxFit.cover,
                     )
                   : null,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: imageUrl == null
-                ? Icon(icon, color: DesignSystem.purpleAccent)
+                ? Icon(icon, color: DesignSystem.purpleAccent, size: 22)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -698,6 +748,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -706,9 +757,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    letterSpacing: 0.5,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 11,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -720,158 +771,159 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
   }
 
   Widget _buildResumesList(List<Map<String, dynamic>> items) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF151019),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          children: items.map((item) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: InkWell(
-                onTap: () {
-                  if (item['file_url'] != null) {
-                    _launchUrl(item['file_url']);
-                  }
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: InkWell(
+            onTap: () {
+              if (item['file_url'] != null) {
+                _launchUrl(item['file_url']);
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF151019).withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.description_rounded,
+                      color: DesignSystem.purpleAccent,
+                      size: 20,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['file_name'] ?? 'Resume',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['file_name'] ?? 'Resume',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (item['notes'] != null && item['notes'].isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              item['notes'],
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 11,
                               ),
                             ),
-                            if (item['notes'] != null &&
-                                item['notes'].isNotEmpty)
-                              Text(
-                                item['notes'],
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  fontSize: 11,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.download,
-                        size: 16,
-                        color: DesignSystem.purpleAccent,
-                      ),
-                    ],
+                          ),
+                      ],
+                    ),
                   ),
-                ),
+                  const Icon(
+                    Icons.arrow_outward_rounded,
+                    size: 16,
+                    color: Colors.white30,
+                  ),
+                ],
               ),
-            );
-          }).toList(),
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildCertsGrid(List<Map<String, dynamic>> items) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF151019),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.workspace_premium,
-                  color: DesignSystem.purpleAccent,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'CERTIFICATES',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final hasImage =
+              item['certificate_url'] != null &&
+              (item['certificate_url'].endsWith('.jpg') ||
+                  item['certificate_url'].endsWith('.png'));
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: InkWell(
+              onTap: () {
+                if (item['certificate_url'] != null) {
+                  _launchUrl(item['certificate_url']);
+                }
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: 140,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151019).withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: items.map((item) {
-                return InkWell(
-                  onTap: () {
-                    if (item['certificate_url'] != null) {
-                      _launchUrl(item['certificate_url']);
-                    }
-                  },
-                  child: Tooltip(
-                    message: item['certificate_name'] ?? 'Certificate',
-                    child: Container(
-                      width: 40,
-                      height: 40,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF151019),
-                          width: 2,
-                        ),
-                        image:
-                            item['certificate_url'] != null &&
-                                (item['certificate_url'].endsWith('.jpg') ||
-                                    item['certificate_url'].endsWith('.png'))
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        image: hasImage
                             ? DecorationImage(
                                 image: NetworkImage(item['certificate_url']),
                                 fit: BoxFit.cover,
                               )
                             : null,
                       ),
-                      child:
-                          item['certificate_url'] != null &&
-                              (item['certificate_url'].endsWith('.jpg') ||
-                                  item['certificate_url'].endsWith('.png'))
-                          ? null
-                          : const Icon(
-                              Icons.insert_drive_file,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
+                      child: !hasImage
+                          ? const Icon(
+                              Icons.workspace_premium_rounded,
+                              color: Color(0xFF81C784),
+                              size: 24,
+                            )
+                          : null,
                     ),
-                  ),
-                );
-              }).toList(),
+                    const SizedBox(height: 12),
+                    Text(
+                      item['certificate_name'] ?? 'Certificate',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -907,8 +959,16 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
+        color: const Color(0xFF151019).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -920,6 +980,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
           ),
         ],
