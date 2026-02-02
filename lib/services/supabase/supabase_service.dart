@@ -1534,6 +1534,37 @@ class SupabaseService {
     print('🔗 sendConnectionRequest: sender=$myId, target=$targetUserId');
 
     try {
+      // 1. Check for existing request (in either direction)
+      // We only care if I already sent one.
+      final existingParams = await _client
+          .from('connection_requests')
+          .select()
+          .eq('sender_id', myId)
+          .eq('receiver_id', targetUserId)
+          .maybeSingle();
+
+      if (existingParams != null) {
+        final status = existingParams['status'] as String;
+        if (status == 'rejected') {
+          // Retry: Update status to pending
+          print('🔄 Reactivating rejected request...');
+          await _client
+              .from('connection_requests')
+              .update({
+                'status': 'pending',
+                'created_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', existingParams['id']);
+          print('✅ Connection request reactivated');
+          return;
+        } else if (status == 'pending') {
+          throw Exception('Connection request already sent');
+        } else if (status == 'accepted') {
+          throw Exception('You are already connected');
+        }
+      }
+
+      // 2. Insert new request if none exists
       await _client.from('connection_requests').insert({
         'sender_id': myId,
         'receiver_id': targetUserId,
@@ -1542,7 +1573,6 @@ class SupabaseService {
       print('✅ Connection request sent successfully');
     } catch (e) {
       print('❌ sendConnectionRequest failed: $e');
-      // Check for duplicate constraint violation
       if (e.toString().contains('duplicate') ||
           e.toString().contains('unique')) {
         throw Exception('Connection request already exists');

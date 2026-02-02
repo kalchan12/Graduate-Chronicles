@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
+import '../../services/encryption/encryption_service.dart';
 
 /// Service handling all messaging operations with Supabase.
 ///
@@ -165,6 +166,9 @@ class MessagingService {
   // MESSAGE OPERATIONS
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // Helper for encryption
+  final _encryption = EncryptionService();
+
   /// Get real-time stream of messages for a conversation.
   ///
   /// Uses Supabase Realtime with Postgres Changes.
@@ -174,7 +178,16 @@ class MessagingService {
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true)
-        .map((rows) => rows.map((r) => Message.fromMap(r)).toList());
+        .map((rows) {
+          return rows.map((r) {
+            // Decrypt content before creating model
+            final content = r['content'] as String;
+            final decrypted = _encryption.decrypt(content);
+            final mutableMap = Map<String, dynamic>.from(r);
+            mutableMap['content'] = decrypted;
+            return Message.fromMap(mutableMap);
+          }).toList();
+        });
   }
 
   /// Send a message to a conversation.
@@ -185,11 +198,14 @@ class MessagingService {
     if (userId == null) throw Exception('Not authenticated');
     if (content.trim().isEmpty) throw Exception('Message cannot be empty');
 
+    // Encrypt content
+    final encryptedContent = _encryption.encrypt(content.trim());
+
     // Insert message
     await _client.from('messages').insert({
       'conversation_id': conversationId,
       'sender_id': userId,
-      'content': content.trim(),
+      'content': encryptedContent,
     });
 
     // Update conversation timestamp
@@ -207,7 +223,14 @@ class MessagingService {
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true);
 
-    return (response as List).map((r) => Message.fromMap(r)).toList();
+    return (response as List).map((r) {
+      // Decrypt content
+      final content = r['content'] as String;
+      final decrypted = _encryption.decrypt(content);
+      final mutableMap = Map<String, dynamic>.from(r);
+      mutableMap['content'] = decrypted;
+      return Message.fromMap(mutableMap);
+    }).toList();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
