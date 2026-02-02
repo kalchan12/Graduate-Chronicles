@@ -402,6 +402,37 @@ class SupabaseService {
     return res?['user_id'];
   }
 
+  /// Batch fetch profile pictures for multiple users.
+  /// Returns a Map of userId -> profile picture URL (or null if not found).
+  /// Optimized for fetching multiple users' avatars in one go.
+  Future<Map<String, String?>> fetchProfilePicturesForUsers(
+    List<String> userIds,
+  ) async {
+    if (userIds.isEmpty) return {};
+
+    try {
+      final res = await _client
+          .from('profile')
+          .select('user_id, profile_picture')
+          .inFilter('user_id', userIds);
+
+      final Map<String, String?> result = {};
+      for (final row in res) {
+        final userId = row['user_id'] as String;
+        final path = row['profile_picture'] as String?;
+        if (path != null && path.isNotEmpty) {
+          result[userId] = _client.storage.from('avatar').getPublicUrl(path);
+        } else {
+          result[userId] = null;
+        }
+      }
+      return result;
+    } catch (e) {
+      print('Error fetching profile pictures: $e');
+      return {};
+    }
+  }
+
   // --- Portfolio System Methods ---
 
   /*
@@ -1216,15 +1247,13 @@ class SupabaseService {
   // --- Portfolio Stats & Interaction ---
 
   Future<Map<String, dynamic>> getPortfolioStats(String portfolioId) async {
-    final userId = _client.auth.currentUser?.id;
+    final authId = _client.auth.currentUser?.id;
 
-    // 1. Get View Count
-    final portfolioRes = await _client
-        .from('portfolio')
-        .select('view_count')
-        .eq('portfolio_id', portfolioId)
-        .single();
-    final views = portfolioRes['view_count'] as int? ?? 0;
+    // 1. Get View Count from valid views table
+    final views = await _client
+        .from('portfolio_views')
+        .count(CountOption.exact)
+        .eq('portfolio_id', portfolioId);
 
     // 2. Get Like Count
     final likes = await _client
@@ -1234,28 +1263,46 @@ class SupabaseService {
 
     // 3. Check if Liked by User
     bool isLiked = false;
-    if (userId != null) {
-      final userLike = await _client
-          .from('portfolio_likes')
-          .select('id')
-          .eq('portfolio_id', portfolioId)
-          .eq('user_id', userId)
+    if (authId != null) {
+      // Resolve Public ID
+      final userRow = await _client
+          .from('users')
+          .select('user_id')
+          .eq('auth_user_id', authId)
           .maybeSingle();
-      isLiked = userLike != null;
+
+      if (userRow != null) {
+        final publicUserId = userRow['user_id'];
+        final userLike = await _client
+            .from('portfolio_likes')
+            .select('id')
+            .eq('portfolio_id', portfolioId)
+            .eq('user_id', publicUserId)
+            .maybeSingle();
+        isLiked = userLike != null;
+      }
     }
 
     return {'views': views, 'likes': likes, 'isLiked': isLiked};
   }
 
   Future<void> togglePortfolioLike(String portfolioId) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Not authenticated');
+    final authId = _client.auth.currentUser?.id;
+    if (authId == null) throw Exception('Not authenticated');
+
+    // Resolve Public ID
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .single();
+    final publicUserId = userRow['user_id'];
 
     final existing = await _client
         .from('portfolio_likes')
         .select('id')
         .eq('portfolio_id', portfolioId)
-        .eq('user_id', userId)
+        .eq('user_id', publicUserId)
         .maybeSingle();
 
     if (existing != null) {
@@ -1265,26 +1312,57 @@ class SupabaseService {
       // Like
       await _client.from('portfolio_likes').insert({
         'portfolio_id': portfolioId,
-        'user_id': userId,
+        'user_id': publicUserId,
       });
     }
   }
 
   Future<void> incrementPortfolioView(String portfolioId) async {
-    // Ideally use RPC, but simple fetch-update is acceptable for this scope.
-    // We don't worry about race conditions for views in this prototype.
-    final res = await _client
-        .from('portfolio')
-        .select('view_count')
+    final authId = _client.auth.currentUser?.id;
+    // We allow anonymous views potentially, but strict mode prefers users.
+    // If not authenticated, we might skip or record null if allowed.
+    if (authId == null) return;
+
+    // Resolve Public ID
+    final userRow = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', authId)
+        .maybeSingle();
+
+    if (userRow != null) {
+      final publicUserId = userRow['user_id'];
+      await _client.from('portfolio_views').insert({
+        'portfolio_id': portfolioId,
+        'viewer_id': publicUserId,
+      });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchPortfolioLikes(
+    String portfolioId,
+  ) async {
+    // Join with users table to get profile info
+    // portfolio_likes -> users (via user_id)
+    final response = await _client
+        .from('portfolio_likes')
+        .select('created_at, users:user_id(full_name, role, major)')
         .eq('portfolio_id', portfolioId)
-        .single();
+        .order('created_at', ascending: false);
 
-    final current = res['view_count'] as int? ?? 0;
+    return List<Map<String, dynamic>>.from(response);
+  }
 
-    await _client
-        .from('portfolio')
-        .update({'view_count': current + 1})
-        .eq('portfolio_id', portfolioId);
+  Future<List<Map<String, dynamic>>> fetchPortfolioViews(
+    String portfolioId,
+  ) async {
+    final response = await _client
+        .from('portfolio_views')
+        .select('created_at, users:viewer_id(full_name, role, major)')
+        .eq('portfolio_id', portfolioId)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
   }
 
   // --- Admin Access System ---
@@ -1432,6 +1510,54 @@ class SupabaseService {
       'receiver_id': targetUserId,
       'status': 'pending',
     });
+  }
+
+  /// Get the total count of accepted connections for a user (auth_user_id)
+  /// Counts both sent and received connections that are accepted
+  Future<int> getConnectionCount(String authUserId) async {
+    try {
+      // Count where user is sender and status is accepted
+      final sentResponse = await _client
+          .from('connection_requests')
+          .select()
+          .eq('sender_id', authUserId)
+          .eq('status', 'accepted');
+
+      // Count where user is receiver and status is accepted
+      final receivedResponse = await _client
+          .from('connection_requests')
+          .select()
+          .eq('receiver_id', authUserId)
+          .eq('status', 'accepted');
+
+      return (sentResponse as List).length + (receivedResponse as List).length;
+    } catch (e) {
+      print('Error fetching connection count: $e');
+      return 0;
+    }
+  }
+
+  /// Remove a connection with a target user (disconnect)
+  /// Deletes the connection request row entirely
+  Future<void> removeConnection(String targetAuthUserId) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    // Delete where I am sender and they are receiver
+    await _client
+        .from('connection_requests')
+        .delete()
+        .eq('sender_id', myId)
+        .eq('receiver_id', targetAuthUserId)
+        .eq('status', 'accepted');
+
+    // Also delete where they are sender and I am receiver
+    await _client
+        .from('connection_requests')
+        .delete()
+        .eq('sender_id', targetAuthUserId)
+        .eq('receiver_id', myId)
+        .eq('status', 'accepted');
   }
 
   // ========== ADMIN: CONTENT MODERATION ==========

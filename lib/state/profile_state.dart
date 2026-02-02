@@ -191,3 +191,13 @@ final connectionStatusProvider = FutureProvider.family<String, String?>((
   final service = ref.read(supabaseServiceProvider);
   return await service.getConnectionStatus(targetAuthId);
 });
+
+// Provider to fetch connection count for a user (by AUTH ID)
+final connectionCountProvider = FutureProvider.family<int, String?>((
+  ref,
+  authUserId,
+) async {
+  if (authUserId == null) return 0;
+  final service = ref.read(supabaseServiceProvider);
+  return await service.getConnectionCount(authUserId);
+});

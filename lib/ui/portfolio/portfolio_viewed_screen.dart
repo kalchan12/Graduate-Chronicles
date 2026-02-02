@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../theme/design_system.dart';
-import '../../ui/widgets/global_background.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../state/portfolio_state.dart';
+import '../widgets/global_background.dart';
 
 /*
   Portfolio Visitors Screen.
@@ -10,11 +11,14 @@ import '../../ui/widgets/global_background.dart';
   - List of recent visitors.
   - Option to view visitor profiles.
 */
-class PortfolioViewedScreen extends StatelessWidget {
-  const PortfolioViewedScreen({super.key});
+class PortfolioViewedScreen extends ConsumerWidget {
+  final String portfolioId;
+  const PortfolioViewedScreen({super.key, required this.portfolioId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final viewsAsync = ref.watch(portfolioViewsProvider(portfolioId));
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -29,76 +33,88 @@ class PortfolioViewedScreen extends StatelessWidget {
       ),
       body: GlobalBackground(
         child: SafeArea(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
+          child: viewsAsync.when(
+            data: (views) {
+              if (views.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No visitors yet.',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: views.length,
+                itemBuilder: (context, index) {
+                  final view = views[index];
+                  final user = view['users'] ?? {};
+                  final name = user['full_name'] ?? 'Unknown User';
+                  final role = user['role'] ?? 'Student';
+                  // Format time relative approx
+                  final time = view['created_at'] != null
+                      ? DateTime.parse(
+                          view['created_at'],
+                        ).toLocal().toString().split('.')[0]
+                      : '';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.white10,
+                            child: Icon(Icons.person, color: Colors.white54),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$role • Viewed $time',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // View Profile button could go here
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.white10,
-                        child: Icon(Icons.person, color: Colors.white54),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Visitor ${index + 1}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Viewed just now',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: DesignSystem.purpleAccent.withValues(
-                            alpha: 0.1,
-                          ),
-                          foregroundColor: DesignSystem.purpleAccent,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: DesignSystem.purpleAccent.withValues(
-                                alpha: 0.3,
-                              ),
-                            ),
-                          ),
-                        ),
-                        child: const Text('View Profile'),
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                },
               );
             },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Center(
+              child: Text(
+                'Error: $e',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
           ),
         ),
       ),

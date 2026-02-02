@@ -258,3 +258,23 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
 final portfolioProvider = NotifierProvider<PortfolioNotifier, PortfolioState>(
   PortfolioNotifier.new,
 );
+
+// Provider to fetch likes list
+final portfolioLikesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>((
+      ref,
+      portfolioId,
+    ) async {
+      final service = ref.read(supabaseServiceProvider);
+      return await service.fetchPortfolioLikes(portfolioId);
+    });
+
+// Provider to fetch views list
+final portfolioViewsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>((
+      ref,
+      portfolioId,
+    ) async {
+      final service = ref.read(supabaseServiceProvider);
+      return await service.fetchPortfolioViews(portfolioId);
+    });

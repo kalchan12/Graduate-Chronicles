@@ -357,6 +357,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         fontSize: 15,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    // Connection count display
+                    Builder(
+                      builder: (context) {
+                        final countAsync = ref.watch(
+                          connectionCountProvider(displayProfile.authUserId),
+                        );
+                        return countAsync.when(
+                          data: (count) => Text(
+                            '$count Connection${count == 1 ? '' : 's'}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24),
 
                     // Action buttons
@@ -399,6 +420,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       }
                                     } catch (e) {
                                       _showCustomToast('Failed to send');
+                                    } finally {
+                                      if (mounted) {
+                                        setState(
+                                          () => _isConnectionLoading = false,
+                                        );
+                                      }
+                                    }
+                                  } else if (connectionStatus == 'accepted') {
+                                    // Disconnect Logic
+                                    // Confirm disconnect?
+                                    // For now, just disconnect on tap for simplicity or show options
+                                    try {
+                                      setState(
+                                        () => _isConnectionLoading = true,
+                                      );
+                                      final service = ref.read(
+                                        supabaseServiceProvider,
+                                      );
+                                      if (displayProfile.authUserId != null) {
+                                        await service.removeConnection(
+                                          displayProfile.authUserId!,
+                                        );
+                                        _showCustomToast('Disconnected');
+                                        // Invalidate status and count
+                                        ref.invalidate(
+                                          connectionStatusProvider(
+                                            displayProfile.authUserId!,
+                                          ),
+                                        );
+                                        ref.invalidate(
+                                          connectionCountProvider(
+                                            displayProfile.authUserId!,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      _showCustomToast('Failed to disconnect');
                                     } finally {
                                       if (mounted) {
                                         setState(
@@ -457,60 +515,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                final authUserId = displayProfile.authUserId;
-                                if (authUserId == null) {
-                                  _showCustomToast('User not found');
-                                  return;
-                                }
+                          if (!isOwner) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final authUserId = displayProfile.authUserId;
+                                  if (authUserId == null) {
+                                    _showCustomToast('User not found');
+                                    return;
+                                  }
 
-                                try {
-                                  final convoId = await ref
-                                      .read(conversationsProvider.notifier)
-                                      .startConversation(authUserId);
+                                  try {
+                                    final convoId = await ref
+                                        .read(conversationsProvider.notifier)
+                                        .startConversation(authUserId);
 
-                                  if (mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChatScreen(
-                                          conversationId: convoId,
-                                          participantName: displayProfile.name,
-                                          participantAvatar:
-                                              displayProfile.profileImage,
+                                    if (mounted) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ChatScreen(
+                                            conversationId: convoId,
+                                            participantName:
+                                                displayProfile.name,
+                                            participantAvatar:
+                                                displayProfile.profileImage,
+                                          ),
                                         ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      _showCustomToast('Could not start chat');
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  height: 42, // Reduced height
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF231B26),
+                                    borderRadius: BorderRadius.circular(21),
+                                    border: Border.all(color: Colors.white24),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Message',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
                                       ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    _showCustomToast('Could not start chat');
-                                  }
-                                }
-                              },
-                              child: Container(
-                                height: 42, // Reduced height
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF231B26),
-                                  borderRadius: BorderRadius.circular(21),
-                                  border: Border.all(color: Colors.white24),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'Message',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

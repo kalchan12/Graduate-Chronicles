@@ -129,7 +129,7 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
         if (!userInfoMap.containsKey(userId)) {
           userInfoMap[userId] = {
             'username': userData['username'] ?? userData['full_name'] ?? 'User',
-            'profile_pic_url': null,
+            'profile_pic_url': null, // Will be filled by batch fetch
           };
         }
 
@@ -139,21 +139,37 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
         groupedStories[userId]!.add(story);
       }
 
+      // Batch fetch profile pictures for ALL users with stories
+      final allUserIds = userInfoMap.keys.toList();
+      final profilePictures = await service.fetchProfilePicturesForUsers(
+        allUserIds,
+      );
+
+      // Update userInfoMap with fetched profile pictures
+      for (final userId in allUserIds) {
+        userInfoMap[userId]!['profile_pic_url'] = profilePictures[userId];
+      }
+
       final List<UserStoryGroup> groups = [];
 
       // Add "Your Story" placeholder if not present in fetched stories
       bool myStoryFound = false;
 
-      // Pre-fetch my avatar URL (needed regardless of whether I have stories)
+      // Get my avatar from already fetched data (if I have stories)
       String? myAvatarUrl;
       if (currentUserId != null) {
-        try {
-          final myProfile = await service.getFullProfile(currentUserId);
-          if (myProfile != null) {
-            myAvatarUrl = myProfile['profile_picture'];
+        myAvatarUrl = profilePictures[currentUserId];
+        // If I don't have stories, my profile pic won't be in the batch fetch
+        // So fetch it separately
+        if (myAvatarUrl == null && !groupedStories.containsKey(currentUserId)) {
+          try {
+            final myProfile = await service.getFullProfile(currentUserId);
+            if (myProfile != null) {
+              myAvatarUrl = myProfile['profile_picture'];
+            }
+          } catch (e) {
+            // Ignore error, use placeholder
           }
-        } catch (e) {
-          // Ignore error, use placeholder
         }
       }
 
@@ -170,7 +186,7 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
           UserStoryGroup(
             userId: userId,
             username: isMe ? 'Your Story' : info['username'],
-            // For "Me", always use the pre-fetched avatar; for others, use placeholder
+            // Use batch-fetched profile picture for all users
             profilePicUrl: isMe ? myAvatarUrl : info['profile_pic_url'],
             isMe: isMe,
             stories: stories,

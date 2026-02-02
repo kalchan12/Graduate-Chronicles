@@ -282,6 +282,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                           : (isOwner && userProfile.name.isNotEmpty
                                 ? userProfile.name
                                 : 'Student'),
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -290,17 +291,23 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      (portfolio.ownerDegree != null &&
-                              portfolio.ownerDegree!.isNotEmpty)
-                          ? '${portfolio.ownerDegree} @ Graduate Chronicles'
-                          : (isOwner && userProfile.degree.isNotEmpty
-                                ? '${userProfile.degree} @ Graduate Chronicles'
-                                : 'Graduate Student'),
-                      style: TextStyle(
-                        color: DesignSystem.purpleAccent.withValues(alpha: 0.9),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Text(
+                        (portfolio.ownerDegree != null &&
+                                portfolio.ownerDegree!.isNotEmpty)
+                            ? '${portfolio.ownerDegree} @ Graduate Chronicles'
+                            : (isOwner && userProfile.degree.isNotEmpty
+                                  ? '${userProfile.degree} @ Graduate Chronicles'
+                                  : 'Graduate Student'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: DesignSystem.purpleAccent.withValues(
+                            alpha: 0.9,
+                          ),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
 
@@ -501,12 +508,17 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
           children: [
             // VIEWS
             GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PortfolioViewedScreen(),
-                ),
-              ),
+              onTap: () {
+                if (portfolio.id != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PortfolioViewedScreen(portfolioId: portfolio.id!),
+                    ),
+                  );
+                }
+              },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -555,12 +567,18 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                 ref.read(portfolioProvider.notifier).toggleLike();
               },
               onLongPress: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PortfolioLikedScreen(),
-                  ),
-                );
+                if (portfolio.id != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PortfolioLikedScreen(portfolioId: portfolio.id!),
+                    ),
+                  ).then((_) {
+                    // Update stats when coming back
+                    // (Ideally simpler refresh)
+                  });
+                }
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -131,27 +131,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
 
                 // Featured Graduate carousel (data-driven from yearbook entries)
+                // Uses current user's graduation year for batch filtering
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 0),
-                  child: FutureBuilder<List<Map<String, dynamic>>>(
-                    future: ref
-                        .read(supabaseServiceProvider)
-                        .fetchRandomYearbookEntries(limit: 5, batchYear: 2026),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-                      final items = snapshot.data!
-                          .map((m) => FeaturedItem.fromMap(m))
-                          .toList();
-                      return FeaturedCarousel(
-                        items: items,
-                        height: 160,
-                        onItemTap: (item) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ProfileScreen(),
+                  child: Builder(
+                    builder: (context) {
+                      // Get dynamic batch year from current user's profile
+                      final batchYear =
+                          int.tryParse(profile.year) ?? DateTime.now().year;
+
+                      return FutureBuilder<List<Map<String, dynamic>>>(
+                        future: ref
+                            .read(supabaseServiceProvider)
+                            .fetchRandomYearbookEntries(
+                              limit: 10,
+                              batchYear: batchYear,
                             ),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          final items = snapshot.data!
+                              .map((m) => FeaturedItem.fromMap(m))
+                              .toList();
+                          return FeaturedCarousel(
+                            items: items,
+                            height: 160,
+                            onItemTap: (item) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ProfileScreen(),
+                                ),
+                              );
+                            },
                           );
                         },
                       );

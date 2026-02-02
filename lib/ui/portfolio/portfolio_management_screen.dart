@@ -234,122 +234,199 @@ class _ItemCard extends ConsumerWidget {
         item['issuing_organization'] ??
         '';
 
+    String? imageUrl = item['cover_image_url']; // For achievements
+
     IconData icon;
     Color iconColor;
+    String typeLabel;
 
     switch (type) {
       case 'achievement':
         icon = Icons.emoji_events_rounded;
-        iconColor = const Color(0xFFFFD700);
+        iconColor = const Color(0xFFFFD700); // Gold
+        typeLabel = 'ACHIEVEMENT';
         break;
       case 'resume':
         icon = Icons.description_rounded;
-        iconColor = const Color(0xFF64B5F6);
+        iconColor = const Color(0xFF64B5F6); // Blue
+        typeLabel = 'RESUME';
         break;
       case 'certificate':
         icon = Icons.workspace_premium_rounded;
-        iconColor = const Color(0xFF81C784);
+        iconColor = const Color(0xFF81C784); // Green
+        typeLabel = 'CERTIFICATE';
         break;
       case 'link':
         icon = Icons.link_rounded;
         iconColor = DesignSystem.purpleAccent;
+        typeLabel = 'LINK';
         break;
       default:
         icon = Icons.article_rounded;
         iconColor = Colors.white70;
+        typeLabel = 'ITEM';
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1F1F2E).withValues(alpha: 0.8),
-            const Color(0xFF151019).withValues(alpha: 0.9),
+            const Color(0xFF2A2A35).withValues(alpha: 0.9),
+            const Color(0xFF151019).withValues(alpha: 0.95),
           ],
         ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           onTap: () {
-            // Optional: Edit functionality could go here
+            // Edit functionality placeholder
           },
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon Container
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: iconColor.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 24),
-                ),
-                const SizedBox(width: 16),
-
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                // Header Row: Icon/Type + Delete
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                      if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 12,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: iconColor.withValues(alpha: 0.3),
                         ),
-                      ],
-                    ],
-                  ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, color: iconColor, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            typeLabel,
+                            style: TextStyle(
+                              color: iconColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: Colors.white.withValues(alpha: 0.4),
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        // Confirm dialog could be good, but direct delete for now as per prev implementation
+                        ref
+                            .read(portfolioProvider.notifier)
+                            .deleteItem(item['portfolio_id'], type);
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      splashRadius: 20,
+                    ),
+                  ],
                 ),
 
-                // Delete Action
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: Colors.white.withValues(alpha: 0.4),
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    ref
-                        .read(portfolioProvider.notifier)
-                        .deleteItem(item['portfolio_id'], type);
-                  },
+                const SizedBox(height: 16),
+
+                // Main Content
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Optional Image Thumbnail
+                    if (imageUrl != null)
+                      Container(
+                        width: 60,
+                        height: 60,
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          image: DecorationImage(
+                            image: NetworkImage(imageUrl),
+                            fit: BoxFit.cover,
+                          ),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                      )
+                    else if (type !=
+                        'link') // Show large icon placeholder if no image
+                      Container(
+                        width: 60,
+                        height: 60,
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            icon,
+                            color: iconColor.withValues(alpha: 0.5),
+                            size: 28,
+                          ),
+                        ),
+                      ),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                          if (subtitle.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
