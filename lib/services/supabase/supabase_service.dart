@@ -1852,6 +1852,127 @@ class SupabaseService {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MENTORSHIP
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Fetch users eligible to be mentors (e.g. graduates, staff)
+  Future<List<Map<String, dynamic>>> fetchMentors() async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    try {
+      // Get users who are 'graduate' or 'staff'
+      final response = await _client
+          .from('users')
+          .select('user_id, full_name, role, job_title, company')
+          .or('role.eq.graduate,role.eq.staff') // Filter eligible roles
+          .neq('auth_user_id', myId); // Exclude self
+
+      // Enrich with profile picture and tags if needed
+      // For now, returning basic user info + role/job
+      final List<Map<String, dynamic>> mentors = [];
+
+      for (var user in response) {
+        final userId = user['user_id'] as String;
+
+        // Fetch profile specifically for the image & tags/skills
+        // (Assuming tags might be in profile or bio?)
+        final profile = await _client
+            .from('profile')
+            .select('profile_picture, bio')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        String? avatarUrl;
+        if (profile != null && profile['profile_picture'] != null) {
+          avatarUrl = _client.storage
+              .from('avatar')
+              .getPublicUrl(profile['profile_picture']);
+        }
+
+        mentors.add({
+          ...user,
+          'bio': profile?['bio'] ?? '',
+          'avatar_url': avatarUrl,
+        });
+      }
+      return mentors;
+    } catch (e) {
+      print('❌ fetchMentors error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get all mentorship records where I am Mentee OR Mentor
+  Future<List<Map<String, dynamic>>> fetchMyMentorships() async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    try {
+      final response = await _client
+          .from('mentorships')
+          .select()
+          .or('mentee_id.eq.$myId,mentor_id.eq.$myId');
+      return response;
+    } catch (e) {
+      print('❌ fetchMyMentorships error: $e');
+      return [];
+    }
+  }
+
+  Future<void> requestMentorship(String mentorId) async {
+    final myId = _client.auth.currentUser?.id;
+    if (myId == null) throw Exception('Not authenticated');
+
+    await _client.from('mentorships').insert({
+      'mentee_id': myId,
+      'mentor_id': mentorId,
+      'status': 'pending',
+    });
+  }
+
+  Future<void> updateMentorshipStatus(
+    String mentorshipId,
+    String status,
+  ) async {
+    await _client
+        .from('mentorships')
+        .update({
+          'status': status,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', mentorshipId);
+  }
+
+  Future<Map<String, dynamic>?> fetchUserWithProfile(String authUserId) async {
+    try {
+      final user = await _client
+          .from('users')
+          .select('user_id, full_name, role, job_title, company')
+          .eq('auth_user_id', authUserId)
+          .maybeSingle();
+
+      if (user == null) return null;
+
+      final userId = user['user_id'] as String;
+      final profile = await _client
+          .from('profile')
+          .select('profile_picture, bio')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      return {
+        ...user,
+        'profile_picture': profile?['profile_picture'],
+        'bio': profile?['bio'],
+      };
+    } catch (e) {
+      print('❌ fetchUserWithProfile error: $e');
+      return null;
+    }
+  }
+
   /// Mark notification as read
   Future<void> markNotificationAsRead(String notificationId) async {
     await _client.from('notifications').update({'is_read': true}).match({

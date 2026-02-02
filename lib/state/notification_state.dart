@@ -125,6 +125,34 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
       print('Error denying request: $e');
     }
   }
+
+  Future<void> acceptMentorshipRequest(
+    String notificationId,
+    String mentorshipId,
+  ) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.updateMentorshipStatus(mentorshipId, 'accepted');
+      await service.markNotificationAsRead(notificationId);
+      await refresh();
+    } catch (e) {
+      print('Error accepting mentorship: $e');
+    }
+  }
+
+  Future<void> denyMentorshipRequest(
+    String notificationId,
+    String mentorshipId,
+  ) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.updateMentorshipStatus(mentorshipId, 'rejected');
+      await service.markNotificationAsRead(notificationId);
+      await refresh();
+    } catch (e) {
+      print('Error denying mentorship: $e');
+    }
+  }
 }
 
 final notificationsProvider =

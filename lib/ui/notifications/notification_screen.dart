@@ -142,6 +142,7 @@ class _NotificationCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isConnectionRequest = item.iconType == 'connection_request';
+    final isMentorshipRequest = item.iconType == 'mentorship_request';
     final hasRelatedUser = item.relatedUserId != null;
 
     void navigateToProfile() {
@@ -274,7 +275,6 @@ class _NotificationCard extends ConsumerWidget {
                   ],
                 ),
 
-                // Action Area
                 if (isConnectionRequest && item.referenceId != null) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -380,6 +380,111 @@ class _NotificationCard extends ConsumerWidget {
                     ),
                   ),
                 ],
+                if (isMentorshipRequest && item.referenceId != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasRelatedUser) ...[
+                          GestureDetector(
+                            onTap: navigateToProfile,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.school, // Changed icon for mentorship
+                                  size: 16,
+                                  color: DesignSystem.purpleAccent,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'View Applicant Profile',
+                                  style: TextStyle(
+                                    color: DesignSystem.purpleAccent
+                                        .withOpacity(0.9),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Spacer(),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12,
+                                  color: Colors.white30,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Divider(
+                            color: Colors.white.withOpacity(0.1),
+                            height: 24,
+                          ),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .acceptMentorshipRequest(
+                                        item.id,
+                                        item.referenceId!,
+                                      );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: DesignSystem.purpleAccent,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text('Accept Mentorship'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .denyMentorshipRequest(
+                                        item.id,
+                                        item.referenceId!,
+                                      );
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white70,
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text('Decline'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -427,6 +532,16 @@ class _NotificationCard extends ConsumerWidget {
         icon = Icons.check_circle_rounded;
         color = Colors.greenAccent;
         gradient = [Colors.greenAccent, Colors.tealAccent];
+        break;
+      case 'mentorship_request':
+        icon = Icons.school_rounded;
+        color = Colors.orangeAccent;
+        gradient = [Colors.orangeAccent, Colors.deepOrangeAccent];
+        break;
+      case 'mentorship_accepted':
+        icon = Icons.verified_rounded;
+        color = Colors.indigoAccent;
+        gradient = [Colors.indigoAccent, Colors.blueAccent];
         break;
       default:
         icon = Icons.notifications_rounded;

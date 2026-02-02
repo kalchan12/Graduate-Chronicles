@@ -1,26 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../messaging/ui/chat_screen.dart';
+import '../../../messaging/providers/messaging_provider.dart';
+import '../../../services/supabase/supabase_service.dart';
 import '../../../theme/design_system.dart';
-import '../../widgets/toast_helper.dart';
 import '../../widgets/global_background.dart';
+import '../../widgets/toast_helper.dart';
 
-/*
-  Mentorship Screen.
-  
-  Connects students/alumni with mentors.
-  Features:
-  - Scrollable list of mentors with filtering (Career, Design, etc.)
-  - Search functionality (by name or role)
-  - Action cards to 'Request' mentorship or 'Save' profiles
-  - Status tracking (Active requests vs Suggested)
-*/
-class MentorshipScreen extends StatefulWidget {
+class MentorshipScreen extends ConsumerStatefulWidget {
   const MentorshipScreen({super.key});
 
   @override
-  State<MentorshipScreen> createState() => _MentorshipScreenState();
+  ConsumerState<MentorshipScreen> createState() => _MentorshipScreenState();
 }
 
-class _MentorshipScreenState extends State<MentorshipScreen> {
+class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
   String _selectedFilter = 'All';
   String _searchQuery = '';
   final List<String> _filters = [
@@ -28,67 +23,187 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
     'Career',
     'Engineering',
     'Design',
-    'Available Now',
+    'Finance',
+    'Research',
+    'Marketing',
   ];
 
-  // Mock Data
-  final List<Map<String, dynamic>> _mentors = [
-    {
-      'name': 'Sarah Jenkins',
-      'role': 'Product Designer @ Google',
-      'tags': ['UX Design', 'Big Tech'],
-      'available': true,
-      'isTopRated': false,
-      'responseTime': null,
-      'category': 'Design',
-      'isSaved': false,
-      'requestSent': false,
-    },
-    {
-      'name': 'Dr. Aris Thorne',
-      'role': 'Research Lead @ OpenAI',
-      'tags': ['AI Ethics', 'Academia'],
-      'available': false,
-      'isTopRated': true,
-      'responseTime': null,
-      'category': 'Engineering',
-      'isSaved': true,
-      'requestSent': false,
-    },
-    {
-      'name': 'Maya Lin',
-      'role': 'VP of Strategy @ Chase',
-      'tags': ['Finance', 'Leadership'],
-      'available': false,
-      'isTopRated': false,
-      'responseTime': 'Responds in 2 days',
-      'category': 'Career',
-      'isSaved': false,
-      'requestSent': false,
-    },
-  ];
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _mentors = [];
+  List<Map<String, dynamic>> _myMentorships = [];
+
+  // Cache for other users' profiles (simple Map for now)
+  final Map<String, Map<String, dynamic>> _userProfiles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final service = ref.read(supabaseServiceProvider);
+
+      // Fetch data in parallel
+      final results = await Future.wait([
+        service.fetchMentors(),
+        service.fetchMyMentorships(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _mentors = results[0];
+          _myMentorships = results[1];
+        });
+
+        await _enrichMentorships();
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showToast('Error loading mentorships: $e');
+      }
+    }
+  }
+
+  Future<void> _enrichMentorships() async {
+    final myId = Supabase.instance.client.auth.currentUser?.id;
+    if (myId == null) return;
+
+    final service = ref.read(supabaseServiceProvider);
+
+    // Collect IDs we need to fetch
+    final Set<String> idsToFetch = {};
+    for (var m in _myMentorships) {
+      final otherId = m['mentee_id'] == myId ? m['mentor_id'] : m['mentee_id'];
+      if (!_userProfiles.containsKey(otherId) && otherId != null) {
+        idsToFetch.add(otherId);
+      }
+    }
+
+    // Fetch profiles one by one (optimization: batch fetch if possible / future improvement)
+    for (var id in idsToFetch) {
+      try {
+        final profile = await service.fetchUserProfile(id);
+        if (profile != null) {
+          String? avatarUrl;
+          if (profile['profile_picture'] != null) {
+            avatarUrl = Supabase.instance.client.storage
+                .from('avatar')
+                .getPublicUrl(profile['profile_picture']);
+          }
+
+          _userProfiles[id] = {
+            'full_name': profile['full_name'] ?? 'User',
+            'avatar_url': avatarUrl,
+          };
+        }
+      } catch (e) {
+        print('Error fetching profile for $id: $e');
+      }
+    }
+  }
 
   void _showToast(String message) {
     ToastHelper.show(context, message);
   }
 
+  Future<void> _handleRequest(String mentorId, String mentorName) async {
+    try {
+      await ref.read(supabaseServiceProvider).requestMentorship(mentorId);
+      _showToast('Request sent to $mentorName');
+      _loadData(); // Refresh to update UI state
+    } catch (e) {
+      if (e.toString().contains('duplicate')) {
+        _showToast('You already have a mentorship with $mentorName');
+      } else {
+        _showToast('Failed to send request: $e');
+      }
+    }
+  }
+
+  Future<void> _openChat(
+    String otherUserId,
+    String otherUserName,
+    String? avatarUrl,
+  ) async {
+    try {
+      final messagingService = ref.read(messagingServiceProvider);
+      final conversationId = await messagingService.getOrCreateConversation(
+        otherUserId,
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              conversationId: conversationId,
+              participantName: otherUserName,
+              participantAvatar: avatarUrl,
+              otherUserId: otherUserId,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      _showToast('Failed to start chat: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Current user Auth ID
+    final myId = Supabase.instance.client.auth.currentUser?.id;
+
     // Filter Logic
     final filteredMentors = _mentors.where((mentor) {
+      // Basic Search
+      final name = mentor['full_name']?.toString().toLowerCase() ?? '';
+      final role = mentor['role']?.toString().toLowerCase() ?? '';
+      final job = mentor['job_title']?.toString().toLowerCase() ?? '';
+      final company = mentor['company']?.toString().toLowerCase() ?? '';
+
       final matchesSearch =
-          mentor['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          mentor['role'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
-      final matchesFilter =
-          _selectedFilter == 'All' ||
-          (_selectedFilter == 'Available Now' && mentor['available'] == true) ||
-          mentor['category'] == _selectedFilter;
-      return matchesSearch && matchesFilter;
+          name.contains(_searchQuery.toLowerCase()) ||
+          role.contains(_searchQuery.toLowerCase()) ||
+          job.contains(_searchQuery.toLowerCase()) ||
+          company.contains(_searchQuery.toLowerCase());
+
+      // Filter by "Skills" or Job Title if we had category data.
+      // For now, simple text filter or generic logic
+      bool matchesFilter = true;
+      if (_selectedFilter != 'All') {
+        // Rudimentary category matching based on job/department text
+        matchesFilter =
+            job.contains(_selectedFilter) ||
+            company.contains(_selectedFilter) ||
+            role.contains(_selectedFilter);
+      }
+
+      // Hide those I already have a mentorship with (Active or Pending)
+      final hasConnection = _myMentorships.any(
+        (m) =>
+            (m['mentor_id'] == mentor['auth_user_id'] ||
+                m['mentee_id'] == mentor['auth_user_id']) &&
+            m['status'] != 'rejected',
+      );
+
+      return matchesSearch && matchesFilter && !hasConnection;
     }).toList();
+
+    // Separate Active/Pending Requests
+    final activeRequests = _myMentorships
+        .where((m) => m['status'] == 'pending' || m['status'] == 'accepted')
+        .toList();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -108,146 +223,171 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
       ),
       body: GlobalBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Search Bar
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A1727),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white10),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: DesignSystem.purpleAccent,
                   ),
-                  child: TextField(
-                    style: const TextStyle(color: Colors.white),
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                    decoration: const InputDecoration(
-                      hintText: 'Search by name, role, or company...',
-                      hintStyle: TextStyle(color: Colors.white30),
-                      border: InputBorder.none,
-                      icon: Icon(Icons.search, color: Colors.white30),
-                      suffixIcon: Icon(Icons.tune, color: Colors.white30),
-                      contentPadding: EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _filters.map((filter) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _FilterChip(
-                          label: filter,
-                          isSelected: _selectedFilter == filter,
-                          onTap: () => setState(() => _selectedFilter = filter),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Search Bar
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2A1727),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: TextField(
+                            style: const TextStyle(color: Colors.white),
+                            onChanged: (val) =>
+                                setState(() => _searchQuery = val),
+                            decoration: const InputDecoration(
+                              hintText: 'Search by name, role, or company...',
+                              hintStyle: TextStyle(color: Colors.white30),
+                              border: InputBorder.none,
+                              icon: Icon(Icons.search, color: Colors.white30),
+                              suffixIcon: Icon(
+                                Icons.tune,
+                                color: Colors.white30,
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
                         ),
-                      );
-                    }).toList(),
+                        const SizedBox(height: 24),
+
+                        // Chips
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _filters.map((filter) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _FilterChip(
+                                  label: filter,
+                                  isSelected: _selectedFilter == filter,
+                                  onTap: () =>
+                                      setState(() => _selectedFilter = filter),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Active Requests Section
+                        if (activeRequests.isNotEmpty) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Your Mentorships',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (activeRequests.length > 3)
+                                const Text(
+                                  'View All',
+                                  style: TextStyle(
+                                    color: DesignSystem.purpleAccent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ...activeRequests.map((request) {
+                            // Determine if I am mentor or mentee
+                            final isMeMentee = request['mentee_id'] == myId;
+                            final otherId = isMeMentee
+                                ? request['mentor_id']
+                                : request['mentee_id'];
+
+                            final profile = _userProfiles[otherId] ?? {};
+
+                            return _ActiveMentorshipCard(
+                              status: request['status'],
+                              date: request['created_at'],
+                              isMeMentee: isMeMentee,
+                              otherUserId: otherId,
+                              otherName: profile['full_name'],
+                              otherAvatar: profile['avatar_url'],
+                              onMessage: () => _openChat(
+                                otherId,
+                                profile['full_name'] ?? 'User',
+                                profile['avatar_url'],
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 32),
+                        ],
+
+                        // Suggested Mentors
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Suggested Mentors',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Icon(Icons.filter_list, color: Colors.white54),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        if (filteredMentors.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 20),
+                            child: Center(
+                              child: Text(
+                                "No eligible mentors found.",
+                                style: TextStyle(color: Colors.white54),
+                              ),
+                            ),
+                          )
+                        else
+                          ...filteredMentors.map(
+                            (mentor) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _MentorCard(
+                                name: mentor['full_name'] ?? 'User',
+                                role: mentor['job_title'] != null
+                                    ? '${mentor['job_title']} @ ${mentor['company'] ?? "Unknown"}'
+                                    : (mentor['role'] ?? 'Graduate'),
+                                tags: [
+                                  mentor['role'] ?? 'Alumni',
+                                  mentor['company'] ?? 'Industry',
+                                ], // Placeholder tags
+                                avatarUrl: mentor['avatar_url'],
+                                onRequest: () => _handleRequest(
+                                  mentor['auth_user_id'], // Use Auth ID for insert
+                                  mentor['full_name'] ?? 'User',
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 32),
-
-                // Active Requests
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Active Requests',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'View History',
-                      style: TextStyle(
-                        color: DesignSystem.purpleAccent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const _RequestCard(
-                  name: 'James Chen',
-                  role: 'Startup Funding',
-                  status: 'Pending',
-                  date: 'Oct 28 • 10:00 AM',
-                ),
-
-                const SizedBox(height: 32),
-
-                // Suggested Mentors
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Suggested Mentors',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Icon(Icons.filter_list, color: Colors.white54),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                if (filteredMentors.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Center(
-                      child: Text(
-                        "No mentors found.",
-                        style: TextStyle(color: Colors.white54),
-                      ),
-                    ),
-                  )
-                else
-                  ...filteredMentors.map(
-                    (mentor) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _MentorCard(
-                        name: mentor['name'],
-                        role: mentor['role'],
-                        tags: List<String>.from(mentor['tags']),
-                        available: mentor['available'],
-                        isTopRated: mentor['isTopRated'],
-                        responseTime: mentor['responseTime'],
-                        isSaved: mentor['isSaved'],
-                        requestSent: mentor['requestSent'],
-                        onSave: () {
-                          setState(() {
-                            mentor['isSaved'] = !mentor['isSaved'];
-                          });
-                          _showToast(
-                            mentor['isSaved']
-                                ? 'Mentor saved'
-                                : 'Mentor removed',
-                          );
-                        },
-                        onRequest: () {
-                          setState(() {
-                            mentor['requestSent'] = true;
-                          });
-                          _showToast('Request sent to ${mentor['name']}');
-                        },
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ),
       ),
     );
@@ -294,110 +434,96 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _RequestCard extends StatelessWidget {
-  final String name;
-  final String role;
+class _ActiveMentorshipCard extends ConsumerWidget {
   final String status;
   final String date;
+  final bool isMeMentee;
+  final String otherUserId;
+  final String? otherName;
+  final String? otherAvatar;
+  final VoidCallback onMessage;
 
-  const _RequestCard({
-    required this.name,
-    required this.role,
+  const _ActiveMentorshipCard({
     required this.status,
     required this.date,
+    required this.isMeMentee,
+    required this.otherUserId,
+    this.otherName,
+    this.otherAvatar,
+    required this.onMessage,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusColor = status == 'accepted'
+        ? Colors.green
+        : (status == 'rejected' ? Colors.red : Colors.amber);
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF241228),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.white10,
+            backgroundImage: otherAvatar != null
+                ? NetworkImage(otherAvatar!)
+                : null,
+            child: otherAvatar == null
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, color: Colors.white),
+              Text(
+                otherName ??
+                    (isMeMentee ? 'Mentorship Request' : 'Incoming Request'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 4),
+              Row(
                 children: [
                   Text(
-                    name,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    status.toUpperCase(),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    role,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
+                  if (otherName == null && isMeMentee)
+                    const Text(
+                      ' (Sent)',
+                      style: TextStyle(color: Colors.white54, fontSize: 10),
+                    ),
                 ],
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                    color: Colors.amber,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today,
-                  size: 16,
-                  color: Colors.white70,
+          const Spacer(),
+          if (status == 'accepted')
+            ElevatedButton(
+              onPressed: onMessage,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: DesignSystem.purpleAccent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Requested for $date',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
+              ),
+              child: const Text('Message', style: TextStyle(fontSize: 12)),
             ),
-          ),
-          const SizedBox(height: 12),
-          // Progress bar
-          LinearProgressIndicator(
-            value: 0.6,
-            backgroundColor: Colors.white10,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
-            borderRadius: BorderRadius.circular(2),
-          ),
-          const SizedBox(height: 4),
-          const Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              'Awaiting response...',
-              style: TextStyle(color: Colors.white30, fontSize: 10),
-            ),
-          ),
         ],
       ),
     );
@@ -408,24 +534,14 @@ class _MentorCard extends StatelessWidget {
   final String name;
   final String role;
   final List<String> tags;
-  final bool available;
-  final bool isTopRated;
-  final String? responseTime;
-  final bool isSaved;
-  final bool requestSent;
-  final VoidCallback onSave;
+  final String? avatarUrl;
   final VoidCallback onRequest;
 
   const _MentorCard({
     required this.name,
     required this.role,
     required this.tags,
-    this.available = false,
-    this.isTopRated = false,
-    this.responseTime,
-    this.isSaved = false,
-    this.requestSent = false,
-    required this.onSave,
+    this.avatarUrl,
     required this.onRequest,
   });
 
@@ -436,7 +552,7 @@ class _MentorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF241228),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,10 +560,15 @@ class _MentorCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 28,
-                backgroundColor: Colors.teal,
-                child: Icon(Icons.person, color: Colors.white, size: 30),
+                backgroundColor: const Color(0xFF2D1F35),
+                backgroundImage: avatarUrl != null
+                    ? NetworkImage(avatarUrl!)
+                    : null,
+                child: avatarUrl == null
+                    ? const Icon(Icons.person, color: Colors.white, size: 30)
+                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -469,7 +590,7 @@ class _MentorCard extends StatelessWidget {
                         color: Color(0xFFB04CFF),
                         fontSize: 13,
                       ),
-                    ), // Purple text
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -482,7 +603,7 @@ class _MentorCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: Colors.white.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -496,106 +617,27 @@ class _MentorCard extends StatelessWidget {
                           )
                           .toList(),
                     ),
-                    if (available) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'Available Now',
-                          style: TextStyle(
-                            color: Colors.greenAccent,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: isSaved ? DesignSystem.purpleAccent : Colors.white54,
-                ),
-                onPressed: onSave,
-              ),
             ],
           ),
-
-          if (isTopRated || responseTime != null) ...[
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (isTopRated)
-                  const Row(
-                    children: [
-                      Icon(Icons.verified, size: 16, color: Colors.blue),
-                      SizedBox(width: 4),
-                      Text(
-                        'Top Rated Mentor',
-                        style: TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                    ],
-                  )
-                else if (responseTime != null)
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: Colors.white54,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        responseTime!,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                ElevatedButton(
-                  onPressed: requestSent ? null : onRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isTopRated
-                        ? Colors.transparent
-                        : DesignSystem.purpleAccent,
-                    disabledBackgroundColor: Colors.white12,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    side: isTopRated
-                        ? const BorderSide(color: Colors.white24)
-                        : null,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: Text(
-                    requestSent
-                        ? 'Pending'
-                        : (isTopRated ? 'View Profile' : 'Send Request'),
-                  ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onRequest,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: DesignSystem.purpleAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text('Request Mentorship'),
             ),
-          ],
+          ),
         ],
       ),
     );
