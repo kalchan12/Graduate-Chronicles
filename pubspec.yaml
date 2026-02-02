@@ -110,6 +110,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/appicon.jpg"
+  image_path: "assets/images/GCappicon.png"
   adaptive_icon_background: "#6A00FF"
-  adaptive_icon_foreground: "assets/images/appicon.jpg"
+  adaptive_icon_foreground: "assets/images/GCappicon.png"
