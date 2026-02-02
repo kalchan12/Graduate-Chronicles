@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/providers.dart' hide conversationsProvider;
+import '../../core/providers.dart'
+    hide conversationsProvider, notificationsProvider;
 import '../../state/profile_state.dart';
+import '../../state/notification_state.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
 import 'story_viewer_screen.dart';
@@ -298,6 +300,11 @@ class _HomeAppBar extends ConsumerWidget {
     // Watch conversation state to determine unread count
     final conversationsState = ref.watch(conversationsProvider);
 
+    // Watch notifications state
+    final notificationsAsync = ref.watch(notificationsProvider);
+    final unreadNotificationsCount =
+        notificationsAsync.asData?.value.where((n) => !n.isRead).length ?? 0;
+
     // Calculate unread count (mock/logic assumption: < 30 mins)
     int unreadCount = 0;
     for (final convo in conversationsState.conversations) {
@@ -405,15 +412,51 @@ class _HomeAppBar extends ConsumerWidget {
                 ],
               ),
               const SizedBox(width: 4),
-              IconButton(
-                // Notification
-                onPressed: () => Navigator.pushNamed(context, '/notifications'),
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                ),
-                splashRadius: 24,
-                tooltip: 'Notifications',
+              Stack(
+                children: [
+                  IconButton(
+                    // Notification
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/notifications'),
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white,
+                    ),
+                    splashRadius: 24,
+                    tooltip: 'Notifications',
+                  ),
+                  if (unreadNotificationsCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF2E0F3A),
+                            width: 1.5,
+                          ),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          unreadNotificationsCount > 9
+                              ? '9+'
+                              : unreadNotificationsCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),

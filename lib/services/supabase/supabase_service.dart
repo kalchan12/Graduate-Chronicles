@@ -24,6 +24,7 @@ class SupabaseService {
   SupabaseService(this._client);
 
   User? get currentUser => _client.auth.currentUser;
+  String? get currentAuthUserId => _client.auth.currentUser?.id;
 
   Future<void> signOut() async {
     await _client.auth.signOut();
@@ -1867,8 +1868,59 @@ class SupabaseService {
           .eq('user_id', myId)
           .order('created_at', ascending: false);
 
-      print('✅ Fetched ${response.length} notifications');
-      return response;
+      final List<Map<String, dynamic>> notifications =
+          List<Map<String, dynamic>>.from(response);
+
+      // Collect connection request IDs
+      final connectionRequestIds = <String>[];
+      for (var n in notifications) {
+        if (n['type'] == 'connection_request' && n['reference_id'] != null) {
+          connectionRequestIds.add(n['reference_id'] as String);
+        }
+      }
+
+      if (connectionRequestIds.isNotEmpty) {
+        // Batch fetch connection requests to identify senders
+        final requests = await _client
+            .from('connection_requests')
+            .select('id, sender_id')
+            .filter('id', 'in', connectionRequestIds);
+
+        final requestIdToSenderId = {
+          for (var r in requests) r['id'] as String: r['sender_id'] as String,
+        };
+
+        final senderIds = requestIdToSenderId.values.toSet().toList();
+
+        if (senderIds.isNotEmpty) {
+          // Batch fetch profiles
+          // Using select * to get all potential fields needed, especially avatar_url
+          final profilesData = await _client
+              .from('profiles')
+              .select()
+              .filter('user_id', 'in', senderIds);
+
+          final senderIdToProfile = {
+            for (var p in profilesData) p['user_id'] as String: p,
+          };
+
+          // attach profile to notification
+          for (var n in notifications) {
+            if (n['type'] == 'connection_request' &&
+                n['reference_id'] != null) {
+              final reqId = n['reference_id'] as String;
+              final senderId = requestIdToSenderId[reqId];
+              if (senderId != null) {
+                n['related_user_id'] = senderId;
+                n['sender_profile'] = senderIdToProfile[senderId];
+              }
+            }
+          }
+        }
+      }
+
+      print('✅ Fetched ${notifications.length} notifications (enriched)');
+      return notifications;
     } catch (e) {
       print('❌ Error fetching notifications: $e');
       rethrow;
@@ -2455,8 +2507,7 @@ class SupabaseService {
     // Apply Order last
     final res = await query.order('created_at', ascending: false);
 
-    if (res == null) return []; // Safety check
-    final List<dynamic> eventsRaw = res as List<dynamic>;
+    final List<dynamic> eventsRaw = res;
 
     if (eventsRaw.isEmpty) return [];
 

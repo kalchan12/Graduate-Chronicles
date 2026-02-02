@@ -217,9 +217,16 @@ class _NotificationCard extends ConsumerWidget {
                           child: CircleAvatar(
                             radius: 24,
                             backgroundColor: const Color(0xFF151515),
-                            backgroundImage: const AssetImage(
-                              'assets/images/user_placeholder.png',
-                            ),
+                            backgroundImage:
+                                item.senderProfile != null &&
+                                    item.senderProfile!['avatar_url'] != null
+                                ? NetworkImage(
+                                    item.senderProfile!['avatar_url'],
+                                  )
+                                : const AssetImage(
+                                        'assets/images/user_placeholder.png',
+                                      )
+                                      as ImageProvider,
                             child: _getAvatarChild(item),
                           ),
                         ),
@@ -241,7 +248,9 @@ class _NotificationCard extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  item.title, // Sender Name
+                                  item.senderProfile != null
+                                      ? '${item.senderProfile!['first_name']} ${item.senderProfile!['last_name']}'
+                                      : item.title, // Fallback to title
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -331,6 +340,7 @@ class _NotificationCard extends ConsumerWidget {
                                       .acceptConnectionRequest(
                                         item.id,
                                         item.referenceId!,
+                                        item.relatedUserId,
                                       );
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -356,6 +366,7 @@ class _NotificationCard extends ConsumerWidget {
                                       .denyConnectionRequest(
                                         item.id,
                                         item.referenceId!,
+                                        item.relatedUserId,
                                       );
                                 },
                                 style: OutlinedButton.styleFrom(
@@ -494,9 +505,15 @@ class _NotificationCard extends ConsumerWidget {
   }
 
   Widget? _getAvatarChild(NotificationItem item) {
-    if (item.title.isNotEmpty) {
+    String text = item.title;
+    if (item.senderProfile != null) {
+      text =
+          '${item.senderProfile!['first_name']} ${item.senderProfile!['last_name']}';
+    }
+
+    if (text.isNotEmpty) {
       return Text(
-        item.title[0].toUpperCase(),
+        text[0].toUpperCase(),
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w900,
