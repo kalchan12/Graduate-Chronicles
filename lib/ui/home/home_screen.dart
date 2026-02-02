@@ -140,6 +140,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       final batchYear =
                           int.tryParse(profile.year) ?? DateTime.now().year;
 
+                      // Debug log for batch year
+                      print('🏠 Home screen using batch year: $batchYear');
+
                       return FutureBuilder<List<Map<String, dynamic>>>(
                         future: ref
                             .read(supabaseServiceProvider)
@@ -148,9 +151,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               batchYear: batchYear,
                             ),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            return const SizedBox.shrink();
+                          // Loading state
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Container(
+                              height: 160,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: DesignSystem.purpleAccent,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
                           }
+
+                          // Empty state
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Container(
+                              height: 100,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'No featured graduates for $batchYear yet',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
                           final items = snapshot.data!
                               .map((m) => FeaturedItem.fromMap(m))
                               .toList();
