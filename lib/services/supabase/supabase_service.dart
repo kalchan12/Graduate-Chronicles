@@ -1641,12 +1641,11 @@ class SupabaseService {
   // ========== ADMIN: CONTENT MODERATION ==========
 
   Future<List<Map<String, dynamic>>> fetchReportedPosts() async {
-    // SIMPLIFIED APPROACH: Fetch reports first, then enrich manually
-    // This avoids complex nested PostgREST joins that may fail silently
+    // Direct query approach (matching user_monitoring pattern)
+    // Relies on public SELECT RLS policy on post_reports
     try {
-      print('DEBUG: Fetching reported posts (simplified approach)...');
+      print('DEBUG: Fetching reported posts...');
 
-      // Step 1: Fetch raw reports with status = pending
       final reports = await _client
           .from('post_reports')
           .select('*')
@@ -1660,7 +1659,7 @@ class SupabaseService {
         return [];
       }
 
-      // Step 2: Enrich each report with post and user data
+      // Enrich each report with post and user data
       final enrichedReports = <Map<String, dynamic>>[];
 
       for (final report in reports) {
@@ -1669,14 +1668,39 @@ class SupabaseService {
 
         // Fetch post data
         Map<String, dynamic>? postData;
+        Map<String, dynamic>? postOwnerData;
+
         try {
-          postData = await _client
+          final postResult = await _client
               .from('posts')
-              .select('*, owner:users!user_id(username, institutional_id)')
+              .select('*')
               .eq('id', postId)
               .maybeSingle();
+
+          if (postResult != null) {
+            postData = postResult;
+
+            // Fetch post owner
+            final ownerId = postResult['user_id'];
+            if (ownerId != null) {
+              try {
+                postOwnerData = await _client
+                    .from('users')
+                    .select('username, institutional_id, full_name, role')
+                    .eq('user_id', ownerId)
+                    .maybeSingle();
+              } catch (e) {
+                print('DEBUG: Error fetching post owner $ownerId: $e');
+              }
+            }
+          }
         } catch (e) {
           print('DEBUG: Error fetching post $postId: $e');
+        }
+
+        // Attach owner to post object
+        if (postData != null && postOwnerData != null) {
+          postData['owner'] = postOwnerData;
         }
 
         // Fetch reporter data
@@ -1699,10 +1723,6 @@ class SupabaseService {
       }
 
       print('DEBUG: Enriched reports count: ${enrichedReports.length}');
-      if (enrichedReports.isNotEmpty) {
-        print('DEBUG: Sample enriched report: ${enrichedReports.first}');
-      }
-
       return enrichedReports;
     } catch (e) {
       print('Error fetching reported posts: $e');
@@ -1711,8 +1731,7 @@ class SupabaseService {
   }
 
   Future<void> banPost(String postId) async {
-    // Hard delete the post.
-    // This will cascade delete the reports.
+    // Direct delete (relies on public DELETE RLS policy)
     try {
       await _client.from('posts').delete().eq('id', postId);
       print('Post $postId banned/deleted.');
@@ -1723,9 +1742,13 @@ class SupabaseService {
   }
 
   Future<void> dismissReport(String reportId) async {
-    // Delete the report but keep the post.
+    // Update status to dismissed (relies on public UPDATE RLS policy)
     try {
-      await _client.from('post_reports').delete().eq('id', reportId);
+      await _client
+          .from('post_reports')
+          .update({'status': 'dismissed'})
+          .eq('id', reportId);
+      print('Report $reportId dismissed.');
     } catch (e) {
       print('Error dismissing report: $e');
       rethrow;

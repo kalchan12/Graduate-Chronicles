@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/design_system.dart';
-import 'screens/content_monitoring_screen.dart';
+import 'screens/yearbook_monitoring_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -68,7 +68,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ContentMonitoringScreen(),
+                      builder: (context) => const YearbookMonitoringScreen(),
                     ),
                   );
                 },
