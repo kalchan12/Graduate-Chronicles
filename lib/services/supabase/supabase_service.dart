@@ -882,18 +882,27 @@ class SupabaseService {
     int? batchYear,
   }) async {
     try {
+      print('🔍 Featured fetch: batchYear=$batchYear, limit=$limit');
+
       var query = _client
           .from('yearbook_entries')
           .select(
-            'id, photo_url, quote, batch_id, user_id, users!inner (full_name), yearbook_batches!inner(batch_year)',
+            'id, yearbook_photo_url, yearbook_bio, batch_id, user_id, users!inner (full_name), yearbook_batches!inner(batch_year)',
           )
-          .eq('is_approved', true);
+          .eq(
+            'status',
+            'approved',
+          ); // Fixed: was 'is_approved' which doesn't exist
 
       if (batchYear != null) {
         query = query.eq('yearbook_batches.batch_year', batchYear);
       }
 
-      final res = await query.order('random()', ascending: true).limit(limit);
+      final res = await query
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      print('🔍 Featured results count: ${res.length}');
 
       return res.map((e) {
         final data = e as Map<String, dynamic>;
@@ -904,13 +913,13 @@ class SupabaseService {
         return {
           'id': data['id'],
           'title': user?['full_name'] ?? 'Graduate',
-          'description': data['quote'] ?? 'Yearbook Entry',
-          'image_url': data['photo_url'],
+          'description': data['yearbook_bio'] ?? 'Yearbook Entry',
+          'image_url': data['yearbook_photo_url'],
           'badge': year != null ? 'GRAD $year' : 'GRAD',
         };
       }).toList();
     } catch (e) {
-      print('Error fetching random yearbook entries: $e');
+      print('❌ Error fetching random yearbook entries: $e');
       return [];
     }
   }
@@ -1298,6 +1307,10 @@ class SupabaseService {
         .single();
     final publicUserId = userRow['user_id'];
 
+    print(
+      '❤️ togglePortfolioLike: portfolioId=$portfolioId, userId=$publicUserId',
+    );
+
     final existing = await _client
         .from('portfolio_likes')
         .select('id')
@@ -1308,12 +1321,14 @@ class SupabaseService {
     if (existing != null) {
       // Unlike
       await _client.from('portfolio_likes').delete().eq('id', existing['id']);
+      print('❤️ Like removed');
     } else {
       // Like
       await _client.from('portfolio_likes').insert({
         'portfolio_id': portfolioId,
         'user_id': publicUserId,
       });
+      print('❤️ Like added');
     }
   }
 
@@ -1321,7 +1336,10 @@ class SupabaseService {
     final authId = _client.auth.currentUser?.id;
     // We allow anonymous views potentially, but strict mode prefers users.
     // If not authenticated, we might skip or record null if allowed.
-    if (authId == null) return;
+    if (authId == null) {
+      print('👁️ incrementPortfolioView: Skipping (not authenticated)');
+      return;
+    }
 
     // Resolve Public ID
     final userRow = await _client
@@ -1332,6 +1350,9 @@ class SupabaseService {
 
     if (userRow != null) {
       final publicUserId = userRow['user_id'];
+      print(
+        '👁️ incrementPortfolioView: portfolioId=$portfolioId, viewerId=$publicUserId',
+      );
       await _client.from('portfolio_views').insert({
         'portfolio_id': portfolioId,
         'viewer_id': publicUserId,
@@ -1505,11 +1526,29 @@ class SupabaseService {
     final myId = _client.auth.currentUser?.id;
     if (myId == null) throw Exception('Not authenticated');
 
-    await _client.from('connection_requests').insert({
-      'sender_id': myId,
-      'receiver_id': targetUserId,
-      'status': 'pending',
-    });
+    // Prevent self-connect
+    if (myId == targetUserId) {
+      throw Exception('Cannot connect with yourself');
+    }
+
+    print('🔗 sendConnectionRequest: sender=$myId, target=$targetUserId');
+
+    try {
+      await _client.from('connection_requests').insert({
+        'sender_id': myId,
+        'receiver_id': targetUserId,
+        'status': 'pending',
+      });
+      print('✅ Connection request sent successfully');
+    } catch (e) {
+      print('❌ sendConnectionRequest failed: $e');
+      // Check for duplicate constraint violation
+      if (e.toString().contains('duplicate') ||
+          e.toString().contains('unique')) {
+        throw Exception('Connection request already exists');
+      }
+      rethrow;
+    }
   }
 
   /// Get the total count of accepted connections for a user (auth_user_id)
@@ -1543,21 +1582,30 @@ class SupabaseService {
     final myId = _client.auth.currentUser?.id;
     if (myId == null) throw Exception('Not authenticated');
 
-    // Delete where I am sender and they are receiver
-    await _client
-        .from('connection_requests')
-        .delete()
-        .eq('sender_id', myId)
-        .eq('receiver_id', targetAuthUserId)
-        .eq('status', 'accepted');
+    print('🔗 removeConnection: myId=$myId, target=$targetAuthUserId');
 
-    // Also delete where they are sender and I am receiver
-    await _client
-        .from('connection_requests')
-        .delete()
-        .eq('sender_id', targetAuthUserId)
-        .eq('receiver_id', myId)
-        .eq('status', 'accepted');
+    try {
+      // Delete where I am sender and they are receiver
+      await _client
+          .from('connection_requests')
+          .delete()
+          .eq('sender_id', myId)
+          .eq('receiver_id', targetAuthUserId)
+          .eq('status', 'accepted');
+
+      // Also delete where they are sender and I am receiver
+      await _client
+          .from('connection_requests')
+          .delete()
+          .eq('sender_id', targetAuthUserId)
+          .eq('receiver_id', myId)
+          .eq('status', 'accepted');
+
+      print('✅ Connection removed successfully');
+    } catch (e) {
+      print('❌ removeConnection failed: $e');
+      rethrow;
+    }
   }
 
   // ========== ADMIN: CONTENT MODERATION ==========
@@ -1707,6 +1755,8 @@ class SupabaseService {
     final myId = _client.auth.currentUser?.id;
     if (myId == null) return 'none';
 
+    print('🔍 getConnectionStatus: myId=$myId, targetId=$targetUserId');
+
     // 1. Check if I sent a request
     final myRequest = await _client
         .from('connection_requests')
@@ -1717,6 +1767,7 @@ class SupabaseService {
 
     if (myRequest != null) {
       final status = myRequest['status'] as String;
+      print('🔍 Found my request with status: $status');
       if (status == 'accepted') return 'accepted';
       if (status == 'pending') return 'pending_sent';
     }
@@ -1731,12 +1782,14 @@ class SupabaseService {
 
     if (theirRequest != null) {
       final status = theirRequest['status'] as String;
+      print('🔍 Found their request with status: $status');
       // If they sent it and it's accepted, we are connected
       if (status == 'accepted') return 'accepted';
       // If they sent it and it's pending, I have a request to answer
       if (status == 'pending') return 'pending_received';
     }
 
+    print('🔍 No connection found, returning none');
     return 'none';
   }
 
