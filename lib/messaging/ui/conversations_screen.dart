@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/messaging_provider.dart';
-import '../../theme/design_system.dart';
-import '../../ui/widgets/global_background.dart';
-import '../../ui/widgets/custom_app_bar.dart';
-import 'chat_screen.dart';
+import 'package:graduate_chronicles/messaging/models/conversation.dart';
+import 'package:graduate_chronicles/messaging/providers/messaging_provider.dart';
+import 'package:graduate_chronicles/messaging/ui/chat_screen.dart';
+import 'package:graduate_chronicles/theme/design_system.dart';
+import 'package:graduate_chronicles/ui/widgets/global_background.dart';
 
-/// Screen displaying all conversations for the current user.
-///
-/// Features:
-/// - Pull-to-refresh
-/// - Tap to open chat
-/// - Shows other user's name, avatar, and last message preview
+/// Screen displaying the list of active conversations.
 class ConversationsScreen extends ConsumerStatefulWidget {
   const ConversationsScreen({super.key});
 
@@ -24,9 +19,9 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
   @override
   void initState() {
     super.initState();
-    // Load conversations on mount
+    // Refresh conversations on load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(conversationsProvider.notifier).loadConversations();
+      ref.read(conversationsProvider.notifier).refresh();
     });
   }
 
@@ -39,86 +34,118 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
       body: GlobalBackground(
         child: Column(
           children: [
-            // App Bar
-            CustomAppBar(
-              title: 'Messages',
-              showLeading: true,
-              onLeading: () => Navigator.of(context).pop(),
-            ),
+            // Custom App Bar
+            _buildAppBar(),
 
             // Content
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(conversationsProvider.notifier).refresh(),
-                color: DesignSystem.purpleAccent,
-                child: _buildContent(state),
-              ),
-            ),
+            Expanded(child: _buildContent(state)),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // TODO: Implement "New Chat" -> Search users
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Search users feature coming soon!')),
+          );
+        },
+        backgroundColor: DesignSystem.purpleAccent,
+        elevation: 4,
+        child: const Icon(Icons.add_comment_rounded, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 20,
+        right: 20,
+        bottom: 16,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF130B16).withValues(alpha: 0.9),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Messages',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+            ),
+          ),
+          // Profile/Settings icon could go here
+        ],
       ),
     );
   }
 
   Widget _buildContent(ConversationsState state) {
-    // Loading state
-    if (state.isLoading && state.conversations.isEmpty) {
+    if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: DesignSystem.purpleAccent),
       );
     }
 
-    // Error state
-    if (state.error != null && state.conversations.isEmpty) {
+    if (state.error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.red[300], size: 48),
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
             const SizedBox(height: 16),
             Text(
-              'Failed to load conversations',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () =>
-                  ref.read(conversationsProvider.notifier).refresh(),
-              child: const Text(
-                'Retry',
-                style: TextStyle(color: DesignSystem.purpleAccent),
+              'Something went wrong',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 16,
               ),
+            ),
+            TextButton(
+              onPressed: () => ref.refresh(conversationsProvider),
+              child: const Text('Retry'),
             ),
           ],
         ),
       );
     }
 
-    // Empty state
     if (state.conversations.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.white.withValues(alpha: 0.3),
-              size: 64,
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 64,
+                color: Colors.white.withValues(alpha: 0.3),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
-              'No conversations yet',
+              'No messages yet',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 16,
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Start a chat from someone\'s profile',
+              'Start a conversation with a fellow graduate!',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
               ),
             ),
@@ -149,6 +176,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
           conversationId: conversation.id,
           participantName: conversation.otherUserName ?? 'User',
           participantAvatar: conversation.otherUserAvatar,
+          otherUserId: conversation.otherUserId,
         ),
       ),
     );
@@ -157,90 +185,176 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
 
 /// Individual conversation tile widget.
 class _ConversationTile extends StatelessWidget {
-  final dynamic conversation;
+  final Conversation conversation;
   final VoidCallback onTap;
 
   const _ConversationTile({required this.conversation, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // Mock unread status logic:
+    // If last message was within 30 minutes, mark as "unread/new"
+    // This provides the visual cue requested by the user
+    final lastTime = conversation.lastMessageTime;
+    final bool isUnread =
+        lastTime != null && DateTime.now().difference(lastTime).inMinutes < 30;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1B141E),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          color: const Color(0xFF1F1623), // Darker, sleeker background
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isUnread
+                ? DesignSystem.purpleAccent.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.05),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             // Avatar
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF2B1F2E),
-                border: Border.all(
-                  color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+            Stack(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: conversation.otherUserAvatar != null
+                        ? Image.network(
+                            conversation.otherUserAvatar!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: const Color(0xFF3E2C44),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white54,
+                                size: 28,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: const Color(0xFF3E2C44),
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.white54,
+                              size: 28,
+                            ),
+                          ),
+                  ),
                 ),
-              ),
-              child: ClipOval(
-                child: conversation.otherUserAvatar != null
-                    ? Image.network(
-                        conversation.otherUserAvatar!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person,
-                          color: Colors.white54,
-                          size: 28,
-                        ),
-                      )
-                    : const Icon(Icons.person, color: Colors.white54, size: 28),
-              ),
+                Positioned(
+                  right: 2,
+                  bottom: 2,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00E676),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF1F1623),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
 
-            // Name and message preview
+            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    conversation.otherUserName ?? 'User',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conversation.otherUserName ?? 'User',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: isUnread
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (lastTime != null)
+                        Text(
+                          _formatTime(lastTime),
+                          style: TextStyle(
+                            color: isUnread
+                                ? DesignSystem.purpleAccent
+                                : Colors.white.withValues(alpha: 0.4),
+                            fontSize: 12,
+                            fontWeight: isUnread
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    conversation.lastMessageContent ?? 'Start chatting...',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 6),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conversation.lastMessageContent ??
+                              'Start chatting...',
+                          style: TextStyle(
+                            color: isUnread
+                                ? Colors.white.withValues(alpha: 0.9)
+                                : Colors.white.withValues(alpha: 0.5),
+                            fontSize: 14,
+                            fontWeight: isUnread
+                                ? FontWeight.w500
+                                : FontWeight.normal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isUnread)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: DesignSystem.purpleAccent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            // Timestamp
-            if (conversation.lastMessageTime != null)
-              Text(
-                _formatTime(conversation.lastMessageTime!),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  fontSize: 12,
-                ),
-              ),
           ],
         ),
       ),
@@ -252,13 +366,14 @@ class _ConversationTile extends StatelessWidget {
     final diff = now.difference(time);
 
     if (diff.inDays > 0) {
-      return '${diff.inDays}d';
+      if (diff.inDays == 1) return 'Yesterday';
+      return '${diff.inDays}d ago';
     } else if (diff.inHours > 0) {
-      return '${diff.inHours}h';
+      return '${diff.inHours}h ago';
     } else if (diff.inMinutes > 0) {
-      return '${diff.inMinutes}m';
+      return '${diff.inMinutes}m ago';
     } else {
-      return 'now';
+      return 'Just now';
     }
   }
 }

@@ -4,6 +4,7 @@ import '../providers/messaging_provider.dart';
 import '../models/message.dart';
 import '../../theme/design_system.dart';
 import '../../ui/widgets/global_background.dart';
+import '../../ui/profile/profile_screen.dart';
 
 /// Real-time chat screen for a specific conversation.
 ///
@@ -16,12 +17,14 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String conversationId;
   final String participantName;
   final String? participantAvatar;
+  final String? otherUserId;
 
   const ChatScreen({
     super.key,
     required this.conversationId,
     required this.participantName,
     this.participantAvatar,
+    this.otherUserId,
   });
 
   @override
@@ -142,89 +145,145 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildAppBar() {
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 8,
+        top: MediaQuery.of(context).padding.top + 12,
+        left: 16,
         right: 16,
-        bottom: 12,
+        bottom: 16,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B141E).withValues(alpha: 0.9),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF1B141E),
+            const Color(0xFF1B141E).withValues(alpha: 0.95),
+          ],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           // Back button
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-
-          // Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF2B1F2E),
-              border: Border.all(
-                color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.white,
+                size: 20,
               ),
             ),
-            child: ClipOval(
-              child: widget.participantAvatar != null
-                  ? Image.network(
-                      widget.participantAvatar!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.person,
-                        color: Colors.white54,
-                        size: 20,
-                      ),
-                    )
-                  : const Icon(Icons.person, color: Colors.white54, size: 20),
-            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
 
-          // Name and status
+          // Clickable Profile Info
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.participantName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+            child: GestureDetector(
+              onTap: () {
+                if (widget.otherUserId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(userId: widget.otherUserId),
+                    ),
+                  );
+                }
+              },
+              child: Row(
+                children: [
+                  // Avatar
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF2B1F2E),
+                      border: Border.all(
+                        color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: DesignSystem.purpleAccent.withValues(
+                            alpha: 0.2,
+                          ),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: widget.participantAvatar != null
+                          ? Image.network(
+                              widget.participantAvatar!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.person,
+                                color: Colors.white54,
+                                size: 24,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person,
+                              color: Colors.white54,
+                              size: 24,
+                            ),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.greenAccent,
-                        shape: BoxShape.circle,
-                      ),
+                  const SizedBox(width: 12),
+
+                  // Name and status
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.participantName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF00E676),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Online',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Active now',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -238,24 +297,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.white.withValues(alpha: 0.2),
-              size: 64,
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.waving_hand_rounded,
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+                size: 48,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
-              'No messages yet',
+              'Say Hello!',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 16,
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Say hi to start the conversation!',
+              'Start the conversation with ${widget.participantName}',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.25),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14,
               ),
             ),
@@ -266,56 +333,120 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];
         final isMe = message.isSentBy(currentUserId);
-        return _MessageBubble(message: message, isMe: isMe);
+
+        // Show timestamp only if time gap > 5 mins or it's the first message
+        bool showTime = false;
+        if (index == 0) {
+          showTime = true;
+        } else {
+          final prevMessage = messages[index - 1];
+          final diff = message.createdAt.difference(prevMessage.createdAt);
+          if (diff.inMinutes > 5) showTime = true;
+        }
+
+        return Column(
+          children: [
+            if (showTime)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  _formatDate(message.createdAt),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            _MessageBubble(message: message, isMe: isMe),
+          ],
+        );
       },
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    if (now.difference(date).inDays == 0) {
+      return "${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+    } else {
+      return "${date.day}/${date.month} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+    }
   }
 
   Widget _buildInputBar() {
     return Container(
       padding: EdgeInsets.only(
         left: 16,
-        right: 8,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B141E).withValues(alpha: 0.95),
+        color: const Color(0xFF120815).withValues(alpha: 0.95),
         border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          top: BorderSide(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 1,
+          ),
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // Attachment Button (Mock)
+          Container(
+            height: 48,
+            width: 48,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.add_rounded,
+              color: Colors.white70,
+              size: 24,
+            ),
+          ),
+
           // Text input
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF2B1F2E),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
-              child: TextField(
-                controller: _messageController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Type a message...',
-                  hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText: 'Message...',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      minLines: 1,
+                      maxLines: 5,
+                    ),
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                textCapitalization: TextCapitalization.sentences,
-                minLines: 1,
-                maxLines: 4,
-                onSubmitted: (_) => _sendMessage(),
+                ],
               ),
             ),
           ),
@@ -329,17 +460,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               height: 48,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    DesignSystem.purpleAccent,
-                    DesignSystem.purpleAccent.withValues(alpha: 0.8),
-                  ],
+                  colors: [DesignSystem.purpleAccent, const Color(0xFFB030D1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -354,9 +484,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                       )
                     : const Icon(
-                        Icons.send_rounded,
+                        Icons.arrow_upward_rounded,
                         color: Colors.white,
-                        size: 22,
+                        size: 24,
                       ),
               ),
             ),
@@ -378,49 +508,80 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.only(
-          bottom: 8,
-          left: isMe ? 60 : 0,
-          right: isMe ? 0 : 60,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMe
-              ? DesignSystem.purpleAccent.withValues(alpha: 0.2)
-              : const Color(0xFF2B1F2E),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(isMe ? 18 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 18),
-          ),
-          border: Border.all(
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 4), // Tighter grouping
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: isMe
+                ? LinearGradient(
+                    colors: [
+                      DesignSystem.purpleAccent,
+                      const Color(0xFF9C27B0),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
             color: isMe
-                ? DesignSystem.purpleAccent.withValues(alpha: 0.3)
-                : Colors.white.withValues(alpha: 0.05),
+                ? null
+                // Dark curved bubble for others
+                : const Color(0xFF2E2333),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(20),
+              topRight: const Radius.circular(20),
+              bottomLeft: Radius.circular(isMe ? 20 : 4),
+              bottomRight: Radius.circular(isMe ? 4 : 20),
+            ),
+            boxShadow: [
+              if (isMe)
+                BoxShadow(
+                  color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+            ],
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              message.content,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                height: 1.3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message.content,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  height: 1.4,
+                  letterSpacing: 0.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _formatTime(message.createdAt),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 11,
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTime(message.createdAt),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.done_all_rounded, // Read receipt mock
+                      size: 14,
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

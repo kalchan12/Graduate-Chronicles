@@ -46,6 +46,7 @@ class _YearbookFilterScreenState extends ConsumerState<YearbookFilterScreen> {
   static const Map<String, List<String>> _schoolMajors = {
     'SoEE': [
       'Computer Science and Engineering',
+      'Software Engineering',
       'Electrical and Computer Engineering',
       'Electrical Power and Control Engineering',
     ],

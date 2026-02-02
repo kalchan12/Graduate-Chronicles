@@ -102,25 +102,32 @@ class MessagingService {
 
       final otherUserId = otherParticipant['user_id'] as String;
 
-      // Get other user's details
+      // Get other user's details including public ID
       final userDetails = await _client
           .from('users')
-          .select('full_name, username')
+          .select('id, full_name, username')
           .eq('auth_user_id', otherUserId)
           .maybeSingle();
 
-      // Get avatar from profile
-      final profile = await _client
-          .from('profile')
-          .select('profile_picture')
-          .eq('user_id', otherUserId)
-          .maybeSingle();
-
       String? avatarUrl;
-      if (profile != null && profile['profile_picture'] != null) {
-        avatarUrl = _client.storage
-            .from('avatar')
-            .getPublicUrl(profile['profile_picture']);
+
+      // Get avatar using public user ID
+      if (userDetails != null) {
+        final publicUserId = userDetails['id'] as String;
+
+        final profile = await _client
+            .from('profile')
+            .select('profile_picture')
+            .eq('user_id', publicUserId)
+            .maybeSingle();
+
+        if (profile != null && profile['profile_picture'] != null) {
+          avatarUrl = _client.storage
+              .from(
+                'avatar',
+              ) // Keeping original bucket name as per service file
+              .getPublicUrl(profile['profile_picture']);
+        }
       }
 
       // Get last message

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/providers.dart';
+import '../../core/providers.dart' hide conversationsProvider;
 import '../../state/profile_state.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
@@ -11,7 +11,9 @@ import '../stories/story_uploader.dart';
 import '../../state/posts_state.dart';
 import '../widgets/post_card.dart';
 import '../widgets/featured_carousel.dart';
+
 import '../../services/supabase/supabase_service.dart';
+import '../../messaging/providers/messaging_provider.dart';
 
 import '../profile/profile_screen.dart';
 import '../../messaging/ui/discover_screen.dart';
@@ -229,11 +231,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _HomeAppBar extends StatelessWidget {
+class _HomeAppBar extends ConsumerWidget {
   const _HomeAppBar();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch conversation state to determine unread count
+    final conversationsState = ref.watch(conversationsProvider);
+
+    // Calculate unread count (mock/logic assumption: < 30 mins)
+    int unreadCount = 0;
+    for (final convo in conversationsState.conversations) {
+      if (convo.lastMessageTime != null &&
+          DateTime.now().difference(convo.lastMessageTime!).inMinutes < 30) {
+        unreadCount++;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -288,15 +302,48 @@ class _HomeAppBar extends StatelessWidget {
                 tooltip: 'Discover Classmates',
               ),
               const SizedBox(width: 4),
-              IconButton(
-                // Message
-                onPressed: () => Navigator.pushNamed(context, '/messages'),
-                icon: const Icon(
-                  Icons.messenger_outline_rounded,
-                  color: Colors.white,
-                ),
-                splashRadius: 24,
-                tooltip: 'Messages',
+              Stack(
+                children: [
+                  IconButton(
+                    // Message
+                    onPressed: () => Navigator.pushNamed(context, '/messages'),
+                    icon: const Icon(
+                      Icons.messenger_outline_rounded,
+                      color: Colors.white,
+                    ),
+                    splashRadius: 24,
+                    tooltip: 'Messages',
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF2E0F3A),
+                            width: 1.5,
+                          ),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 4),
               IconButton(

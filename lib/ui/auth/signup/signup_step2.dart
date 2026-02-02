@@ -34,6 +34,7 @@ class _SignupStep2State extends ConsumerState<SignupStep2> {
   static const Map<String, List<String>> _majors = {
     'SoEE': [
       'Computer Science and Engineering',
+      'Software Engineering',
       'Electrical and Computer Engineering',
       'Electrical Power and Control Engineering',
     ],
