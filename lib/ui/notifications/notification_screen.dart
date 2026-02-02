@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/notification_state.dart';
 import '../../theme/design_system.dart';
+import '../profile/profile_screen.dart';
 
 /*
   Notification Screen.
@@ -140,209 +141,318 @@ class _NotificationCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Mark as read if not read (optional, can be done on tap or seen)
-    // For now, let's keep it manual or implicit on action.
+    final isConnectionRequest = item.iconType == 'connection_request';
+    final hasRelatedUser = item.relatedUserId != null;
+
+    void navigateToProfile() {
+      if (hasRelatedUser) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(userId: item.relatedUserId),
+          ),
+        );
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        // Glassmorphic background
         color: item.isRead
-            ? Colors.transparent
-            : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: item.isRead
-            ? null
-            : Border.all(color: DesignSystem.purpleAccent.withOpacity(0.2)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: const Color(0xFF3A2738),
-                // We could fetch sender avatar if backend provided it.
-                // For now use placeholder.
-                backgroundImage: const AssetImage(
-                  'assets/images/user_placeholder.png',
+            ? const Color(0xFF1E1E2E).withOpacity(0.4)
+            : const Color(0xFF2D1F35).withOpacity(0.8),
+        border: Border.all(
+          color: item.isRead
+              ? Colors.white.withOpacity(0.05)
+              : DesignSystem.purpleAccent.withOpacity(0.5),
+          width: item.isRead ? 1 : 1.5,
+        ),
+        boxShadow: item.isRead
+            ? []
+            : [
+                BoxShadow(
+                  color: DesignSystem.purpleAccent.withOpacity(0.15),
+                  blurRadius: 12,
+                  spreadRadius: -2,
                 ),
-                child: _getAvatarChild(item),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: _getIconBadge(item.iconType),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: hasRelatedUser ? navigateToProfile : null,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.4,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Avatar with Badge
+                    Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: DesignSystem.purpleAccent.withOpacity(0.3),
+                              width: 2,
+                            ),
+                            gradient: hasRelatedUser
+                                ? const LinearGradient(
+                                    colors: [
+                                      DesignSystem.purpleAccent,
+                                      Colors.blueAccent,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                          ),
+                          child: CircleAvatar(
+                            radius: 24,
+                            backgroundColor: const Color(0xFF151515),
+                            backgroundImage: const AssetImage(
+                              'assets/images/user_placeholder.png',
+                            ),
+                            child: _getAvatarChild(item),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: _getIconBadge(item.iconType),
+                        ),
+                      ],
                     ),
-                    children: [
-                      TextSpan(
-                        text: item.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                    const SizedBox(width: 16),
+                    // Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.title, // Sender Name
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                item.time,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.4),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.description,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
-                      const TextSpan(text: ' '),
-                      TextSpan(
-                        text: item.description,
-                        style: const TextStyle(color: Color(0xFFD6C9E6)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.time,
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    ),
+                  ],
                 ),
 
-                // ACTIONS for Connection Request
-                if (item.iconType == 'connection_request' &&
-                    item.referenceId != null) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            ref
-                                .read(notificationsProvider.notifier)
-                                .acceptConnectionRequest(
-                                  item.id,
-                                  item.referenceId!,
-                                );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: DesignSystem.purpleAccent,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                // Action Area
+                if (isConnectionRequest && item.referenceId != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasRelatedUser) ...[
+                          GestureDetector(
+                            onTap: navigateToProfile,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.person_search,
+                                  size: 16,
+                                  color: DesignSystem.purpleAccent,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'View Profile',
+                                  style: TextStyle(
+                                    color: DesignSystem.purpleAccent
+                                        .withOpacity(0.9),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Spacer(),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12,
+                                  color: Colors.white30,
+                                ),
+                              ],
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 0),
-                            minimumSize: const Size(0, 36),
                           ),
-                          child: const Text('Accept'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            ref
-                                .read(notificationsProvider.notifier)
-                                .denyConnectionRequest(
-                                  item.id,
-                                  item.referenceId!,
-                                );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white24),
-                            foregroundColor: Colors.white70,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          Divider(
+                            color: Colors.white.withOpacity(0.1),
+                            height: 24,
+                          ),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .acceptConnectionRequest(
+                                        item.id,
+                                        item.referenceId!,
+                                      );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: DesignSystem.purpleAccent,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text('Confirm'),
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 0),
-                            minimumSize: const Size(0, 36),
-                          ),
-                          child: const Text('Deny'),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .denyConnectionRequest(
+                                        item.id,
+                                        item.referenceId!,
+                                      );
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white70,
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ],
             ),
           ),
-          // Follow back logic (if still relevant)
-          if (item.iconType == 'follow')
-            // ... (kept minimal)
-            const SizedBox.shrink(),
-        ],
+        ),
       ),
     );
   }
 
   Widget? _getAvatarChild(NotificationItem item) {
-    if (item.iconType == 'alert' ||
-        item.iconType == 'system' ||
-        item.iconType == 'milestone') {
-      return null;
-    }
-    // Initials for users
     if (item.title.isNotEmpty) {
       return Text(
-        item.title[0],
+        item.title[0].toUpperCase(),
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
+          fontSize: 18,
         ),
       );
     }
-    return null;
+    return const Icon(Icons.person, color: Colors.white54);
   }
 
   Widget _getIconBadge(String type) {
     IconData icon;
     Color color;
+    List<Color> gradient;
 
     switch (type) {
       case 'like':
-        icon = Icons.favorite;
+        icon = Icons.favorite_rounded;
         color = Colors.pinkAccent;
-        break;
-      case 'mention':
-        icon = Icons.alternate_email;
-        color = Colors.greenAccent;
+        gradient = [Colors.pinkAccent, Colors.purpleAccent];
         break;
       case 'comment':
-        icon = Icons.chat_bubble;
+        icon = Icons.chat_bubble_rounded;
         color = Colors.blueAccent;
+        gradient = [Colors.blueAccent, Colors.cyanAccent];
         break;
       case 'connection_request':
-        icon = Icons.person_add;
+        icon = Icons.person_add_rounded;
         color = DesignSystem.purpleAccent;
+        gradient = [DesignSystem.purpleAccent, Colors.deepPurpleAccent];
         break;
       case 'connection_accepted':
-        icon = Icons.check_circle;
+        icon = Icons.check_circle_rounded;
         color = Colors.greenAccent;
-        break;
-      case 'follow':
-        icon = Icons.person_add;
-        color = DesignSystem.purpleAccent;
-        break;
-      case 'milestone':
-        icon = Icons.celebration;
-        color = DesignSystem.purpleAccent;
-        break;
-      case 'alert':
-        icon = Icons.warning;
-        color = Colors.orangeAccent;
+        gradient = [Colors.greenAccent, Colors.tealAccent];
         break;
       default:
-        icon = Icons.notifications;
-        color = DesignSystem.purpleAccent;
+        icon = Icons.notifications_rounded;
+        color = Colors.amberAccent;
+        gradient = [Colors.amberAccent, Colors.orangeAccent];
     }
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: color,
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         shape: BoxShape.circle,
-        border: Border.all(color: DesignSystem.scaffoldBg, width: 2),
+        border: Border.all(color: const Color(0xFF151515), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.4),
+            blurRadius: 6,
+            spreadRadius: 1,
+          ),
+        ],
       ),
-      child: Icon(icon, size: 10, color: Colors.white),
+      child: Icon(icon, size: 12, color: Colors.white),
     );
   }
 }

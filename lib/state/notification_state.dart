@@ -11,6 +11,7 @@ class NotificationItem {
   iconType; // 'connection_request', 'connection_accepted', 'like', 'comment', 'system'
   final bool isRead;
   final String? referenceId; // e.g., connection request ID
+  final String? relatedUserId; // For navigation
   final DateTime createdAt;
 
   NotificationItem({
@@ -22,6 +23,7 @@ class NotificationItem {
     required this.createdAt,
     this.isRead = false,
     this.referenceId,
+    this.relatedUserId,
   });
 
   factory NotificationItem.fromMap(Map<String, dynamic> map) {
@@ -49,6 +51,7 @@ class NotificationItem {
       iconType: type,
       isRead: map['is_read'] ?? false,
       referenceId: map['reference_id'],
+      relatedUserId: map['related_user_id'],
       createdAt: created,
     );
   }

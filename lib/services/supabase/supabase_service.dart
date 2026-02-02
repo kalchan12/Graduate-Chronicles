@@ -1798,15 +1798,28 @@ class SupabaseService {
   /// Fetch notifications  // 4. Notifications
   Future<List<Map<String, dynamic>>> fetchNotifications() async {
     final myId = _client.auth.currentUser?.id;
-    if (myId == null) throw Exception('Not authenticated');
+    if (myId == null) {
+      print('❌ fetchNotifications: Not authenticated');
+      throw Exception('Not authenticated');
+    }
 
-    return await _client
-        .from('notifications')
-        .select(
-          'id, title, description, created_at, is_read, type, user_id, reference_id',
-        )
-        .eq('user_id', myId)
-        .order('created_at', ascending: false);
+    print('🔔 Fetching notifications for user: $myId');
+
+    try {
+      final response = await _client
+          .from('notifications')
+          .select(
+            'id, title, description, created_at, is_read, type, user_id, reference_id, related_user_id',
+          )
+          .eq('user_id', myId)
+          .order('created_at', ascending: false);
+
+      print('✅ Fetched ${response.length} notifications');
+      return response;
+    } catch (e) {
+      print('❌ Error fetching notifications: $e');
+      rethrow;
+    }
   }
 
   /// Mark notification as read

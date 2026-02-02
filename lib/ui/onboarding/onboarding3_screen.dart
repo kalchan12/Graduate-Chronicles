@@ -33,17 +33,42 @@ class Onboarding3Screen extends StatelessWidget {
               // Artwork
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 32),
-                height: 280,
+                height: 320, // Slightly taller for image
                 decoration: BoxDecoration(
-                  color: DesignSystem.purpleMid.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white12, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: DesignSystem.purpleAccent.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.school_outlined,
-                    size: 80,
-                    color: Colors.white.withValues(alpha: 0.2),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/images/onboarding_3.png',
+                        fit: BoxFit.cover,
+                      ),
+                      // Gradient Overlay for blending
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              DesignSystem.purpleDark.withOpacity(0.3),
+                              DesignSystem.purpleDark.withOpacity(0.8),
+                            ],
+                            stops: const [0.0, 0.6, 1.0],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
