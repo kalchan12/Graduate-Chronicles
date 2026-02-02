@@ -2430,14 +2430,11 @@ class SupabaseService {
     String? major,
     String? program,
   }) async {
-    final userId = _client.auth.currentUser?.id;
+    final currentUserId = _client.auth.currentUser?.id;
 
-    // Base Query
-    var query = _client.from('community_events').select('''
-      *,
-      users!inner (full_name, username, role),
-      community_event_likes (count)
-    ''');
+    // 1. Base Query - Fetch events ONLY (no joins that fail)
+    // We select * because we can't join users table directly (different FK)
+    var query = _client.from('community_events').select();
 
     if (category != null) {
       query = query.eq('category', category);
@@ -2457,39 +2454,84 @@ class SupabaseService {
 
     // Apply Order last
     final res = await query.order('created_at', ascending: false);
-    if (res.isEmpty) return [];
 
-    // Determine 'is_liked' status efficiently
-    final eventIds = res.map((e) => e['id']).toList();
-    Set<String> likedEventIds = {};
+    if (res == null) return []; // Safety check
+    final List<dynamic> eventsRaw = res as List<dynamic>;
 
-    if (userId != null && eventIds.isNotEmpty) {
-      final likesRes = await _client
-          .from('community_event_likes')
-          .select('event_id')
-          .eq('user_id', userId)
-          .inFilter('event_id', eventIds);
+    if (eventsRaw.isEmpty) return [];
 
-      likedEventIds = (likesRes as List)
-          .map((r) => r['event_id'] as String)
-          .toSet();
+    final events = eventsRaw.cast<Map<String, dynamic>>();
+
+    // 2. Collect all User IDs to fetch profiles in one go
+    final userIds = events.map((e) => e['user_id'] as String).toSet().toList();
+    final eventIds = events.map((e) => e['id'] as String).toList();
+
+    // 3. Fetch User Profiles (Manual Join)
+    Map<String, Map<String, dynamic>> userProfiles = {};
+    if (userIds.isNotEmpty) {
+      try {
+        final usersRes = await _client
+            .from('users')
+            .select('auth_user_id, full_name, username, role')
+            .inFilter('auth_user_id', userIds);
+
+        for (var u in usersRes) {
+          userProfiles[u['auth_user_id']] = u;
+        }
+      } catch (e) {
+        print('Error fetching user profiles for events: $e');
+        // Continue even if user fetch fails, events will just have missing names
+      }
     }
 
-    return res.map((e) {
-      final data = e as Map<String, dynamic>;
-      final user = data['users'] as Map<String, dynamic>?;
-      final likes = data['community_event_likes'] as List<dynamic>?;
-      final count = (likes != null && likes.isNotEmpty)
-          ? likes[0]['count'] as int
-          : 0;
+    // 4. Fetch Like Counts for these events
+    Map<String, int> likeCounts = {};
+    if (eventIds.isNotEmpty) {
+      try {
+        final allLikes = await _client
+            .from('community_event_likes')
+            .select('event_id')
+            .inFilter('event_id', eventIds);
+
+        for (var like in allLikes) {
+          final eid = like['event_id'] as String;
+          likeCounts[eid] = (likeCounts[eid] ?? 0) + 1;
+        }
+      } catch (e) {
+        print('Error fetching likes: $e');
+      }
+    }
+
+    // 5. Determine 'is_liked' by current user
+    Set<String> likedEventIds = {};
+    if (currentUserId != null && eventIds.isNotEmpty) {
+      try {
+        final myLikes = await _client
+            .from('community_event_likes')
+            .select('event_id')
+            .eq('user_id', currentUserId)
+            .inFilter('event_id', eventIds);
+
+        likedEventIds = (myLikes as List)
+            .map((r) => r['event_id'] as String)
+            .toSet();
+      } catch (e) {
+        print('Error fetching my likes: $e');
+      }
+    }
+
+    // 6. Merge Data
+    return events.map((event) {
+      final authorId = event['user_id'] as String;
+      final authorProfile = userProfiles[authorId];
+      final eventId = event['id'] as String;
 
       return {
-        ...data,
-        'username': user?['username'],
-        'user_full_name': user?['full_name'],
-        // 'user_role': user?['role'],
-        'like_count': count,
-        'is_liked_by_me': likedEventIds.contains(data['id']),
+        ...event,
+        'username': authorProfile?['username'] ?? 'Unknown',
+        'user_full_name': authorProfile?['full_name'] ?? 'Unknown User',
+        'like_count': likeCounts[eventId] ?? 0,
+        'is_liked_by_me': likedEventIds.contains(eventId),
       };
     }).toList();
   }

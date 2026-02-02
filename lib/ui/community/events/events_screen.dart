@@ -98,33 +98,42 @@ class _CategorySelection extends StatelessWidget {
         _CategoryCard(
           title: "100 Day",
           subtitle: "Centennial Celebration",
-          icon: Icons.celebration,
+          icon: Icons.star_rate_rounded,
           gradient: const LinearGradient(
-            colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+            colors: [
+              Color(0xFF6A11CB),
+              Color(0xFF2575FC),
+            ], // Deep Purple -> Royal Blue
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           onTap: () => onSelect('100 Day'),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         _CategoryCard(
           title: "50 Day",
           subtitle: "Halfway There!",
-          icon: Icons.timer,
+          icon: Icons.hourglass_top_rounded,
           gradient: const LinearGradient(
-            colors: [Color(0xFFF12711), Color(0xFFF5AF19)],
+            colors: [
+              Color(0xFFFF416C),
+              Color(0xFFFF4B2B),
+            ], // Hot Pink -> Red Orange
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           onTap: () => onSelect('50 Day'),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         _CategoryCard(
           title: "Other",
           subtitle: "Special Moments & Memories",
-          icon: Icons.collections_bookmark,
+          icon: Icons.auto_awesome_mosaic_rounded,
           gradient: const LinearGradient(
-            colors: [Color(0xFF00B4DB), Color(0xFF0083B0)],
+            colors: [
+              Color(0xFF11998E),
+              Color(0xFF38EF7D),
+            ], // Deep Teal -> Bright Green
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -139,7 +148,7 @@ class _CategorySelection extends StatelessWidget {
 class _CategoryCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final IconData icon; // Added Icon
+  final IconData icon;
   final Gradient gradient;
   final VoidCallback onTap;
 
@@ -156,46 +165,70 @@ class _CategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 160,
+        height: 180,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           gradient: gradient,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: const Color(0xff8E2DE2).withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
-            // Background Icon Decoration
+            // Decorative Big Icon Background
             Positioned(
-              right: -20,
-              bottom: -20,
-              child: Icon(
-                icon,
-                size: 160,
-                color: Colors.white.withValues(alpha: 0.1),
+              right: -30,
+              bottom: -30,
+              child: Transform.rotate(
+                angle: -0.2,
+                child: Icon(
+                  icon,
+                  size: 200,
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
+            ),
+
+            // Glass/Noise Effect Overlay (Optional, simulated with gradient)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.1),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
-                    child: Icon(icon, color: Colors.white, size: 24),
+                    child: Icon(icon, color: Colors.white, size: 28),
                   ),
                   const Spacer(),
                   Text(
@@ -203,33 +236,35 @@ class _CategoryCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.0,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white70,
-                        size: 14,
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ],
                   ),
@@ -237,14 +272,14 @@ class _CategoryCard extends StatelessWidget {
               ),
             ),
 
-            // Ripple Overlay
+            // Material Splash
             Positioned.fill(
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: onTap,
-                  highlightColor: Colors.white.withValues(alpha: 0.1),
-                  splashColor: Colors.white.withValues(alpha: 0.2),
+                  splashColor: Colors.white.withValues(alpha: 0.1),
+                  highlightColor: Colors.white.withValues(alpha: 0.05),
                 ),
               ),
             ),
