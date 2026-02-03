@@ -6,6 +6,8 @@ import '../../ui/widgets/global_background.dart';
 import '../../ui/widgets/custom_app_bar.dart';
 import 'chat_screen.dart';
 import '../../ui/profile/profile_screen.dart';
+import '../../services/recommendation/recommendation_service.dart';
+import '../../services/supabase/supabase_service.dart';
 
 /// Screen for discovering and searching users to start conversations.
 ///
@@ -24,6 +26,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _filteredUsers = [];
+  List<Map<String, dynamic>> _recommendations = [];
   bool _isLoading = true;
   String? _error;
 
@@ -47,12 +50,27 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
     try {
       final service = ref.read(messagingServiceProvider);
+      // Fetch users
       final users = await service.fetchDiscoverableUsers();
+
+      // Fetch recommendations (AI)
+      List<Map<String, dynamic>> recommendations = [];
+      try {
+        final myId = ref.read(supabaseServiceProvider).currentAuthUserId;
+        if (myId != null) {
+          recommendations = await ref
+              .read(recommendationServiceProvider)
+              .getRecommendations(myId);
+        }
+      } catch (e) {
+        print('Recommendation fetch error: $e');
+      }
 
       if (mounted) {
         setState(() {
           _users = users;
           _filteredUsers = users;
+          _recommendations = recommendations;
           _isLoading = false;
         });
       }
@@ -84,14 +102,23 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   }
 
   Future<void> _startChat(Map<String, dynamic> user) async {
-    final authId = user['auth_user_id'] as String;
+    final authId = user['auth_user_id'] as String?;
     final name = user['full_name'] as String? ?? 'User';
     final avatar = user['avatar_url'] as String?;
 
+    if (authId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Cannot start chat: User ID missing'),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+      return;
+    }
+
     try {
-      final convoId = await ref
-          .read(conversationsProvider.notifier)
-          .startConversation(authId);
+      final notifier = ref.read(conversationsProvider.notifier);
+      final convoId = await notifier.startConversation(authId);
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -101,6 +128,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               conversationId: convoId,
               participantName: name,
               participantAvatar: avatar,
+              otherUserId: authId, // Can pass this correctly now
             ),
           ),
         );
@@ -238,13 +266,196 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     return RefreshIndicator(
       onRefresh: _loadUsers,
       color: DesignSystem.purpleAccent,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _filteredUsers.length,
-        itemBuilder: (context, index) {
-          final user = _filteredUsers[index];
-          return _UserTile(user: user, onTap: () => _startChat(user));
-        },
+      child: CustomScrollView(
+        slivers: [
+          // Recommendations Section
+          if (_recommendations.isNotEmpty &&
+              _searchController.text.isEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'AI Recommended for You',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 180,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _recommendations.length,
+                  itemBuilder: (context, index) {
+                    final user = _recommendations[index];
+                    return _RecommendationCard(
+                      user: user,
+                      onTap: () => _startChat(user),
+                    );
+                  },
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(child: const SizedBox(height: 24)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Text(
+                  'All Graduates',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          // Main List
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final user = _filteredUsers[index];
+                return _UserTile(user: user, onTap: () => _startChat(user));
+              }, childCount: _filteredUsers.length),
+            ),
+          ),
+
+          SliverToBoxAdapter(child: const SizedBox(height: 80)),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  final Map<String, dynamic> user;
+  final VoidCallback onTap;
+
+  const _RecommendationCard({required this.user, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = user['full_name'] as String? ?? 'User';
+    final avatar = user['avatar_url'] as String?;
+    final score = (user['match_score'] as double? ?? 0.0) * 100;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfileScreen(userId: user['user_id']),
+          ),
+        );
+      },
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2B1F2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: avatar != null
+                        ? DecorationImage(
+                            image: NetworkImage(avatar),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: Colors.grey[800],
+                  ),
+                  child: avatar == null
+                      ? Icon(Icons.person, color: Colors.white54)
+                      : null,
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: DesignSystem.purpleAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${score.toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Connect',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: DesignSystem.purpleAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

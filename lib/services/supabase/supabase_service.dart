@@ -2088,7 +2088,8 @@ class SupabaseService {
   }
 
   /// Create a new post
-  Future<void> createPost({
+  /// Create a new post and return its ID
+  Future<String> createPost({
     required String description,
     required List<String> mediaUrls,
     String mediaType = 'image',
@@ -2119,6 +2120,8 @@ class SupabaseService {
         'Post insert failed - RLS may have blocked the operation',
       );
     }
+
+    return result.first['id'] as String;
   }
 
   /// Fetch posts for the feed (paginated)

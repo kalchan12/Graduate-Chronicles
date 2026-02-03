@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:graduate_chronicles/theme/design_system.dart';
+import '../../state/auth_provider.dart';
 import '../onboarding/onboarding1_screen.dart';
 
 /*
@@ -11,15 +13,16 @@ import '../onboarding/onboarding1_screen.dart';
   - Animated Logo (Scale & Fade).
   - Sliding Text Animation.
   - Navigates to Onboarding after a set duration.
+  - Checks for existing session to auto-login.
 */
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   // Keeping original duration as requested, though it is quite long.
   static const _splashDuration = Duration(milliseconds: 6500);
@@ -69,17 +72,32 @@ class _SplashScreenState extends State<SplashScreen>
 
     _mainCtrl.forward();
 
-    Future.delayed(_splashDuration, () {
+    Future.delayed(_splashDuration, () async {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, a1, a2) => const Onboarding1Screen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
+
+      // Restore Session Logic
+      await ref.read(authProvider.notifier).restoreSession();
+
+      if (!mounted) return;
+
+      final auth = ref.read(authProvider);
+
+      if (auth.isAuthenticated) {
+        // Navigate directly to App if logged in
+        Navigator.of(context).pushReplacementNamed('/app');
+      } else {
+        // Navigate to Onboarding if not logged in
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, a1, a2) => const Onboarding1Screen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
     });
   }
 

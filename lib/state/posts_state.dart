@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase/supabase_service.dart';
+import '../services/recommendation/supabase_recommender.dart';
 
 // ========== MODAL/DATA CLASSES ============
 
@@ -270,11 +271,14 @@ class CreatePostNotifier extends Notifier<CreatePostState> {
         uploadedUrls.add(url);
       }
 
-      await service.createPost(
+      final postId = await service.createPost(
         description: description,
         mediaUrls: uploadedUrls,
         mediaType: 'image', // simplified, could detect video
       );
+
+      // Trigger embedding generation (fire-and-forget)
+      SupabaseRecommender.generateEmbedding(postId, description);
 
       state = CreatePostState(); // Reset
       return true;

@@ -78,14 +78,9 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
 
   Future<List<NotificationItem>> _fetchNotifications() async {
     final service = ref.read(supabaseServiceProvider);
-    try {
-      final data = await service.fetchNotifications();
-      return data.map((e) => NotificationItem.fromMap(e)).toList();
-    } catch (e) {
-      // If error (e.g. not authenticated in service), return empty
-      print('Notification fetch error: $e');
-      return [];
-    }
+    // Allow errors to propagate to AsyncValue so UI shows error state
+    final data = await service.fetchNotifications();
+    return data.map((e) => NotificationItem.fromMap(e)).toList();
   }
 
   int get unreadCount {

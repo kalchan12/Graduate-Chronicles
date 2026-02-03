@@ -10,7 +10,7 @@ import '../../state/stories_state.dart';
 import 'story_viewer_screen.dart';
 import 'story_card.dart';
 import '../stories/story_uploader.dart';
-import '../../state/posts_state.dart';
+import '../../state/post_recommendation_state.dart';
 import '../widgets/post_card.dart';
 import '../widgets/featured_carousel.dart';
 
@@ -54,7 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Read providers for dynamic mock content.
     final profile = ref.watch(profileProvider);
     final batches = ref.watch(batchProvider);
-    final feed = ref.watch(feedProvider);
+    final feed = ref.watch(personalizedFeedProvider);
     final stories = ref.watch(storiesProvider);
 
     // Initial Loading State (Skeleton)
@@ -249,6 +249,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                 // Feed
                 const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              DesignSystem.purpleAccent,
+                              DesignSystem.purpleAccent.withValues(alpha: 0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.auto_awesome,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'For You',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Personalized Feed',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: feed.when(

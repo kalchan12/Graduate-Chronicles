@@ -149,6 +149,20 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<void> restoreSession() async {
+    final service = ref.read(supabaseServiceProvider);
+    final user = service.currentUser;
+    if (user != null) {
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        email: user.email,
+        username: user.userMetadata?['username'] ?? user.email,
+        errorMessage: null,
+      );
+    }
+  }
+
   Future<void> signup({
     required String email,
     required String password,
