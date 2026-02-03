@@ -6,6 +6,8 @@ import '../../state/profile_state.dart';
 import '../../state/portfolio_state.dart';
 import '../../core/providers/current_user_provider.dart'; // Added
 import '../widgets/custom_app_bar.dart';
+import '../widgets/post_card.dart';
+import '../../state/posts_state.dart';
 import '../../settings/settings_main_screen.dart';
 import '../../messaging/providers/messaging_provider.dart';
 import '../../messaging/ui/chat_screen.dart';
@@ -618,20 +620,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               const SizedBox(height: 32),
 
-              // Tabs
               Container(
                 decoration: const BoxDecoration(
                   border: Border(
                     bottom: BorderSide(color: Color(0xFF2D2433), width: 1),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    _tabItem(0, 'Achievements'),
-                    _tabItem(1, 'Resumes'),
-                    _tabItem(2, 'Certificates'),
-                    _tabItem(3, 'Links'),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      _tabItem(0, 'Achievements'),
+                      _tabItem(1, 'Resumes'),
+                      _tabItem(2, 'Certificates'),
+                      _tabItem(3, 'Links'),
+                      _tabItem(4, 'Posts'),
+                    ],
+                  ),
                 ),
               ),
 
@@ -651,6 +657,53 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: DesignSystem.purpleAccent,
                         ),
                       ),
+                    );
+                  }
+
+                  // Handle Posts tab (index 4) separately
+                  if (_selectedTab == 4) {
+                    // Fetch and display user's posts
+                    return FutureBuilder<List<Map<String, dynamic>>>(
+                      future: ref
+                          .read(supabaseServiceProvider)
+                          .fetchPostsByUser(targetId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: DesignSystem.purpleAccent,
+                              ),
+                            ),
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Center(
+                              child: Text(
+                                'No posts yet.',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        final posts = snapshot.data!.map((p) {
+                          return PostItem.fromMap(p);
+                        }).toList();
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            children: posts
+                                .map((post) => PostCard(post: post))
+                                .toList(),
+                          ),
+                        );
+                      },
                     );
                   }
 
@@ -738,29 +791,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _tabItem(int index, String label) {
     final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedTab = index),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected
-                    ? const Color(0xFFE94CFF)
-                    : Colors.transparent,
-                width: 2,
-              ),
-            ),
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTab = index),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF3D1F47) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFE94CFF)
+                : Colors.white.withValues(alpha: 0.1),
+            width: 1,
           ),
-          padding: const EdgeInsets.symmetric(vertical: 8), // Reduced from 12
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.white : const Color(0xFFBDB1C9),
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-              fontSize: 12,
-            ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected
+                ? const Color(0xFFE94CFF)
+                : const Color(0xFFBDB1C9),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 13,
           ),
         ),
       ),

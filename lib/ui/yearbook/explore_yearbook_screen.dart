@@ -8,8 +8,6 @@ import '../../state/profile_state.dart';
 import 'yearbook_filter_screen.dart';
 import 'yearbook_submission_screen.dart';
 import '../widgets/toast_helper.dart';
-import '../widgets/featured_carousel.dart';
-import '../../services/supabase/supabase_service.dart';
 
 import '../widgets/global_background.dart';
 
@@ -68,24 +66,7 @@ class _ExploreYearbookScreenState extends ConsumerState<ExploreYearbookScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Featured Graduates Carousel
-              FutureBuilder<List<Map<String, dynamic>>>(
-                future: ref
-                    .read(supabaseServiceProvider)
-                    .fetchRandomYearbookEntries(limit: 5),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  final items = snapshot.data!
-                      .map((m) => FeaturedItem.fromMap(m))
-                      .toList();
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: FeaturedCarousel(items: items, height: 140),
-                  );
-                },
-              ),
+              // Featured Carousel removed
 
               // CTA for Graduates
               if (isGraduate) ...[

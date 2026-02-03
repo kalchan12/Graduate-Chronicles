@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/posts_state.dart';
 import '../../state/profile_state.dart';
-import '../profile/profile_screen.dart'; // Added
+import '../../theme/design_system.dart';
+import '../profile/profile_screen.dart';
 import '../../services/supabase/supabase_service.dart';
 import 'comments_sheet.dart';
 import 'toast_helper.dart';
@@ -19,6 +20,7 @@ class _PostCardState extends ConsumerState<PostCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _likeController;
   late Animation<double> _likeScale;
+  int _currentMediaIndex = 0;
 
   @override
   void initState() {
@@ -28,7 +30,7 @@ class _PostCardState extends ConsumerState<PostCard>
       duration: const Duration(milliseconds: 200),
     );
     _likeScale = Tween<double>(begin: 1.0, end: 1.3).animate(
-      CurvedAnimation(parent: _likeController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _likeController, curve: Curves.easeOutBack),
     );
 
     _likeController.addStatusListener((status) {
@@ -66,47 +68,83 @@ class _PostCardState extends ConsumerState<PostCard>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2E1A36),
+      backgroundColor: const Color(0xFF1E1224),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isOwner)
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.redAccent),
-                title: const Text(
-                  'Delete Post',
-                  style: TextStyle(color: Colors.redAccent),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
+              ),
+              if (isOwner)
+                _optionTile(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Delete Post',
+                  color: Colors.redAccent,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDelete();
+                  },
+                ),
+              _optionTile(
+                icon: Icons.flag_outlined,
+                label: 'Report Post',
+                color: Colors.orangeAccent,
                 onTap: () {
                   Navigator.pop(context);
-                  _confirmDelete();
+                  _showReportDialog();
                 },
               ),
-            ListTile(
-              leading: const Icon(Icons.flag, color: Colors.orangeAccent),
-              title: const Text(
-                'Report Post',
-                style: TextStyle(color: Colors.white),
+              _optionTile(
+                icon: Icons.share_outlined,
+                label: 'Share via...',
+                color: Colors.white,
+                onTap: () => Navigator.pop(context),
               ),
-              onTap: () {
-                Navigator.pop(context);
-                _showReportDialog();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share, color: Colors.white70),
-              title: const Text('Share', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _optionTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: color == Colors.white ? Colors.white.withOpacity(0.9) : color,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
     );
   }
 
@@ -114,51 +152,35 @@ class _PostCardState extends ConsumerState<PostCard>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2E1A36),
+        backgroundColor: const Color(0xFF1E1224),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Delete post?',
           style: TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          'This action cannot be undone.',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          'This will permanently remove this post from your profile.',
+          style: TextStyle(color: Colors.white.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(color: Colors.white.withOpacity(0.5)),
             ),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(context);
               try {
                 final service = ref.read(supabaseServiceProvider);
                 await service.deletePost(widget.post.id);
-
-                // Update Local State
                 ref.read(feedProvider.notifier).removePost(widget.post.id);
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Post deleted'),
-                      backgroundColor: Colors.green.shade700,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
+                if (mounted) ToastHelper.show(context, 'Post deleted');
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to delete: $e'),
-                      backgroundColor: Colors.red.shade700,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  ToastHelper.show(context, 'Delete failed: $e', isError: true);
                 }
               }
             },
@@ -181,52 +203,53 @@ class _PostCardState extends ConsumerState<PostCard>
       'Violence',
       'Other',
     ];
-
-    // Store the scaffold context BEFORE opening the dialog
     final scaffoldContext = context;
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF2E1A36),
+          backgroundColor: const Color(0xFF1E1224),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text(
             'Report Post',
             style: TextStyle(color: Colors.white),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: reasons
-                .map(
-                  (reason) => RadioListTile<String>(
-                    title: Text(
-                      reason,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    value: reason,
-                    groupValue: selectedReason,
-                    activeColor: Colors.orangeAccent,
-                    onChanged: (value) =>
-                        setDialogState(() => selectedReason = value),
+            children: reasons.map((reason) {
+              return RadioListTile<String>(
+                title: Text(
+                  reason,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 15,
                   ),
-                )
-                .toList(),
+                ),
+                value: reason,
+                groupValue: selectedReason,
+                activeColor: DesignSystem.purpleAccent,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (value) =>
+                    setDialogState(() => selectedReason = value),
+              );
+            }).toList(),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: Colors.white.withOpacity(0.5)),
               ),
             ),
             ElevatedButton(
               onPressed: selectedReason == null
                   ? null
                   : () async {
-                      // Close dialog first
                       Navigator.pop(dialogContext);
-
                       try {
                         final service = ref.read(supabaseServiceProvider);
                         await service.reportPost(
@@ -234,28 +257,29 @@ class _PostCardState extends ConsumerState<PostCard>
                           selectedReason!,
                           widget.post.userId,
                         );
-                        // Use ToastHelper for modern toast
                         if (mounted) {
                           ToastHelper.show(
                             scaffoldContext,
-                            'Report submitted. Thanks for keeping the community safe!',
+                            'Report submitted. Thank you.',
                           );
                         }
                       } catch (e) {
                         if (mounted) {
                           ToastHelper.show(
                             scaffoldContext,
-                            e.toString().contains('unique')
-                                ? 'You already reported this post'
-                                : 'Failed to report. Please try again.',
+                            'Report failed',
                             isError: true,
                           );
                         }
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orangeAccent,
-                disabledBackgroundColor: Colors.grey,
+                backgroundColor: DesignSystem.purpleAccent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: const Text('Submit'),
             ),
@@ -270,23 +294,16 @@ class _PostCardState extends ConsumerState<PostCard>
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: const Color(0xFF180D1D), // Dark, clean background
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.04), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
                 GestureDetector(
@@ -303,14 +320,14 @@ class _PostCardState extends ConsumerState<PostCard>
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: Colors.grey[800],
+                        backgroundColor: const Color(0xFF2E1A36),
                         backgroundImage: widget.post.userAvatar != null
                             ? NetworkImage(widget.post.userAvatar!)
                             : null,
                         child: widget.post.userAvatar == null
-                            ? const Icon(
+                            ? Icon(
                                 Icons.person,
-                                color: Colors.white,
+                                color: Colors.white.withOpacity(0.5),
                                 size: 20,
                               )
                             : null,
@@ -323,14 +340,16 @@ class _PostCardState extends ConsumerState<PostCard>
                             widget.post.userName ?? 'User',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              letterSpacing: 0.3,
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
                             _timeAgo(widget.post.createdAt),
-                            style: const TextStyle(
-                              color: Colors.white38,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.4),
                               fontSize: 12,
                             ),
                           ),
@@ -340,148 +359,158 @@ class _PostCardState extends ConsumerState<PostCard>
                   ),
                 ),
                 const Spacer(),
-                Expanded(
-                  child: const SizedBox.shrink(),
-                ), // Dummy to prevent layout issues if needed, but Spacer handles it.
-                // Actually the original code had Expanded around the column.
-                // I should reconstruct the original layout but wrapped.
                 IconButton(
-                  icon: const Icon(Icons.more_horiz, color: Colors.white54),
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: Colors.white.withOpacity(0.4),
+                  ),
                   onPressed: _showOptions,
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
                 ),
               ],
             ),
           ),
-
-          // Media (Images/Video)
-          if (widget.post.mediaUrls.isNotEmpty) _buildMediaCarousel(),
 
           // Caption
           if (widget.post.description.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Text(
                 widget.post.description,
-                style: const TextStyle(
-                  color: Color(0xFFE0E0E0),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
                   fontSize: 15,
                   height: 1.5,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
 
-          const SizedBox(height: 12),
+          // Media
+          if (widget.post.mediaUrls.isNotEmpty) _buildMediaCarousel(),
 
-          // Actions
+          // Action Toolbar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Row(
               children: [
-                ScaleTransition(
-                  scale: _likeScale,
-                  child: IconButton(
-                    icon: Icon(
-                      widget.post.isLikedByMe
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: widget.post.isLikedByMe
-                          ? Colors.pinkAccent
-                          : Colors.white70,
-                      size: 28,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: _handleLike,
-                  ),
+                _InteractionButton(
+                  icon: widget.post.isLikedByMe
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  label: '${widget.post.likesCount}',
+                  color: widget.post.isLikedByMe
+                      ? const Color(0xFFE94CFF)
+                      : Colors.white.withOpacity(
+                          0.6,
+                        ), // Updated to correct purple
+                  onTap: _handleLike,
+                  animation: _likeScale,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  '${widget.post.likesCount}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const SizedBox(width: 20),
+                _InteractionButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: '${widget.post.commentsCount}',
+                  color: Colors.white.withOpacity(0.6),
+                  onTap: _showComments,
                 ),
-
-                const SizedBox(width: 24),
-
+                const Spacer(),
                 IconButton(
-                  icon: const Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white70,
-                    size: 26,
+                  icon: Icon(
+                    Icons.share_outlined,
+                    color: Colors.white.withOpacity(0.6),
+                    size: 22,
                   ),
+                  onPressed: () {}, // Share placeholder
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  onPressed: _showComments,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${widget.post.commentsCount}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const Spacer(),
-
-                const Icon(
-                  Icons.share_outlined,
-                  color: Colors.white54,
-                  size: 24,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
   Widget _buildMediaCarousel() {
-    // If single image
-    if (widget.post.mediaUrls.length == 1) {
-      return GestureDetector(
-        onTap: () {
-          // Open full screen image
-        },
-        child: AspectRatio(
-          aspectRatio: 4 / 3, // Taller, immersive
-          child: Image.network(
-            widget.post.mediaUrls.first,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                color: Colors.white10,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              );
-            },
-            errorBuilder: (_, __, ___) => Container(
-              color: Colors.white10,
-              child: const Icon(Icons.broken_image, color: Colors.white24),
-            ),
-          ),
-        ),
-      );
-    }
+    return AspectRatio(
+      aspectRatio: 4 / 5,
+      child: Container(
+        width: double.infinity,
+        color: Colors.black,
+        child: widget.post.mediaUrls.length == 1
+            ? Image.network(
+                widget.post.mediaUrls.first,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return _buildLoadingState();
+                },
+                errorBuilder: (_, __, ___) => _buildErrorState(),
+              )
+            : Stack(
+                children: [
+                  PageView.builder(
+                    itemCount: widget.post.mediaUrls.length,
+                    onPageChanged: (index) =>
+                        setState(() => _currentMediaIndex = index),
+                    itemBuilder: (context, index) {
+                      return Image.network(
+                        widget.post.mediaUrls[index],
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return _buildLoadingState();
+                        },
+                        errorBuilder: (_, __, ___) => _buildErrorState(),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_currentMediaIndex + 1}/${widget.post.mediaUrls.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
 
-    // Multiple - Simplified horizontal scroll
-    return SizedBox(
-      height: 300,
-      child: PageView.builder(
-        itemCount: widget.post.mediaUrls.length,
-        itemBuilder: (context, index) {
-          return Image.network(
-            widget.post.mediaUrls[index],
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(color: Colors.white10),
-          );
-        },
+  Widget _buildLoadingState() {
+    return Center(
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        color: DesignSystem.purpleAccent.withOpacity(0.3),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Icon(
+        Icons.broken_image_rounded,
+        color: Colors.white.withOpacity(0.2),
+        size: 48,
       ),
     );
   }
@@ -494,5 +523,49 @@ class _PostCardState extends ConsumerState<PostCard>
     if (diff.inHours > 0) return "${diff.inHours}h";
     if (diff.inMinutes > 0) return "${diff.inMinutes}m";
     return "now";
+  }
+}
+
+class _InteractionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final Animation<double>? animation;
+
+  const _InteractionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget iconWidget = Icon(icon, color: color, size: 24);
+    if (animation != null) {
+      iconWidget = ScaleTransition(scale: animation!, child: iconWidget);
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          iconWidget,
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

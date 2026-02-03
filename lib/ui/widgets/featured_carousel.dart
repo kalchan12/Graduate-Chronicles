@@ -8,10 +8,10 @@ import '../../theme/design_system.dart';
   A reusable auto-swiping carousel for featured content.
   Features:
   - Automatic page transitions (configurable interval).
-  - Glassmorphic card design.
-  - Image + title + description display.
-  - Manual swipe support.
-  - Only renders if items are provided (no placeholders).
+  - Vertical card design with clear separation.
+  - Yearbook quote styling for descriptions.
+  - Improved image visibility (top alignment).
+  - Optimized Flex Ratios (70% Image / 30% Text).
 */
 
 class FeaturedCarousel extends StatefulWidget {
@@ -23,7 +23,7 @@ class FeaturedCarousel extends StatefulWidget {
   const FeaturedCarousel({
     super.key,
     required this.items,
-    this.height = 200,
+    this.height = 360, // Default increased to 360
     this.autoScrollInterval = const Duration(seconds: 5),
     this.onItemTap,
   });
@@ -40,7 +40,7 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController = PageController(viewportFraction: 0.92);
     _startAutoScroll();
   }
 
@@ -68,7 +68,6 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    // Don't render if no items
     if (widget.items.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
@@ -83,9 +82,25 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> {
                 setState(() => _currentPage = index);
               },
               itemBuilder: (context, index) {
-                return _FeaturedCard(
-                  item: widget.items[index],
-                  onTap: widget.onItemTap,
+                return AnimatedBuilder(
+                  animation: _pageController,
+                  builder: (context, child) {
+                    double scale = 1.0;
+                    if (_pageController.position.haveDimensions) {
+                      double page = _pageController.page ?? 0;
+                      scale = (1 - (index - page).abs() * 0.05).clamp(
+                        0.95,
+                        1.0,
+                      );
+                    }
+                    return Transform.scale(
+                      scale: scale,
+                      child: _FeaturedCard(
+                        item: widget.items[index],
+                        onTap: widget.onItemTap,
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -114,32 +129,25 @@ class _FeaturedCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onTap?.call(item),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF251029).withValues(alpha: 0.95),
-              const Color(0xFF151019).withValues(alpha: 0.9),
-            ],
-          ),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          color: const Color(0xFF2E1A36), // Solid dark background
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image Section
-            SizedBox(
-              width: 140,
+            // Image Section (Top, 70%)
+            Expanded(
+              flex: 7,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -147,50 +155,24 @@ class _FeaturedCard extends StatelessWidget {
                     Image.network(
                       item.imageUrl!,
                       fit: BoxFit.cover,
+                      alignment: Alignment.topCenter, // Focus on faces
                       errorBuilder: (_, __, ___) => _imagePlaceholder(),
                     )
                   else
                     _imagePlaceholder(),
-                  // Gradient overlay
-                  Positioned.fill(
+
+                  // Badge (Cleaner look)
+                  Positioned(
+                    top: 12,
+                    left: 12,
                     child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.transparent,
-                            const Color(0xFF251029).withValues(alpha: 0.9),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Content Section
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Badge
-                    Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
+                        color: Colors.black.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: DesignSystem.purpleAccent.withValues(
-                            alpha: 0.3,
-                          ),
-                        ),
                       ),
                       child: Text(
                         item.badge ?? 'FEATURED',
@@ -198,36 +180,79 @@ class _FeaturedCard extends StatelessWidget {
                           color: DesignSystem.purpleAccent,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    // Title
+                  ),
+                ],
+              ),
+            ),
+
+            // Text Section (Bottom, 30%)
+            Expanded(
+              flex: 3,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2E1A36),
+                  border: Border(
+                    top: BorderSide(color: Color(0xFFE94CFF), width: 1.5),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     Text(
                       item.title,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
+                        fontSize: 16, // Slightly smaller to fix text
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (item.description != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        item.description!,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 12,
-                          height: 1.3,
+                    const SizedBox(height: 6),
+                    if (item.description != null)
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.format_quote_rounded,
+                                color: DesignSystem.purpleAccent.withOpacity(
+                                  0.5,
+                                ),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  item.description!,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13, // Smaller for better fit
+                                    fontStyle: FontStyle.italic,
+                                    fontFamily: 'Georgia',
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
                   ],
                 ),
               ),
@@ -240,9 +265,13 @@ class _FeaturedCard extends StatelessWidget {
 
   Widget _imagePlaceholder() {
     return Container(
-      color: const Color(0xFF3A2738),
-      child: const Center(
-        child: Icon(Icons.image, size: 32, color: Colors.white12),
+      color: const Color(0xFF3A2743),
+      child: Center(
+        child: Icon(
+          Icons.school_rounded,
+          size: 48,
+          color: Colors.white.withOpacity(0.2),
+        ),
       ),
     );
   }
@@ -261,15 +290,15 @@ class _PageIndicator extends StatelessWidget {
       children: List.generate(count, (index) {
         final isActive = index == currentIndex;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: isActive ? 20 : 8,
-          height: 4,
+          width: isActive ? 20 : 6,
+          height: 6,
           decoration: BoxDecoration(
             color: isActive
                 ? DesignSystem.purpleAccent
-                : Colors.white.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(2),
+                : Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(3),
           ),
         );
       }),

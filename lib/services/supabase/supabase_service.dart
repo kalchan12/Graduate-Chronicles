@@ -2163,6 +2163,23 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response as List);
   }
 
+  /// Fetch posts by a specific user (for Profile "My Posts" tab)
+  Future<List<Map<String, dynamic>>> fetchPostsByUser(
+    String userId, {
+    int limit = 20,
+  }) async {
+    final response = await _client
+        .from('posts')
+        .select(
+          '*, users!posts_user_id_fkey(full_name, username, profile(profile_picture))',
+        )
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
   /// Toggle Like on a post
   /// Returns true if liked, false if unliked (after action)
   Future<bool> toggleLike(String postId) async {

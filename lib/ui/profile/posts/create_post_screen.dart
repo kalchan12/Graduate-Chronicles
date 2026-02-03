@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:ui';
 import '../../../../theme/design_system.dart';
 import '../../../../state/posts_state.dart';
+import '../../../../state/post_recommendation_state.dart';
 import '../../../core/providers/current_user_provider.dart';
 
 class CreatePostScreen extends ConsumerStatefulWidget {
@@ -30,6 +32,99 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     }
   }
 
+  /// Custom glassmorphism toast with dark purple theme
+  void _showGlassToast(String message, {bool isError = false}) {
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 50,
+        left: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E1A36).withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isError
+                        ? Colors.redAccent.withOpacity(0.4)
+                        : DesignSystem.purpleAccent.withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          (isError
+                                  ? Colors.redAccent
+                                  : DesignSystem.purpleAccent)
+                              .withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color:
+                            (isError
+                                    ? Colors.redAccent
+                                    : DesignSystem.purpleAccent)
+                                .withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isError ? Icons.error_outline : Icons.check_circle,
+                        color: isError
+                            ? Colors.redAccent
+                            : DesignSystem.purpleAccent,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
+  }
+
   Future<void> _handlePost() async {
     final notifier = ref.read(createPostProvider.notifier);
     final success = await notifier.publishPost(_captionController.text);
@@ -37,45 +132,17 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     if (!mounted) return;
 
     if (success) {
+      // Refresh the personalized feed (used by Home Screen)
+      ref.invalidate(personalizedFeedProvider);
+      // Also refresh the standard feed for other screens
       ref.invalidate(feedProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Post shared successfully!'),
-            ],
-          ),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+
+      _showGlassToast('Post shared successfully!');
       Navigator.pop(context);
     } else {
       final errorMsg =
           ref.read(createPostProvider).error ?? 'Something went wrong';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(child: Text(errorMsg)),
-            ],
-          ),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _showGlassToast(errorMsg, isError: true);
     }
   }
 

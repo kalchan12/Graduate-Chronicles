@@ -157,19 +157,105 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return Container(
-                              height: 160,
+                              height: 360,
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 16,
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: DesignSystem.purpleAccent,
-                                  strokeWidth: 2,
+                              child: PageView.builder(
+                                controller: PageController(
+                                  viewportFraction: 0.92,
                                 ),
+                                itemBuilder: (context, index) {
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2E1A36),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.05),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        // Image placeholder (70%)
+                                        Expanded(
+                                          flex: 7,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(
+                                                0.05,
+                                              ),
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    top: Radius.circular(20),
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                        // Text placeholder (30%)
+                                        Expanded(
+                                          flex: 3,
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              16,
+                                              12,
+                                              16,
+                                              12,
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Container(
+                                                  height: 16,
+                                                  width: 140,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withOpacity(0.08),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Container(
+                                                  height: 12,
+                                                  width: double.infinity,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withOpacity(0.05),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Container(
+                                                  height: 12,
+                                                  width: 100,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withOpacity(0.05),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           }
@@ -205,7 +291,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               .toList();
                           return FeaturedCarousel(
                             items: items,
-                            height: 160,
+                            height: 360,
                             onItemTap: (item) {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
