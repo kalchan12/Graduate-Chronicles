@@ -1096,6 +1096,40 @@ class SupabaseService {
     return publicUrl;
   }
 
+  // Gallery upload for yearbook (Unique timestamps)
+  Future<String> uploadYearbookGalleryImage(File file, int batchYear) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    // Compress image first
+    final fileBytes = await file.readAsBytes();
+    final compressed = await _compressImage(fileBytes);
+
+    // Storage path: batch_<year>/<user_id>/gallery_<timestamp>.jpg
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    // We add a random component to be extra safe against rapid uploads
+    final uniqueId = DateTime.now().microsecond;
+    final storagePath =
+        'batch_$batchYear/$userId/gallery_${timestamp}_$uniqueId.jpg';
+
+    await _client.storage
+        .from('yearbook_upload')
+        .uploadBinary(
+          storagePath,
+          compressed,
+          fileOptions: const FileOptions(
+            contentType: 'image/jpeg',
+            upsert: true,
+          ),
+        );
+
+    final publicUrl = _client.storage
+        .from('yearbook_upload')
+        .getPublicUrl(storagePath);
+
+    return publicUrl;
+  }
+
   // Admin operations
   Future<void> approveYearbookEntry(String entryId) async {
     await _client
@@ -2124,7 +2158,7 @@ class SupabaseService {
   Future<String> createAnnouncement({
     required String userId,
     required String description,
-    List<String> mediaUrls = const [],
+    required List<String> mediaUrls,
   }) async {
     print('[ANNOUNCEMENT_CREATE] Starting creation for userId=$userId');
 
@@ -2149,6 +2183,32 @@ class SupabaseService {
       print('[ANNOUNCEMENT_CREATE] ERROR: $e');
       print(stack);
       rethrow;
+    }
+  }
+
+  /// Fetch latest announcements for the home screen (Global)
+  Future<List<Map<String, dynamic>>> fetchLatestAnnouncements({
+    int limit = 5,
+  }) async {
+    try {
+      final response = await _client
+          .from('posts')
+          .select('''
+            *,
+            users!posts_user_id_fkey(
+              full_name,
+              role,
+              profile:profile(profile_picture)
+            )
+          ''')
+          .eq('content_kind', 'announcement')
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      print('❌ fetchLatestAnnouncements error: $e');
+      return [];
     }
   }
 

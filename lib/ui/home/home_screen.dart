@@ -11,6 +11,7 @@ import 'story_card.dart';
 import '../../state/post_recommendation_state.dart';
 import '../widgets/post_card.dart';
 import '../widgets/announcement_card.dart';
+import '../widgets/announcement_carousel.dart';
 import '../widgets/featured_carousel.dart';
 
 import '../../services/supabase/supabase_service.dart';
@@ -52,7 +53,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     // Read providers for dynamic mock content.
     final profile = ref.watch(profileProvider);
-    final batches = ref.watch(batchProvider);
     final feed = ref.watch(personalizedFeedProvider);
     final stories = ref.watch(storiesProvider);
 
@@ -291,31 +291,116 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
 
-                // Batch Highlights header
+                // Announcements Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
-                  child: Text(
-                    "Batch Highlights: Class of '24",
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(fontSize: 20),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Latest Updates',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.redAccent.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          'NEWS',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                // Batch highlights carousel
-                SizedBox(
-                  height: 150,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: batches.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(width: 16),
-                    itemBuilder: (context, index) => _BatchCard(
-                      title: batches[index].title,
-                      subtitle: batches[index].subtitle,
-                    ),
-                  ),
+                // Announcements Carousel
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: ref
+                      .read(supabaseServiceProvider)
+                      .fetchLatestAnnouncements(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return SizedBox(
+                        height: 200,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 2,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 16),
+                          itemBuilder: (_, __) => Container(
+                            width: 300,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final announcements = snapshot.data ?? [];
+                    return AnnouncementCarousel(
+                      announcements: announcements,
+                      onItemTap: (item) {
+                        // TODO: Navigate to detail view or expand
+                        // For now just show a simple bottom sheet or dialog
+                        showModalBottomSheet(
+                          context: context,
+                          backgroundColor: const Color(0xFF1E1E2E),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(24),
+                            ),
+                          ),
+                          builder: (context) => Container(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Announcement',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(color: Colors.white),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  item['description'] ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
 
                 // Feed
@@ -605,75 +690,6 @@ class _HomeAppBar extends ConsumerWidget {
   _StoryAvatar class removed in favor of the specialized StoryCard component.
   _FeaturedCard class removed in favor of FeaturedCarousel widget.
 */
-
-class _BatchCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _BatchCard({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 260,
-      decoration: DesignSystem.cardDecoration().copyWith(
-        color: const Color(0xFF1F0B26),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Stack(
-        children: [
-          // Decorative gradient overlay
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                  colors: [
-                    DesignSystem.purpleAccent.withValues(alpha: 0.1),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _HomeSkeleton extends StatelessWidget {
   const _HomeSkeleton();

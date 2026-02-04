@@ -206,8 +206,8 @@ class _YearbookSubmissionScreenState
       final List<String> finalGalleryUrls = List.from(_existingGalleryImages);
       for (final xFile in _newGalleryImages) {
         final file = File(xFile.path);
-        // Re-using uploadYearbookPhoto is safe as it uses timestamp in filename
-        final url = await service.uploadYearbookPhoto(
+        // Use specific method to ensure unique filename (timestamps)
+        final url = await service.uploadYearbookGalleryImage(
           file,
           selectedBatch.batchYear,
         );

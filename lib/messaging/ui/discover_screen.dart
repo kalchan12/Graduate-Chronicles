@@ -106,29 +106,21 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     final name = user['full_name'] as String? ?? 'User';
     final avatar = user['avatar_url'] as String?;
 
-    if (authId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Cannot start chat: User ID missing'),
-          backgroundColor: Colors.red[700],
-        ),
-      );
-      return;
-    }
+    if (authId == null) return;
 
     try {
       final notifier = ref.read(conversationsProvider.notifier);
       final convoId = await notifier.startConversation(authId);
 
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChatScreen(
               conversationId: convoId,
               participantName: name,
               participantAvatar: avatar,
-              otherUserId: authId, // Can pass this correctly now
+              otherUserId: authId,
             ),
           ),
         );
@@ -138,6 +130,35 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not start chat: $e'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendConnectionRequest(String targetAuthId) async {
+    try {
+      await ref
+          .read(supabaseServiceProvider)
+          .sendConnectionRequest(targetAuthId);
+
+      // Refresh list to update status
+      await _loadUsers();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection request sent!'),
+            backgroundColor: DesignSystem.purpleAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending request: $e'),
             backgroundColor: Colors.red[700],
           ),
         );
@@ -332,7 +353,18 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 final user = _filteredUsers[index];
-                return _UserTile(user: user, onTap: () => _startChat(user));
+                return _UserTile(
+                  user: user,
+                  onTap: () {
+                    final status = user['connection_status'] ?? 'none';
+                    if (status == 'accepted') {
+                      _startChat(user);
+                    } else if (status == 'none' || status == 'rejected') {
+                      final authId = user['auth_user_id'] as String?;
+                      if (authId != null) _sendConnectionRequest(authId);
+                    }
+                  },
+                );
               }, childCount: _filteredUsers.length),
             ),
           ),
@@ -476,7 +508,7 @@ class _UserTile extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // Navigate to Profile
+        // Navigate to Profile on tile tap (excluding button)
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -552,40 +584,112 @@ class _UserTile extends StatelessWidget {
               ),
             ),
 
-            // Chat button
-            GestureDetector(
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
+            // Action Button
+            _buildActionButton(
+              context,
+              status: user['connection_status'] ?? 'none',
+              onTapAction: onTap,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    BuildContext context, {
+    required String status,
+    required VoidCallback onTapAction,
+  }) {
+    if (status == 'accepted') {
+      return GestureDetector(
+        onTap: onTapAction,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
+            ),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.chat_bubble_outline,
+                color: DesignSystem.purpleAccent,
+                size: 16,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Chat',
+                style: TextStyle(
+                  color: DesignSystem.purpleAccent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
-                decoration: BoxDecoration(
-                  color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      color: DesignSystem.purpleAccent,
-                      size: 16,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Chat',
-                      style: TextStyle(
-                        color: DesignSystem.purpleAccent,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else if (status == 'pending_sent') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Text(
+          'Sent',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      );
+    } else if (status == 'pending_received') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+        ),
+        child: const Text(
+          'Pending',
+          style: TextStyle(
+            color: Colors.amber,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
+
+    // Default: Connect
+    return GestureDetector(
+      onTap: onTapAction,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_add_alt_1, color: Colors.black, size: 16),
+            SizedBox(width: 6),
+            Text(
+              'Connect',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
               ),
             ),
           ],

@@ -279,11 +279,46 @@ class MessagingService {
     // Execute and filter locally due to Supabase limitations
     final List<dynamic> results = await query;
 
+    // 2. Fetch connection statuses efficiently
+    // We need to know if I have sent a request OR received a request from these users
+    final myRequests = await _client
+        .from('connection_requests')
+        .select('sender_id, receiver_id, status')
+        .or('sender_id.eq.$userId,receiver_id.eq.$userId');
+
+    final Map<String, String> connectionStatusMap = {};
+
+    for (final req in myRequests) {
+      final sender = req['sender_id'] as String;
+      final receiver = req['receiver_id'] as String;
+      final status = req['status'] as String;
+
+      if (sender == userId) {
+        // I sent this request
+        if (status == 'accepted') {
+          connectionStatusMap[receiver] = 'accepted';
+        } else if (status == 'pending') {
+          connectionStatusMap[receiver] = 'pending_sent';
+        } else if (status == 'rejected') {
+          // Treat rejected as none so we can retry? Or specific?
+          // For now treat as none to allow retry logic in service
+          connectionStatusMap[receiver] = 'rejected';
+        }
+      } else {
+        // I received this request
+        if (status == 'accepted') {
+          connectionStatusMap[sender] = 'accepted';
+        } else if (status == 'pending') {
+          connectionStatusMap[sender] = 'pending_received';
+        }
+      }
+    }
+
     final List<Map<String, dynamic>> users = [];
 
     for (final row in results) {
       final authId = row['auth_user_id'] as String?;
-      final userId = row['user_id'] as String?; // Get UUID
+      final userIdUuid = row['user_id'] as String?; // Get UUID
 
       if (authId == null || authId == currentUserId) continue;
 
@@ -299,13 +334,12 @@ class MessagingService {
       }
 
       // Get avatar
-      // Use user_id (UUID) to fetch profile, not auth_user_id
       String? avatarUrl;
-      if (userId != null) {
+      if (userIdUuid != null) {
         final profile = await _client
             .from('profile')
             .select('profile_picture')
-            .eq('user_id', userId)
+            .eq('user_id', userIdUuid)
             .maybeSingle();
 
         if (profile != null && profile['profile_picture'] != null) {
@@ -315,12 +349,16 @@ class MessagingService {
         }
       }
 
+      // Determine status
+      final status = connectionStatusMap[authId] ?? 'none';
+
       users.add({
-        'user_id': userId, // Return UUID for navigation
-        'auth_user_id': authId, // Keep auth ID for chat start
+        'user_id': userIdUuid, // Return UUID for navigation
+        'auth_user_id': authId, // Keep auth ID for chat/connect
         'full_name': row['full_name'] ?? 'User',
         'username': row['username'] ?? '',
         'avatar_url': avatarUrl,
+        'connection_status': status,
       });
     }
 
