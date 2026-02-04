@@ -7,9 +7,7 @@ import '../../state/profile_state.dart';
 import '../../state/notification_state.dart';
 import '../../theme/design_system.dart';
 import '../../state/stories_state.dart';
-import 'story_viewer_screen.dart';
 import 'story_card.dart';
-import '../stories/story_uploader.dart';
 import '../../state/post_recommendation_state.dart';
 import '../widgets/post_card.dart';
 import '../widgets/announcement_card.dart';
@@ -103,21 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final group = stories[index];
-                      return StoryCard(
-                        group: group,
-                        onAddStory: () {
-                          StoryUploader(context, ref).pickAndUpload();
-                        },
-                        onViewStory: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  StoryViewerScreen(userGroup: group),
-                            ),
-                          );
-                        },
-                      );
+                      return StoryCard(group: group);
                     },
                   ),
                 ),
@@ -412,7 +396,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               '[FEED_RENDER] Warning: Unknown contentKind "${post.contentKind}" for post ${post.id}. Rendering as PostCard.',
                             );
                           }
-                          return PostCard(post: post);
+                          return PostCard(
+                            post: post,
+                            onLike: (id) {
+                              ref
+                                  .read(personalizedFeedProvider.notifier)
+                                  .toggleLike(id);
+                              // Feedback instantly provided by local state in PostCard + this provider update
+                            },
+                            onComment: (id) {
+                              ref
+                                  .read(personalizedFeedProvider.notifier)
+                                  .incrementCommentCount(id);
+                            },
+                          );
                         }).toList(),
                       );
                     },

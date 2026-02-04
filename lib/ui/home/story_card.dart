@@ -1,35 +1,47 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/stories_state.dart';
 import '../../theme/design_system.dart';
+import 'story_viewer_screen.dart';
+import '../stories/story_uploader.dart';
 
-class StoryCard extends StatelessWidget {
+class StoryCard extends ConsumerWidget {
   final UserStoryGroup group;
-  final VoidCallback onAddStory;
-  final VoidCallback onViewStory;
 
-  const StoryCard({
-    super.key,
-    required this.group,
-    required this.onAddStory,
-    required this.onViewStory,
-  });
+  const StoryCard({super.key, required this.group});
 
   @override
-  Widget build(BuildContext context) {
-    const double size =
-        72; // External size matching existing design if possible
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Logic:
+    // If it's me:
+    //   - If I have stories: View them (click circle).
+    //   - If NO stories: Tap circle -> Add.
+    // If other:
+    //   - Tap circle -> View.
 
-    final hasStories = group.hasStories;
-    final isMe = group.isMe;
+    final bool isMe = group.isMe;
+    final bool hasStories = group.hasStories;
+
+    void onViewStory() {
+      if (!hasStories) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => StoryViewerScreen(userGroup: group)),
+      );
+    }
+
+    void onAddStory() {
+      // StoryUploader is a helper class, not a screen.
+      // We trigger the pick and upload flow directly.
+      StoryUploader(context, ref).pickAndUpload();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
         children: [
           Stack(
-            clipBehavior: Clip.none,
             children: [
-              // 1. Main interaction zone (Big Circle)
               GestureDetector(
                 onTap: () {
                   if (hasStories) {
@@ -40,44 +52,31 @@ class StoryCard extends StatelessWidget {
                   }
                 },
                 child: Container(
-                  width: size,
-                  height: size,
+                  padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    // Gradient border if has active stories
-                    border:
+                    gradient:
                         hasStories &&
                             !group
-                                .isMe // My story logic might differ, but usually gradient if stories exist
-                        ? Border.all(
-                            color: Colors.transparent,
-                            width: 2,
-                          ) // handled by gradient container usually
-                        : null,
-                    gradient: hasStories
+                                .isLiked // "Unseen" color
                         ? const LinearGradient(
-                            colors: [Color(0xFF8A3FFC), Color(0xFFDA1E28)],
+                            colors: [Color(0xFFE94CFF), Color(0xFF7B2CBF)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           )
                         : null,
+                    border: !hasStories && !isMe
+                        ? Border.all(color: Colors.white24, width: 2)
+                        : null,
                   ),
-                  padding: const EdgeInsets.all(
-                    2.5,
-                  ), // gap between border and image
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color:
-                          Colors.black, // background between border and image
-                    ),
-                    padding: const EdgeInsets.all(
-                      2,
-                    ), // another small gap or just fit
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Colors.black,
                     child: CircleAvatar(
+                      radius: 30,
                       backgroundColor: Colors.grey[900],
                       backgroundImage: group.profilePicUrl != null
-                          ? NetworkImage(group.profilePicUrl!)
+                          ? CachedNetworkImageProvider(group.profilePicUrl!)
                           : null,
                       child: group.profilePicUrl == null
                           ? const Icon(Icons.person, color: Colors.white54)
@@ -86,8 +85,6 @@ class StoryCard extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // 2. Plus Icon (Only for "Me")
               if (isMe)
                 Positioned(
                   bottom: 0,
@@ -96,17 +93,15 @@ class StoryCard extends StatelessWidget {
                     onTap:
                         onAddStory, // STRICT: Always opens upload, never viewer
                     child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: DesignSystem.purpleAccent, // Purple
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: DesignSystem.purpleAccent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black, width: 2),
                       ),
                       child: const Icon(
                         Icons.add,
-                        color: Colors.white,
                         size: 16,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -114,20 +109,11 @@ class StoryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          // Username
-          SizedBox(
-            width: size + 10,
-            child: Text(
-              group.username,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Text(
+            group.username.length > 10
+                ? '${group.username.substring(0, 9)}...'
+                : group.username,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
 
@@ -152,11 +153,17 @@ class _FeaturedCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (item.imageUrl != null)
-                    Image.network(
-                      item.imageUrl!,
+                    CachedNetworkImage(
+                      imageUrl: item.imageUrl!,
                       fit: BoxFit.cover,
                       alignment: Alignment.topCenter, // Focus on faces
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                      placeholder: (context, url) => Center(
+                        child: CircularProgressIndicator(
+                          color: DesignSystem.purpleAccent.withOpacity(0.5),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => _imagePlaceholder(),
                     )
                   else
                     _imagePlaceholder(),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/posts_state.dart';
@@ -10,7 +11,10 @@ import 'toast_helper.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final PostItem post;
-  const PostCard({super.key, required this.post});
+  final Function(String postId)? onLike;
+  final Function(String postId)? onComment;
+
+  const PostCard({super.key, required this.post, this.onLike, this.onComment});
 
   @override
   ConsumerState<PostCard> createState() => _PostCardState();
@@ -50,7 +54,12 @@ class _PostCardState extends ConsumerState<PostCard>
     if (!widget.post.isLikedByMe) {
       _likeController.forward();
     }
-    ref.read(feedProvider.notifier).toggleLike(widget.post.id);
+
+    if (widget.onLike != null) {
+      widget.onLike!(widget.post.id);
+    } else {
+      ref.read(feedProvider.notifier).toggleLike(widget.post.id);
+    }
   }
 
   void _showComments() {
@@ -176,7 +185,16 @@ class _PostCardState extends ConsumerState<PostCard>
               try {
                 final service = ref.read(supabaseServiceProvider);
                 await service.deletePost(widget.post.id);
+                // We utilize the passed callback logic ideally, but delete is simpler to be global
+                // Or we inform feed.
+                // For now, assume feed refreshes or handles removal.
+                // But specifically for 'feedProvider' vs 'personalizedFeedProvider',
+                // we might need a callback for delete too.
+                // Let's stick to simple implementation: invalidate feeds.
                 ref.read(feedProvider.notifier).removePost(widget.post.id);
+                // Also invalidate personalized feed if possible, or let user refresh
+                // ref.invalidate(personalizedFeedProvider); // Optional but clean
+
                 if (mounted) ToastHelper.show(context, 'Post deleted');
               } catch (e) {
                 if (mounted) {
@@ -322,7 +340,9 @@ class _PostCardState extends ConsumerState<PostCard>
                         radius: 20,
                         backgroundColor: const Color(0xFF2E1A36),
                         backgroundImage: widget.post.userAvatar != null
-                            ? NetworkImage(widget.post.userAvatar!)
+                            ? CachedNetworkImageProvider(
+                                widget.post.userAvatar!,
+                              )
                             : null,
                         child: widget.post.userAvatar == null
                             ? Icon(
@@ -441,14 +461,11 @@ class _PostCardState extends ConsumerState<PostCard>
         width: double.infinity,
         color: Colors.black,
         child: widget.post.mediaUrls.length == 1
-            ? Image.network(
-                widget.post.mediaUrls.first,
+            ? CachedNetworkImage(
+                imageUrl: widget.post.mediaUrls.first,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return _buildLoadingState();
-                },
-                errorBuilder: (_, __, ___) => _buildErrorState(),
+                placeholder: (context, url) => _buildLoadingState(),
+                errorWidget: (_, __, ___) => _buildErrorState(),
               )
             : Stack(
                 children: [
@@ -457,14 +474,11 @@ class _PostCardState extends ConsumerState<PostCard>
                     onPageChanged: (index) =>
                         setState(() => _currentMediaIndex = index),
                     itemBuilder: (context, index) {
-                      return Image.network(
-                        widget.post.mediaUrls[index],
+                      return CachedNetworkImage(
+                        imageUrl: widget.post.mediaUrls[index],
                         fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return _buildLoadingState();
-                        },
-                        errorBuilder: (_, __, ___) => _buildErrorState(),
+                        placeholder: (context, url) => _buildLoadingState(),
+                        errorWidget: (_, __, ___) => _buildErrorState(),
                       );
                     },
                   ),
