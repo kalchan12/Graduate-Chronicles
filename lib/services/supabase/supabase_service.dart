@@ -1026,17 +1026,9 @@ class SupabaseService {
   }
 
   // Helper to get public.users.user_id from auth.uid()
+  // Now delegates to the unified cached method
   Future<String> _getPublicUserId() async {
-    final authId = _client.auth.currentUser?.id;
-    if (authId == null) throw Exception('Not authenticated');
-
-    final res = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .single();
-
-    return res['user_id'] as String;
+    return _fetchPublicUserId();
   }
 
   Future<void> createYearbookEntry({
@@ -1859,6 +1851,7 @@ class SupabaseService {
 
     print('🔔 Fetching notifications for user: $myId');
 
+    print('🔔 DEBUG: fetchNotifications START for user: $myId');
     try {
       final response = await _client
           .from('notifications')
@@ -1895,9 +1888,11 @@ class SupabaseService {
         if (senderIds.isNotEmpty) {
           // Batch fetch profiles
           // Using select * to get all potential fields needed, especially avatar_url
+          // Batch fetch profiles
+          // Using select * to get all potential fields needed, especially avatar_url
           final profilesData = await _client
-              .from('profiles')
-              .select()
+              .from('users')
+              .select('user_id, full_name, username')
               .filter('user_id', 'in', senderIds);
 
           final senderIdToProfile = {
@@ -2124,6 +2119,73 @@ class SupabaseService {
     return result.first['id'] as String;
   }
 
+  /// Create an announcement (broadcast mode)
+  /// Inserts into posts with content_kind='announcement', interaction_mode='broadcast'
+  Future<String> createAnnouncement({
+    required String userId,
+    required String description,
+    List<String> mediaUrls = const [],
+  }) async {
+    print('[ANNOUNCEMENT_CREATE] Starting creation for userId=$userId');
+
+    try {
+      final result = await _client.from('posts').insert({
+        'user_id': userId,
+        'description': description,
+        'media_urls': mediaUrls,
+        'media_type': 'image',
+        'content_kind': 'announcement',
+        'interaction_mode': 'broadcast',
+      }).select();
+
+      if (result.isEmpty) {
+        print('[ANNOUNCEMENT_CREATE] ERROR: Insert returned empty result');
+        throw Exception('Announcement insert failed');
+      }
+
+      print('[ANNOUNCEMENT_CREATE] Success, id=${result.first['id']}');
+      return result.first['id'] as String;
+    } catch (e, stack) {
+      print('[ANNOUNCEMENT_CREATE] ERROR: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// Fetch announcements by a specific user
+  Future<List<Map<String, dynamic>>> fetchAnnouncementsByUser(
+    String userId,
+  ) async {
+    print('[PROFILE_ANNOUNCEMENTS_FETCH] Fetching for userId=$userId');
+
+    try {
+      final result = await _client
+          .from('posts')
+          .select('''
+            *,
+            users (
+              full_name,
+              username,
+              role,
+              major,
+              profile:profile(profile_picture)
+            )
+          ''')
+          .eq('user_id', userId)
+          .eq('content_kind', 'announcement')
+          .order('created_at', ascending: false);
+
+      print(
+        '[PROFILE_ANNOUNCEMENTS_FETCH] Success, found ${result.length} items',
+      );
+      return List<Map<String, dynamic>>.from(result);
+    } catch (e, stack) {
+      print('[PROFILE_ANNOUNCEMENTS_FETCH] ERROR: $e');
+      print(stack);
+      rethrow; // Rethrow to let UI handle it
+    }
+  }
+
   /// Fetch posts for the feed (paginated)
   Future<List<Map<String, dynamic>>> fetchPosts({
     int limit = 10,
@@ -2182,81 +2244,90 @@ class SupabaseService {
 
   /// Toggle Like on a post
   /// Returns true if liked, false if unliked (after action)
-  Future<bool> toggleLike(String postId) async {
+  // Cache for public user ID to reduce queries
+  String? _cachedPublicUserId;
+
+  /// Helper to get the REAL public user_id (not auth_user_id) with caching
+  /// This is the SINGLE source of truth for the internal user_id.
+  Future<String> _fetchPublicUserId() async {
+    if (_cachedPublicUserId != null) return _cachedPublicUserId!;
+
     final authId = _client.auth.currentUser?.id;
     if (authId == null) throw Exception('Not authenticated');
 
-    // Lookup real user_id
     final userRow = await _client
         .from('users')
         .select('user_id')
         .eq('auth_user_id', authId)
-        .single();
-    final userId = userRow['user_id'] as String;
-
-    // Check if already liked
-    final existing = await _client
-        .from('post_likes')
-        .select()
-        .eq('post_id', postId)
-        .eq('user_id', userId)
         .maybeSingle();
 
-    // Fetch current count to update (Manual Counter)
-    final postRes = await _client
-        .from('posts')
-        .select('likes_count')
-        .eq('id', postId)
-        .single();
-    int currentCount = postRes['likes_count'] ?? 0;
+    if (userRow == null) {
+      throw Exception('Public user record not found. Please relogin.');
+    }
 
-    if (existing != null) {
-      // Unlike
-      await _client
-          .from('post_likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', userId);
+    _cachedPublicUserId = userRow['user_id'] as String;
+    return _cachedPublicUserId!;
+  }
 
-      // Decrement
-      if (currentCount > 0) {
+  /// Toggle Like on a post (Explicit Action)
+  /// [wantLike] - true to like, false to unlike.
+  /// Returns actual final state (true=liked, false=unliked).
+  Future<bool> toggleLike(String postId, {required bool wantLike}) async {
+    final userId = await _fetchPublicUserId();
+
+    print(
+      '[LIKE_ACTION] user_id=$userId post_id=$postId action=${wantLike ? 'LIKE' : 'UNLIKE'}',
+    );
+
+    try {
+      if (!wantLike) {
+        // UNLIKE
         await _client
-            .from('posts')
-            .update({'likes_count': currentCount - 1})
-            .eq('id', postId);
+            .from('post_likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', userId);
+
+        print('[LIKE_DB_RESULT] success=true action=UNLIKE');
+        // Triggers handle count
+        return false;
+      } else {
+        // LIKE
+        await _client.from('post_likes').insert({
+          'post_id': postId,
+          'user_id': userId,
+        });
+
+        print('[LIKE_DB_RESULT] success=true action=LIKE');
+        // Triggers handle count
+        return true;
       }
-
-      return false;
-    } else {
-      // Like
-      await _client.from('post_likes').insert({
-        'post_id': postId,
-        'user_id': userId,
-      });
-
-      // Increment
-      await _client
-          .from('posts')
-          .update({'likes_count': currentCount + 1})
-          .eq('id', postId);
-
-      return true;
+    } on PostgrestException catch (e) {
+      // Handle known races
+      if (e.code == '23505') {
+        // Unique violation
+        print(
+          '[LIKE_DB_RESULT] error=duplicate_key action=LIKE -> treating as success',
+        );
+        return true;
+      }
+      print('[LIKE_DB_RESULT] error=${e.message} code=${e.code}');
+      rethrow;
+    } catch (e) {
+      print('[LIKE_DB_RESULT] error=$e');
+      rethrow;
     }
   }
 
   /// Check if current user liked a post
   Future<bool> hasLikedPost(String postId) async {
-    final authId = _client.auth.currentUser?.id;
-    if (authId == null) return false;
-
-    // Lookup real user_id
-    final userRow = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .maybeSingle();
-    if (userRow == null) return false;
-    final userId = userRow['user_id'] as String;
+    // optimizations: use cached ID
+    String userId;
+    try {
+      userId = await _fetchPublicUserId();
+    } catch (_) {
+      return false; // Not authenticated or no public profile
+    }
 
     final count = await _client
         .from('post_likes')
@@ -2269,22 +2340,21 @@ class SupabaseService {
 
   /// Add a comment
   Future<void> addComment(String postId, String content) async {
-    final authId = _client.auth.currentUser?.id;
-    if (authId == null) throw Exception('Not authenticated');
+    final userId = await _getPublicUserId(); // Use cached helper
 
-    // Lookup real user_id
-    final userRow = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .single();
-    final userId = userRow['user_id'] as String;
+    print('[COMMENT_ACTION] user_id=$userId post_id=$postId');
 
-    await _client.from('post_comments').insert({
-      'post_id': postId,
-      'user_id': userId,
-      'content': content,
-    });
+    try {
+      await _client.from('post_comments').insert({
+        'post_id': postId,
+        'user_id': userId,
+        'content': content,
+      });
+      print('[COMMENT_DB_RESULT] success=true');
+    } catch (e) {
+      print('[COMMENT_DB_RESULT] error=$e');
+      rethrow;
+    }
   }
 
   /// Fetch comments for a post

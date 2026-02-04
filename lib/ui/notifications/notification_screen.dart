@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/notification_state.dart';
 import '../../theme/design_system.dart';
 import '../profile/profile_screen.dart';
+import '../../messaging/ui/chat_screen.dart';
 
 /*
   Notification Screen.
@@ -143,6 +144,7 @@ class _NotificationCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isConnectionRequest = item.iconType == 'connection_request';
     final isMentorshipRequest = item.iconType == 'mentorship_request';
+    final isMessage = item.iconType == 'message';
     final hasRelatedUser = item.relatedUserId != null;
 
     void navigateToProfile() {
@@ -152,6 +154,31 @@ class _NotificationCard extends ConsumerWidget {
             builder: (_) => ProfileScreen(userId: item.relatedUserId),
           ),
         );
+      }
+    }
+
+    void navigateToChat() {
+      if (item.referenceId != null && hasRelatedUser) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              conversationId: item.referenceId!,
+              participantName: item.senderProfile != null
+                  ? '${item.senderProfile!['first_name']} ${item.senderProfile!['last_name']}'
+                  : 'User',
+              participantAvatar: item.senderProfile?['avatar_url'],
+              otherUserId: item.relatedUserId,
+            ),
+          ),
+        );
+      }
+    }
+
+    void handleTap() {
+      if (isMessage) {
+        navigateToChat();
+      } else if (hasRelatedUser) {
+        navigateToProfile();
       }
     }
 
@@ -182,7 +209,7 @@ class _NotificationCard extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: hasRelatedUser ? navigateToProfile : null,
+          onTap: handleTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -549,6 +576,11 @@ class _NotificationCard extends ConsumerWidget {
         icon = Icons.check_circle_rounded;
         color = Colors.greenAccent;
         gradient = [Colors.greenAccent, Colors.tealAccent];
+        break;
+      case 'message':
+        icon = Icons.mail_rounded;
+        color = Colors.lightBlueAccent;
+        gradient = [Colors.lightBlueAccent, Colors.blue];
         break;
       case 'mentorship_request':
         icon = Icons.school_rounded;

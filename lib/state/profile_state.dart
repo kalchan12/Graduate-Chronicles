@@ -21,6 +21,7 @@ class UserProfile {
   final String year; // graduation year
   final String role; // 'student', 'graduate'
   final String? authUserId;
+  final List<String> interests; // Skills/Interests from DB
 
   const UserProfile({
     this.id = '',
@@ -32,9 +33,18 @@ class UserProfile {
     this.year = '',
     this.role = '',
     this.authUserId,
+    this.interests = const [],
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
+    // Parse interests array
+    List<String> interestsList = [];
+    if (map['interests'] != null) {
+      if (map['interests'] is List) {
+        interestsList = (map['interests'] as List).cast<String>();
+      }
+    }
+
     return UserProfile(
       id: map['user_id']?.toString() ?? '',
       name: map['full_name'] ?? 'User',
@@ -45,6 +55,7 @@ class UserProfile {
       year: map['graduation_year']?.toString() ?? '',
       role: map['role'] ?? '', // Add role mapping
       authUserId: map['auth_user_id']?.toString(),
+      interests: interestsList,
     );
   }
 }
@@ -110,6 +121,7 @@ class ProfileNotifier extends Notifier<UserProfile> {
         year: state.year,
         role: state.role,
         authUserId: state.authUserId,
+        interests: state.interests,
       );
 
       String? imagePathForDb = profileImage;

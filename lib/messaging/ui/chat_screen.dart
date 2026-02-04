@@ -37,6 +37,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isSending = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Mark conversation as read when opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final service = ref.read(messagingServiceProvider);
+      service.markConversationRead(widget.conversationId);
+      // Invalidate unread count to refresh badge
+      ref.invalidate(unreadMessageCountProvider);
+    });
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();

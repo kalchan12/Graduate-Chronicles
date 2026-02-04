@@ -17,6 +17,8 @@ class PostItem {
   final String? userName;
   final String? userAvatar;
   final bool isLikedByMe; // Computed field
+  final String contentKind; // 'post' | 'announcement'
+  final String interactionMode; // 'interactive' | 'broadcast'
 
   PostItem({
     required this.id,
@@ -30,6 +32,8 @@ class PostItem {
     this.userName,
     this.userAvatar,
     this.isLikedByMe = false,
+    this.contentKind = 'post',
+    this.interactionMode = 'interactive',
   });
 
   factory PostItem.fromMap(Map<String, dynamic> map, {bool isLiked = false}) {
@@ -112,6 +116,8 @@ class PostItem {
       userName: userMap?['full_name'] ?? userMap?['username'] ?? 'Unknown',
       userAvatar: avatarUrl,
       isLikedByMe: isLiked,
+      contentKind: map['content_kind'] ?? 'post',
+      interactionMode: map['interaction_mode'] ?? 'interactive',
     );
   }
 
@@ -128,6 +134,8 @@ class PostItem {
       userName: userName,
       userAvatar: userAvatar,
       isLikedByMe: isLikedByMe ?? this.isLikedByMe,
+      contentKind: contentKind,
+      interactionMode: interactionMode,
     );
   }
 }
@@ -177,14 +185,14 @@ class FeedNotifier extends AsyncNotifier<List<PostItem>> {
     try {
       // Real API call
       final service = ref.read(supabaseServiceProvider);
-      await service.toggleLike(postId);
+      await service.toggleLike(postId, wantLike: !wasLiked);
+      print('✅ Like toggle success: ${!wasLiked} for $postId');
     } catch (e) {
       // Revert if error
-      // Re-fetch or strict revert not always easy without keeping strict history.
-      // For now, simpler to just reload or re-toggle in memory if we really wanted perfection.
-      // But simply forcing a reload is safer.
-      // state = AsyncValue.data(currentState); // If we kept a strict copy
-      ref.invalidateSelf(); // Simplest revert: re-fetch
+      print('❌ Error toggling like: $e');
+      // Revert to original state
+      state = AsyncValue.data(currentState);
+      // We could use a global toast service if available, effectively communicating failure
     }
   }
 

@@ -179,13 +179,22 @@ class MessagingService {
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true)
         .map((rows) {
+          print(
+            '📨 DEBUG: Stream received ${rows.length} messages for $conversationId',
+          );
           return rows.map((r) {
             // Decrypt content before creating model
             final content = r['content'] as String;
-            final decrypted = _encryption.decrypt(content);
-            final mutableMap = Map<String, dynamic>.from(r);
-            mutableMap['content'] = decrypted;
-            return Message.fromMap(mutableMap);
+            try {
+              final decrypted = _encryption.decrypt(content);
+              final mutableMap = Map<String, dynamic>.from(r);
+              mutableMap['content'] = decrypted;
+              return Message.fromMap(mutableMap);
+            } catch (e) {
+              print('❌ DEBUG: Decryption failed for msg ${r['id']}: $e');
+              // Return original content or placeholder to avoid stream crash
+              return Message.fromMap(r);
+            }
           }).toList();
         });
   }
@@ -301,5 +310,43 @@ class MessagingService {
     }
 
     return users;
+  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // READ STATUS OPERATIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Mark a conversation as read by the current user.
+  /// Should be called when user opens a conversation.
+  Future<void> markConversationRead(String conversationId) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    try {
+      await _client.rpc(
+        'mark_conversation_read',
+        params: {'_conversation_id': conversationId, '_user_id': userId},
+      );
+      print('[MESSAGING] Marked conversation $conversationId as read');
+    } catch (e) {
+      print('[MESSAGING] Error marking conversation read: $e');
+      // Non-critical, don't rethrow
+    }
+  }
+
+  /// Get total unread message count for the current user.
+  Future<int> getUnreadCount() async {
+    final userId = currentUserId;
+    if (userId == null) return 0;
+
+    try {
+      final result = await _client.rpc(
+        'get_unread_message_count',
+        params: {'_user_id': userId},
+      );
+      return (result as int?) ?? 0;
+    } catch (e) {
+      print('[MESSAGING] Error getting unread count: $e');
+      return 0;
+    }
   }
 }

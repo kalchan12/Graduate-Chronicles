@@ -149,7 +149,7 @@ class PersonalizedFeedNotifier extends AsyncNotifier<List<PostItem>> {
 
     try {
       final service = ref.read(supabaseServiceProvider);
-      await service.toggleLike(postId);
+      await service.toggleLike(postId, wantLike: !wasLiked);
     } catch (e) {
       ref.invalidateSelf();
     }

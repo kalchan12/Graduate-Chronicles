@@ -7,11 +7,13 @@ import '../../state/portfolio_state.dart';
 import '../../core/providers/current_user_provider.dart'; // Added
 import '../widgets/custom_app_bar.dart';
 import '../widgets/post_card.dart';
+import '../widgets/announcement_card.dart';
 import '../../state/posts_state.dart';
 import '../../settings/settings_main_screen.dart';
 import '../../messaging/providers/messaging_provider.dart';
 import '../../messaging/ui/chat_screen.dart';
 import 'posts/create_post_screen.dart';
+import '../announcements/create_announcement_screen.dart';
 
 import '../widgets/global_background.dart';
 
@@ -517,6 +519,61 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ),
                           ),
+                          // Announcement button (owner only + restricted roles)
+                          if (isOwner &&
+                              (displayProfile.role.toLowerCase() == 'staff' ||
+                                  displayProfile.role.toLowerCase() ==
+                                      'alumni' ||
+                                  displayProfile.role.toLowerCase() ==
+                                      'graduate')) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CreateAnnouncementScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2D1F3D),
+                                    borderRadius: BorderRadius.circular(21),
+                                    border: Border.all(
+                                      color: DesignSystem.purpleAccent
+                                          .withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  child: const Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.campaign_rounded,
+                                          color: DesignSystem.purpleAccent,
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Announce',
+                                          style: TextStyle(
+                                            color: DesignSystem.purpleAccent,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                           if (!isOwner) ...[
                             const SizedBox(width: 12),
                             Expanded(
@@ -602,21 +659,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
 
-              // Interests Chips
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _interestChip('SwiftUI'),
-                    const SizedBox(width: 8),
-                    _interestChip('React Native'),
-                    const SizedBox(width: 8),
-                    _interestChip('UX/UI Design'),
-                  ],
+              // Interests/Skills Chips
+              if (displayProfile.interests.isNotEmpty)
+                SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: displayProfile.interests.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, index) =>
+                        _interestChip(displayProfile.interests[index]),
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 32),
 
@@ -631,11 +686,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [
-                      _tabItem(0, 'Achievements'),
-                      _tabItem(1, 'Resumes'),
-                      _tabItem(2, 'Certificates'),
-                      _tabItem(3, 'Links'),
-                      _tabItem(4, 'Posts'),
+                      _tabItem(0, 'Announcements'),
+                      _tabItem(1, 'Achievements'),
+                      _tabItem(2, 'Resumes'),
+                      _tabItem(3, 'Certificates'),
+                      _tabItem(4, 'Links'),
+                      _tabItem(5, 'Posts'),
                     ],
                   ),
                 ),
@@ -660,8 +716,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     );
                   }
 
-                  // Handle Posts tab (index 4) separately
-                  if (_selectedTab == 4) {
+                  // Handle Announcements tab (index 0)
+                  if (_selectedTab == 0) {
+                    return FutureBuilder<List<Map<String, dynamic>>>(
+                      future: ref
+                          .read(supabaseServiceProvider)
+                          .fetchAnnouncementsByUser(targetId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: DesignSystem.purpleAccent,
+                              ),
+                            ),
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Center(
+                              child: Text(
+                                'No announcements yet.',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        final announcements = snapshot.data!.map((p) {
+                          return PostItem.fromMap(p);
+                        }).toList();
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Column(
+                            children: announcements
+                                .map((a) => AnnouncementCard(announcement: a))
+                                .toList(),
+                          ),
+                        );
+                      },
+                    );
+                  }
+
+                  // Handle Posts tab (index 5) separately
+                  if (_selectedTab == 5) {
                     // Fetch and display user's posts
                     return FutureBuilder<List<Map<String, dynamic>>>(
                       future: ref
@@ -708,13 +810,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   }
 
                   List<Map<String, dynamic>> items = [];
-                  if (_selectedTab == 0) {
+                  if (_selectedTab == 1) {
                     items = portfolio.achievements;
-                  } else if (_selectedTab == 1) {
-                    items = portfolio.resumes;
                   } else if (_selectedTab == 2) {
-                    items = portfolio.certificates;
+                    items = portfolio.resumes;
                   } else if (_selectedTab == 3) {
+                    items = portfolio.certificates;
+                  } else if (_selectedTab == 4) {
                     items = portfolio.links;
                   }
 

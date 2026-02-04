@@ -549,22 +549,31 @@ class _InteractionButton extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        print('🖱️ DEBUG: InteractionButton tapped: $label');
+        onTap();
+      },
       behavior: HitTestBehavior.opaque,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          iconWidget,
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+      child: Container(
+        color: Colors.transparent, // Ensures the entire area is tappable
+        padding: const EdgeInsets.symmetric(
+          vertical: 8,
+        ), // Increase touch target
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            iconWidget,
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

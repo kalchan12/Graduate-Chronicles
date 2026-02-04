@@ -12,6 +12,7 @@ import 'story_card.dart';
 import '../stories/story_uploader.dart';
 import '../../state/post_recommendation_state.dart';
 import '../widgets/post_card.dart';
+import '../widgets/announcement_card.dart';
 import '../widgets/featured_carousel.dart';
 
 import '../../services/supabase/supabase_service.dart';
@@ -401,9 +402,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         );
                       }
                       return Column(
-                        children: posts
-                            .map((post) => PostCard(post: post))
-                            .toList(),
+                        children: posts.map((post) {
+                          // Conditional rendering based on contentKind
+                          if (post.contentKind == 'announcement') {
+                            debugPrint('[ANNOUNCEMENT_RENDER] id=${post.id}');
+                            return AnnouncementCard(announcement: post);
+                          } else if (post.contentKind != 'post') {
+                            debugPrint(
+                              '[FEED_RENDER] Warning: Unknown contentKind "${post.contentKind}" for post ${post.id}. Rendering as PostCard.',
+                            );
+                          }
+                          return PostCard(post: post);
+                        }).toList(),
                       );
                     },
                     loading: () => const Center(
@@ -433,22 +443,14 @@ class _HomeAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch conversation state to determine unread count
-    final conversationsState = ref.watch(conversationsProvider);
-
     // Watch notifications state
     final notificationsAsync = ref.watch(notificationsProvider);
     final unreadNotificationsCount =
         notificationsAsync.asData?.value.where((n) => !n.isRead).length ?? 0;
 
-    // Calculate unread count (mock/logic assumption: < 30 mins)
-    int unreadCount = 0;
-    for (final convo in conversationsState.conversations) {
-      if (convo.lastMessageTime != null &&
-          DateTime.now().difference(convo.lastMessageTime!).inMinutes < 30) {
-        unreadCount++;
-      }
-    }
+    // Watch unread message count
+    final unreadCountAsync = ref.watch(unreadMessageCountProvider);
+    final unreadCount = unreadCountAsync.asData?.value ?? 0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

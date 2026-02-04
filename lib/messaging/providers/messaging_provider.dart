@@ -135,3 +135,10 @@ class SendMessageParams {
 final currentAuthUserIdProvider = Provider<String?>((ref) {
   return Supabase.instance.client.auth.currentUser?.id;
 });
+
+/// Provider for total unread message count.
+/// Refreshes when invalidated.
+final unreadMessageCountProvider = FutureProvider<int>((ref) async {
+  final service = ref.read(messagingServiceProvider);
+  return service.getUnreadCount();
+});
