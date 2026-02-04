@@ -523,9 +523,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           if (isOwner &&
                               (displayProfile.role.toLowerCase() == 'staff' ||
                                   displayProfile.role.toLowerCase() ==
-                                      'alumni' ||
-                                  displayProfile.role.toLowerCase() ==
-                                      'graduate')) ...[
+                                      'alumni')) ...[
                             const SizedBox(width: 12),
                             Expanded(
                               child: GestureDetector(
