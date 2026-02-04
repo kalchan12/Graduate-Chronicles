@@ -16,5 +16,12 @@ fi
 
 echo "Found DB Container: $CONTAINER_NAME"
 cat supabase/fix_likes_comments_triggers.sql | docker exec -i "$CONTAINER_NAME" psql -U postgres
+echo "Applied Likes/Comments Triggers."
 
-echo "Done! Likes and Comments triggers updated."
+echo "Applying Portfolio Fixes..."
+cat supabase/fix_portfolio_likes_views.sql | docker exec -i "$CONTAINER_NAME" psql -U postgres
+
+echo "Applying Admin/Staff Content Permissions..."
+cat supabase/fix_admin_permissions.sql | docker exec -i "$CONTAINER_NAME" psql -U postgres
+
+echo "All fixes applied successfully!"

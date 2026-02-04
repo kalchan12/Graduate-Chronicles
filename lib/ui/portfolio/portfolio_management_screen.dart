@@ -133,7 +133,13 @@ class _PortfolioManagerState extends ConsumerState<_PortfolioManager> {
     }
 
     if (screen != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => screen!));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => screen!),
+      ).then((_) {
+        // Refresh portfolio on return
+        ref.read(portfolioProvider.notifier).loadPortfolio(widget.publicUserId);
+      });
     }
   }
 }

@@ -111,24 +111,10 @@ class _ReunionListScreenState extends ConsumerState<ReunionListScreen> {
                             ),
                           ],
                         ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: DesignSystem.purpleAccent.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.add,
-                              color: DesignSystem.purpleAccent,
-                            ),
-                            onPressed: () => Navigator.pushNamed(
-                              context,
-                              '/community/reunion/create',
-                            ),
-                          ),
-                        ),
+                        // Removed duplicate Add button from here as requested
+                        const SizedBox(
+                          width: 48,
+                        ), // Spacer to balance if needed, or just remove
                       ],
                     ),
                   ),
@@ -558,138 +544,162 @@ class _FeaturedEventCard extends StatelessWidget {
       width: 280,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color,
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
-          colors: [color, color.withValues(alpha: 0.7)],
+          colors: [color, color.withValues(alpha: 0.5)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.black26,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              date,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Text(
+                  date,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (isJoined)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.check, size: 12, color: color),
+                ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const Spacer(),
           Text(
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+              shadows: [
+                Shadow(
+                  color: Colors.black45,
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.location_on, size: 14, color: Colors.white70),
-              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  size: 12,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   location,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                onTap: onShowParticipants,
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      height: 24,
-                      child: Stack(
-                        children: [
-                          const CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.white24,
-                            child: Icon(
-                              Icons.person,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Positioned(
-                            left: 16,
-                            child: const CircleAvatar(
-                              radius: 12,
-                              backgroundColor: Colors.white38,
-                              child: Icon(
-                                Icons.person,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 32,
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundColor: Colors.white,
-                              child: Text(
-                                '+${goingCount > 99 ? '99' : goingCount}',
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: onShowParticipants,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$goingCount Going',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                onPressed: isJoined ? onLeave : onJoin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isJoined ? Colors.black26 : Colors.white,
-                  foregroundColor: isJoined ? Colors.white : color,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.people, size: 14, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$goingCount Going',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Text(
-                  isJoined ? 'Joined' : 'Join',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 12),
+              InkWell(
+                onTap: isJoined ? onLeave : onJoin,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isJoined
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isJoined ? 'Leave' : 'Join',
+                    style: TextStyle(
+                      color: isJoined ? Colors.white : color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -723,109 +733,194 @@ class _EventListItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF24122E),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(
-              child: Icon(Icons.event, color: Colors.white54),
-            ),
+        color: const Color(0xFF24122E).withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      DesignSystem.purpleAccent.withValues(alpha: 0.2),
+                      DesignSystem.purpleAccent.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
+                child: Center(
+                  child: Icon(
+                    Icons.event_note_rounded,
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+                    size: 28,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 12,
-                      color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ),
+                        if (isJoined)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.green.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Text(
+                              'GOING',
+                              style: TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      date,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.people, size: 12, color: Colors.white38),
-                    const SizedBox(width: 2),
-                    Text(
-                      '$goingCount',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                      ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 14,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          date,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.people_outline_rounded,
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$goingCount',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Row(
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Row(
                   children: [
-                    Icon(
-                      isOnline ? Icons.laptop : Icons.location_on,
-                      size: 12,
-                      color: isOnline ? Colors.greenAccent : Colors.white54,
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isOnline
+                            ? Icons.laptop_mac_rounded
+                            : Icons.location_on_outlined,
+                        size: 14,
+                        color: isOnline ? Colors.blueAccent : Colors.redAccent,
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         isOnline ? 'Online Event' : location,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isOnline ? Colors.greenAccent : Colors.white54,
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: isJoined ? onLeave : onJoin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isJoined
-                  ? const Color(0xFF3B2F4D)
-                  : DesignSystem.purpleAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-              minimumSize: const Size(0, 36),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-            child: Text(
-              isJoined ? 'Joined' : 'Join',
-              style: const TextStyle(fontSize: 13),
-            ),
+              const SizedBox(width: 12),
+              SizedBox(
+                height: 36,
+                child: ElevatedButton(
+                  onPressed: isJoined ? onLeave : onJoin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isJoined
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : DesignSystem.purpleAccent,
+                    foregroundColor: Colors.white,
+                    elevation: isJoined ? 0 : 4,
+                    shadowColor: DesignSystem.purpleAccent.withValues(
+                      alpha: 0.4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
+                  child: Text(
+                    isJoined ? 'Leave' : 'Join',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isJoined ? Colors.white70 : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

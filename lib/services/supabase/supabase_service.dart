@@ -621,16 +621,37 @@ class SupabaseService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    await _client.from('reunions').insert({
-      'created_by': userId,
-      'title': title,
-      'description': description,
-      'event_date': date,
-      'event_time': time,
-      'location_type': locationType,
-      'location_value': locationValue,
-      'visibility': visibility,
-      'batch_year': batchYear,
+    // Get internal user_id for participant record
+    final userRes = await _client
+        .from('users')
+        .select('user_id')
+        .eq('auth_user_id', userId)
+        .single();
+    final internalUserId = userRes['user_id'] as String;
+
+    final response = await _client
+        .from('reunions')
+        .insert({
+          'created_by': userId,
+          'title': title,
+          'description': description,
+          'event_date': date,
+          'event_time': time,
+          'location_type': locationType,
+          'location_value': locationValue,
+          'visibility': visibility,
+          'batch_year': batchYear,
+        })
+        .select()
+        .single();
+
+    final reunionId = response['id'] as String;
+
+    // Auto-join the creator
+    await _client.from('reunion_participants').insert({
+      'reunion_id': reunionId,
+      'user_id': internalUserId,
+      'status': 'going',
     });
   }
 
@@ -1297,26 +1318,16 @@ class SupabaseService {
         .count(CountOption.exact)
         .eq('portfolio_id', portfolioId);
 
-    // 3. Check if Liked by User
+    // 3. Check if Liked by User (using auth_user_id directly)
     bool isLiked = false;
     if (authId != null) {
-      // Resolve Public ID
-      final userRow = await _client
-          .from('users')
-          .select('user_id')
+      final userLike = await _client
+          .from('portfolio_likes')
+          .select('id')
+          .eq('portfolio_id', portfolioId)
           .eq('auth_user_id', authId)
           .maybeSingle();
-
-      if (userRow != null) {
-        final publicUserId = userRow['user_id'];
-        final userLike = await _client
-            .from('portfolio_likes')
-            .select('id')
-            .eq('portfolio_id', portfolioId)
-            .eq('user_id', publicUserId)
-            .maybeSingle();
-        isLiked = userLike != null;
-      }
+      isLiked = userLike != null;
     }
 
     return {'views': views, 'likes': likes, 'isLiked': isLiked};
@@ -1326,23 +1337,13 @@ class SupabaseService {
     final authId = _client.auth.currentUser?.id;
     if (authId == null) throw Exception('Not authenticated');
 
-    // Resolve Public ID
-    final userRow = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .single();
-    final publicUserId = userRow['user_id'];
-
-    print(
-      '❤️ togglePortfolioLike: portfolioId=$portfolioId, userId=$publicUserId',
-    );
+    print('❤️ togglePortfolioLike: portfolioId=$portfolioId, authId=$authId');
 
     final existing = await _client
         .from('portfolio_likes')
         .select('id')
         .eq('portfolio_id', portfolioId)
-        .eq('user_id', publicUserId)
+        .eq('auth_user_id', authId)
         .maybeSingle();
 
     if (existing != null) {
@@ -1353,7 +1354,7 @@ class SupabaseService {
       // Like
       await _client.from('portfolio_likes').insert({
         'portfolio_id': portfolioId,
-        'user_id': publicUserId,
+        'auth_user_id': authId,
       });
       print('❤️ Like added');
     }
@@ -1361,44 +1362,55 @@ class SupabaseService {
 
   Future<void> incrementPortfolioView(String portfolioId) async {
     final authId = _client.auth.currentUser?.id;
-    // We allow anonymous views potentially, but strict mode prefers users.
-    // If not authenticated, we might skip or record null if allowed.
     if (authId == null) {
       print('👁️ incrementPortfolioView: Skipping (not authenticated)');
       return;
     }
 
-    // Resolve Public ID
-    final userRow = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .maybeSingle();
-
-    if (userRow != null) {
-      final publicUserId = userRow['user_id'];
-      print(
-        '👁️ incrementPortfolioView: portfolioId=$portfolioId, viewerId=$publicUserId',
-      );
+    print(
+      '👁️ incrementPortfolioView: portfolioId=$portfolioId, authId=$authId',
+    );
+    try {
       await _client.from('portfolio_views').insert({
         'portfolio_id': portfolioId,
-        'viewer_id': publicUserId,
+        'auth_user_id': authId,
       });
+    } catch (e) {
+      // Ignore duplicate view errors (user already viewed)
+      if (e.toString().contains('duplicate') ||
+          e.toString().contains('unique')) {
+        print('👁️ View already recorded for this user');
+      } else {
+        rethrow;
+      }
     }
   }
 
   Future<List<Map<String, dynamic>>> fetchPortfolioLikes(
     String portfolioId,
   ) async {
-    // Join with users table to get profile info
-    // portfolio_likes -> users (via user_id)
+    // Join with users table via auth_user_id -> users.auth_user_id
     final response = await _client
         .from('portfolio_likes')
-        .select('created_at, users:user_id(full_name, role, major)')
+        .select('created_at, auth_user_id')
         .eq('portfolio_id', portfolioId)
         .order('created_at', ascending: false);
 
-    return List<Map<String, dynamic>>.from(response);
+    // Enrich with user details
+    final likes = List<Map<String, dynamic>>.from(response);
+    final enriched = <Map<String, dynamic>>[];
+    for (final like in likes) {
+      final authId = like['auth_user_id'];
+      if (authId != null) {
+        final user = await _client
+            .from('users')
+            .select('full_name, role, major')
+            .eq('auth_user_id', authId)
+            .maybeSingle();
+        enriched.add({'created_at': like['created_at'], 'users': user});
+      }
+    }
+    return enriched;
   }
 
   Future<List<Map<String, dynamic>>> fetchPortfolioViews(
@@ -1406,11 +1418,25 @@ class SupabaseService {
   ) async {
     final response = await _client
         .from('portfolio_views')
-        .select('created_at, users:viewer_id(full_name, role, major)')
+        .select('created_at, auth_user_id')
         .eq('portfolio_id', portfolioId)
         .order('created_at', ascending: false);
 
-    return List<Map<String, dynamic>>.from(response);
+    // Enrich with user details
+    final views = List<Map<String, dynamic>>.from(response);
+    final enriched = <Map<String, dynamic>>[];
+    for (final view in views) {
+      final authId = view['auth_user_id'];
+      if (authId != null) {
+        final user = await _client
+            .from('users')
+            .select('full_name, role, major')
+            .eq('auth_user_id', authId)
+            .maybeSingle();
+        enriched.add({'created_at': view['created_at'], 'users': user});
+      }
+    }
+    return enriched;
   }
 
   // --- Admin Access System ---
@@ -1969,7 +1995,7 @@ class SupabaseService {
       // Get users who are 'graduate' or 'staff'
       final response = await _client
           .from('users')
-          .select('user_id, full_name, role, job_title, company')
+          .select('user_id, full_name, role, job_title, company, auth_user_id')
           .or('role.eq.graduate,role.eq.staff') // Filter eligible roles
           .neq('auth_user_id', myId); // Exclude self
 
@@ -2306,14 +2332,18 @@ class SupabaseService {
   /// Returns true if liked, false if unliked (after action)
   // Cache for public user ID to reduce queries
   String? _cachedPublicUserId;
+  String? _cachedAuthId; // To ensure cache belongs to current auth user
 
   /// Helper to get the REAL public user_id (not auth_user_id) with caching
   /// This is the SINGLE source of truth for the internal user_id.
   Future<String> _fetchPublicUserId() async {
-    if (_cachedPublicUserId != null) return _cachedPublicUserId!;
-
     final authId = _client.auth.currentUser?.id;
     if (authId == null) throw Exception('Not authenticated');
+
+    // Return cached ID only if it matches current auth user
+    if (_cachedPublicUserId != null && _cachedAuthId == authId) {
+      return _cachedPublicUserId!;
+    }
 
     final userRow = await _client
         .from('users')
@@ -2322,10 +2352,12 @@ class SupabaseService {
         .maybeSingle();
 
     if (userRow == null) {
-      throw Exception('Public user record not found. Please relogin.');
+      throw Exception('User record not found for authId: $authId');
     }
 
     _cachedPublicUserId = userRow['user_id'] as String;
+    _cachedAuthId = authId; // Sync cache with current auth ID
+
     return _cachedPublicUserId!;
   }
 
