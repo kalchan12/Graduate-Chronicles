@@ -42,17 +42,6 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Implement "New Chat" -> Search users
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Search users feature coming soon!')),
-          );
-        },
-        backgroundColor: DesignSystem.purpleAccent,
-        elevation: 4,
-        child: const Icon(Icons.add_comment_rounded, color: Colors.white),
-      ),
     );
   }
 

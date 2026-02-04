@@ -79,81 +79,96 @@ class MessagingService {
 
     final List<Conversation> result = [];
 
-    // Step 2: Enrich each conversation
-    // TODO: Optimize with a single RPC call when conversation count grows
+    // Step 2: Enrich each conversation safely
     for (final entry in myConvos) {
-      final convoId = entry['conversation_id'] as String;
+      try {
+        final convoId = entry['conversation_id'] as String;
 
-      // Get conversation metadata
-      final convoData = await _client
-          .from('conversations')
-          .select('id, created_at, last_message_at')
-          .eq('id', convoId)
-          .single();
+        // Get conversation metadata
+        final convoData = await _client
+            .from('conversations')
+            .select('id, created_at, last_message_at')
+            .eq('id', convoId)
+            .single();
 
-      // Get other participant
-      final otherParticipant = await _client
-          .from('conversation_participants')
-          .select('user_id')
-          .eq('conversation_id', convoId)
-          .neq('user_id', userId)
-          .maybeSingle();
-
-      if (otherParticipant == null) continue; // Skip if no other participant
-
-      final otherUserId = otherParticipant['user_id'] as String;
-
-      // Get other user's details including public ID
-      final userDetails = await _client
-          .from('users')
-          .select('id, full_name, username')
-          .eq('auth_user_id', otherUserId)
-          .maybeSingle();
-
-      String? avatarUrl;
-
-      // Get avatar using public user ID
-      if (userDetails != null) {
-        final publicUserId = userDetails['id'] as String;
-
-        final profile = await _client
-            .from('profile')
-            .select('profile_picture')
-            .eq('user_id', publicUserId)
+        // Get other participant
+        final otherParticipant = await _client
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', convoId)
+            .neq('user_id', userId)
             .maybeSingle();
 
-        if (profile != null && profile['profile_picture'] != null) {
-          avatarUrl = _client.storage
-              .from(
-                'avatar',
-              ) // Keeping original bucket name as per service file
-              .getPublicUrl(profile['profile_picture']);
+        if (otherParticipant == null) continue;
+
+        final otherUserId = otherParticipant['user_id'] as String;
+
+        // Get other user's details
+        final userDetails = await _client
+            .from('users')
+            .select('user_id, full_name, username')
+            .eq('auth_user_id', otherUserId)
+            .maybeSingle();
+
+        String? avatarUrl;
+        if (userDetails != null) {
+          final publicUserId = userDetails['user_id'] as String;
+          try {
+            final profile = await _client
+                .from('profile')
+                .select('profile_picture')
+                .eq('user_id', publicUserId)
+                .maybeSingle();
+
+            if (profile != null && profile['profile_picture'] != null) {
+              avatarUrl = _client.storage
+                  .from('avatar')
+                  .getPublicUrl(profile['profile_picture']);
+            }
+          } catch (e) {
+            print('Error fetching avatar for $publicUserId: $e');
+          }
         }
+
+        // Get last message
+        Map<String, dynamic>? lastMsg;
+        try {
+          lastMsg = await _client
+              .from('messages')
+              .select('content, created_at')
+              .eq('conversation_id', convoId)
+              .order('created_at', ascending: false)
+              .limit(1)
+              .maybeSingle();
+        } catch (e) {
+          print('Error fetching last message for $convoId: $e');
+        }
+
+        // Safe parsing of dates
+        final createdAt = DateTime.parse(convoData['created_at'] as String);
+        final lastMessageAt = convoData['last_message_at'] != null
+            ? DateTime.parse(convoData['last_message_at'] as String)
+            : createdAt; // Fallback to created_at if last_message_at is null
+
+        result.add(
+          Conversation(
+            id: convoData['id'] as String,
+            createdAt: createdAt,
+            lastMessageAt: lastMessageAt,
+            otherUserId: otherUserId,
+            otherUserName: userDetails?['full_name'] as String? ?? 'User',
+            otherUserAvatar: avatarUrl,
+            lastMessageContent: lastMsg?['content'] as String?,
+            lastMessageTime: lastMsg?['created_at'] != null
+                ? DateTime.parse(lastMsg!['created_at'] as String)
+                : null,
+          ),
+        );
+      } catch (e) {
+        print('Error processing conversation ${entry['conversation_id']}: $e');
+        // Continue to next conversation instead of failing entire list
+        continue;
       }
-
-      // Get last message
-      final lastMsg = await _client
-          .from('messages')
-          .select('content, created_at')
-          .eq('conversation_id', convoId)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      result.add(
-        Conversation(
-          id: convoData['id'] as String,
-          createdAt: DateTime.parse(convoData['created_at'] as String),
-          lastMessageAt: DateTime.parse(convoData['last_message_at'] as String),
-          otherUserId: otherUserId,
-          otherUserName: userDetails?['full_name'] as String? ?? 'User',
-          otherUserAvatar: avatarUrl,
-          lastMessageContent: lastMsg?['content'] as String?,
-          lastMessageTime: lastMsg?['created_at'] != null
-              ? DateTime.parse(lastMsg!['created_at'] as String)
-              : null,
-        ),
-      );
     }
 
     // Sort by most recent activity

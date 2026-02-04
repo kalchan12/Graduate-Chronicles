@@ -58,6 +58,8 @@ class ConversationsNotifier extends Notifier<ConversationsState> {
     try {
       final convos = await _service.fetchConversations();
       state = state.copyWith(conversations: convos, isLoading: false);
+      // Refresh unread count whenever conversations are re-fetched
+      ref.invalidate(unreadMessageCountProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -72,6 +74,8 @@ class ConversationsNotifier extends Notifier<ConversationsState> {
 
     // Refresh list to include new conversation
     await loadConversations();
+    // Force refresh of unread count
+    ref.invalidate(unreadMessageCountProvider);
 
     return convoId;
   }
