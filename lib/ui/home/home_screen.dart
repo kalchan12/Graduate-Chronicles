@@ -10,7 +10,7 @@ import '../../state/stories_state.dart';
 import 'story_card.dart';
 import '../../state/post_recommendation_state.dart';
 import '../widgets/post_card.dart';
-import '../widgets/announcement_card.dart';
+
 import '../widgets/announcement_carousel.dart';
 import '../widgets/featured_carousel.dart';
 
@@ -368,35 +368,135 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         showModalBottomSheet(
                           context: context,
                           backgroundColor: const Color(0xFF1E1E2E),
+                          isScrollControlled:
+                              true, // Allow full height flexibility
                           shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(24),
                             ),
                           ),
-                          builder: (context) => Container(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Announcement',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(color: Colors.white),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  item['description'] ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 16,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-                              ],
-                            ),
-                          ),
+                          builder: (context) {
+                            final description = item['description'] ?? '';
+                            final List<dynamic> mediaUrls =
+                                item['media_urls'] ?? [];
+                            final String? image = mediaUrls.isNotEmpty
+                                ? mediaUrls.first as String
+                                : null;
+
+                            return DraggableScrollableSheet(
+                              initialChildSize: 0.85,
+                              minChildSize: 0.5,
+                              maxChildSize: 0.95,
+                              expand: false,
+                              builder: (context, scrollController) {
+                                return Column(
+                                  children: [
+                                    // Drag Handle
+                                    Center(
+                                      child: Container(
+                                        width: 40,
+                                        height: 4,
+                                        margin: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Content
+                                    Expanded(
+                                      child: ListView(
+                                        controller: scrollController,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          20,
+                                          0,
+                                          20,
+                                          32,
+                                        ),
+                                        children: [
+                                          // Title (Catchy & Large)
+                                          Text(
+                                            'ANNOUNCEMENT',
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.white,
+                                              letterSpacing: 1.0,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 24),
+
+                                          // Image (if available)
+                                          if (image != null)
+                                            Container(
+                                              height: 240,
+                                              width: double.infinity,
+                                              margin: const EdgeInsets.only(
+                                                bottom: 24,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withValues(alpha: 0.3),
+                                                    blurRadius: 15,
+                                                    offset: const Offset(0, 8),
+                                                  ),
+                                                ],
+                                                image: DecorationImage(
+                                                  image: NetworkImage(image),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                            ),
+
+                                          // Description text with Background Container
+                                          Container(
+                                            padding: const EdgeInsets.all(24),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFF2E1A47,
+                                              ).withValues(alpha: 0.5),
+                                              borderRadius:
+                                                  BorderRadius.circular(24),
+                                              border: Border.all(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.05,
+                                                ),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              description,
+                                              style: GoogleFonts.outfit(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.95,
+                                                ),
+                                                fontSize: 18,
+                                                height: 1.6,
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                          ),
+
+                                          // Bottom padding
+                                          const SizedBox(height: 32),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
                         );
                       },
                     );
@@ -474,8 +574,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         children: posts.map((post) {
                           // Conditional rendering based on contentKind
                           if (post.contentKind == 'announcement') {
-                            debugPrint('[ANNOUNCEMENT_RENDER] id=${post.id}');
-                            return AnnouncementCard(announcement: post);
+                            debugPrint(
+                              '[FEED] Skipping announcement in main feed (id=${post.id})',
+                            );
+                            return const SizedBox.shrink(); // Hide from feed as it's in carousel
                           } else if (post.contentKind != 'post') {
                             debugPrint(
                               '[FEED_RENDER] Warning: Unknown contentKind "${post.contentKind}" for post ${post.id}. Rendering as PostCard.',

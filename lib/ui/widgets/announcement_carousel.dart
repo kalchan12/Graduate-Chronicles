@@ -46,9 +46,9 @@ class AnnouncementCarousel extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 200,
+      height: 220, // Reverted to smaller height
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         scrollDirection: Axis.horizontal,
         itemCount: announcements.length,
         separatorBuilder: (context, index) => const SizedBox(width: 16),
@@ -122,7 +122,7 @@ class _AnnouncementCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header (Badge + Author)
+                // Header (Badge)
                 Row(
                   children: [
                     Container(
@@ -148,7 +148,7 @@ class _AnnouncementCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             role.toUpperCase(),
-                            style: const TextStyle(
+                            style: GoogleFonts.outfit(
                               color: Colors.amber,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -158,9 +158,6 @@ class _AnnouncementCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Spacer(),
-                    // Date or simple "New" badge?
-                    // Let's assume date logic is handled elsewhere or omitted for clean look
                   ],
                 ),
 
@@ -202,7 +199,7 @@ class _AnnouncementCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         authorName,
-                        style: TextStyle(
+                        style: GoogleFonts.outfit(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
