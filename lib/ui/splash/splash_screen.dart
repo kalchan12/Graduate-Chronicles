@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:graduate_chronicles/theme/design_system.dart';
 import '../../state/auth_provider.dart';
-import '../onboarding/onboarding1_screen.dart';
+import '../onboarding/onboarding_screen.dart';
+import '../../services/local/onboarding_storage.dart';
 
 /*
   Splash Screen.
@@ -86,17 +87,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         // Navigate directly to App if logged in
         Navigator.of(context).pushReplacementNamed('/app');
       } else {
-        // Navigate to Onboarding if not logged in
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, a1, a2) => const Onboarding1Screen(),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-            transitionDuration: const Duration(milliseconds: 800),
-          ),
-        );
+        // Check if onboarding has been completed before
+        final onboardingCompleted = await OnboardingStorage.isCompleted();
+
+        if (onboardingCompleted) {
+          // Skip onboarding, go directly to login
+          Navigator.of(context).pushReplacementNamed('/login');
+        } else {
+          // Show onboarding for first-time users
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, a1, a2) => const OnboardingScreen(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+              transitionDuration: const Duration(milliseconds: 800),
+            ),
+          );
+        }
       }
     });
   }

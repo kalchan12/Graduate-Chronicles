@@ -4,9 +4,7 @@ export '../ui/auth/signup/signup_step1.dart';
 export '../ui/auth/signup/signup_step2.dart';
 export '../ui/auth/signup/signup_step3.dart';
 export '../ui/auth/signup/signup_step4.dart';
-export '../ui/onboarding/onboarding1_screen.dart';
-export '../ui/onboarding/onboarding2_screen.dart';
-export '../ui/onboarding/onboarding3_screen.dart';
+export '../ui/onboarding/onboarding_screen.dart';
 export '../ui/home/home_screen.dart';
 // export '../ui/messages/message_list_screen.dart'; // TODO: Re-add after messaging rebuild
 export '../ui/notifications/notification_screen.dart';

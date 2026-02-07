@@ -38,9 +38,7 @@ class App extends StatelessWidget {
       theme: DesignSystem.theme,
       debugShowCheckedModeBanner: false,
       routes: {
-        '/onboarding1': (_) => const Onboarding1Screen(),
-        '/onboarding2': (_) => const Onboarding2Screen(),
-        '/onboarding3': (_) => const Onboarding3Screen(),
+        '/onboarding': (_) => const OnboardingScreen(),
         '/login': (_) => const LoginScreen(),
         '/signup1': (_) => const SignupStep1(),
         '/signup2': (_) => const SignupStep2(),
