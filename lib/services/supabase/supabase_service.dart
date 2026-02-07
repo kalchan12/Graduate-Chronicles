@@ -979,7 +979,7 @@ class SupabaseService {
         final year = batch?['batch_year'];
 
         return {
-          'id': data['id'],
+          'id': data['user_id'], // Use user_id for ProfileScreen navigation
           'title': user?['full_name'] ?? 'Graduate',
           'description': data['yearbook_bio'] ?? 'Yearbook Entry',
           'image_url': data['yearbook_photo_url'],
@@ -2379,7 +2379,7 @@ class SupabaseService {
           .from('posts')
           .select('''
             *,
-            users (
+            users:users!posts_user_id_fkey (
               full_name,
               username,
               role,
@@ -2433,7 +2433,7 @@ class SupabaseService {
     final response = await _client
         .from('posts')
         .select(
-          '*, users!posts_user_id_fkey(full_name, username, profile(profile_picture))',
+          '*, users:users!posts_user_id_fkey(full_name, username, profile(profile_picture))',
         )
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
@@ -2449,7 +2449,7 @@ class SupabaseService {
     final response = await _client
         .from('posts')
         .select(
-          '*, users!posts_user_id_fkey(full_name, username, profile(profile_picture))',
+          '*, users:users!posts_user_id_fkey(full_name, username, profile(profile_picture))',
         )
         .eq('user_id', userId)
         .order('created_at', ascending: false)

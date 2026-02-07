@@ -138,100 +138,139 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               batchYear: batchYear,
                             ),
                         builder: (context, snapshot) {
-                          // Loading state
+                          // Loading state - Modern skeleton matching new card design
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return Container(
-                              height: 360,
+                              height: 450,
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 16,
                               ),
                               child: PageView.builder(
                                 controller: PageController(
-                                  viewportFraction: 0.92,
+                                  viewportFraction: 0.85,
                                 ),
+                                itemCount: 3,
                                 itemBuilder: (context, index) {
                                   return Container(
                                     margin: const EdgeInsets.symmetric(
-                                      horizontal: 4,
+                                      horizontal: 8,
                                     ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF2E1A36),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.05),
-                                      ),
+                                      borderRadius: BorderRadius.circular(24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.4),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
                                     ),
-                                    child: Column(
+                                    child: Stack(
                                       children: [
-                                        // Image placeholder (70%)
-                                        Expanded(
-                                          flex: 7,
+                                        // Full height shimmer placeholder
+                                        Positioned.fill(
                                           child: Container(
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
-                                                0.05,
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Colors.white.withOpacity(
+                                                    0.03,
+                                                  ),
+                                                  Colors.white.withOpacity(
+                                                    0.06,
+                                                  ),
+                                                  Colors.white.withOpacity(
+                                                    0.03,
+                                                  ),
+                                                ],
                                               ),
                                               borderRadius:
-                                                  const BorderRadius.vertical(
-                                                    top: Radius.circular(20),
-                                                  ),
+                                                  BorderRadius.circular(24),
                                             ),
                                           ),
                                         ),
-                                        // Text placeholder (30%)
-                                        Expanded(
-                                          flex: 3,
-                                          child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                              16,
-                                              12,
-                                              16,
-                                              12,
+                                        // Badge placeholder (top left)
+                                        Positioned(
+                                          top: 16,
+                                          left: 16,
+                                          child: Container(
+                                            width: 80,
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(
+                                                0.3,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                          ),
+                                        ),
+                                        // Text overlay placeholder (bottom)
+                                        Positioned(
+                                          left: 0,
+                                          right: 0,
+                                          bottom: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(20),
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.transparent,
+                                                  Colors.black.withOpacity(0.6),
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    bottom: Radius.circular(24),
+                                                  ),
                                             ),
                                             child: Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
                                               children: [
+                                                // Title placeholder
                                                 Container(
-                                                  height: 16,
-                                                  width: 140,
+                                                  height: 20,
+                                                  width: 160,
                                                   decoration: BoxDecoration(
                                                     color: Colors.white
-                                                        .withOpacity(0.08),
+                                                        .withOpacity(0.15),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                           4,
                                                         ),
                                                   ),
                                                 ),
-                                                const SizedBox(height: 12),
-                                                Container(
-                                                  height: 12,
-                                                  width: double.infinity,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white
-                                                        .withOpacity(0.05),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Container(
-                                                  height: 12,
-                                                  width: 100,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white
-                                                        .withOpacity(0.05),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
+                                                const SizedBox(height: 10),
+                                                // Description placeholder
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      width: 2,
+                                                      height: 14,
+                                                      color: Colors.white
+                                                          .withOpacity(0.2),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      height: 14,
+                                                      width: 120,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white
+                                                            .withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
@@ -276,11 +315,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               .toList();
                           return FeaturedCarousel(
                             items: items,
-                            height: 360,
+                            height: 450, // Updated height for portrait aspect
                             onItemTap: (item) {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => const ProfileScreen(),
+                                  builder: (_) =>
+                                      ProfileScreen(userId: item.id),
                                 ),
                               );
                             },

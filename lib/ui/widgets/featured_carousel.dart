@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui'; // For ImageFilter
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../theme/design_system.dart';
@@ -8,11 +9,9 @@ import '../../theme/design_system.dart';
   
   A reusable auto-swiping carousel for featured content.
   Features:
-  - Automatic page transitions (configurable interval).
-  - Vertical card design with clear separation.
-  - Yearbook quote styling for descriptions.
-  - Improved image visibility (top alignment).
-  - Optimized Flex Ratios (70% Image / 30% Text).
+  - Automatic page transitions.
+  - Modern "Full Card" design with glassmorphic overlay.
+  - Responsive Viewport Fraction.
 */
 
 class FeaturedCarousel extends StatefulWidget {
@@ -24,7 +23,7 @@ class FeaturedCarousel extends StatefulWidget {
   const FeaturedCarousel({
     super.key,
     required this.items,
-    this.height = 360, // Default increased to 360
+    this.height = 450, // Increased height for better aspect ratio
     this.autoScrollInterval = const Duration(seconds: 5),
     this.onItemTap,
   });
@@ -37,25 +36,28 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> {
   late PageController _pageController;
   Timer? _autoScrollTimer;
   int _currentPage = 0;
+  // Default fraction for mobile; responsive logic in build
+  final double _baseViewportFraction = 0.85;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.92);
+    _pageController = PageController(viewportFraction: _baseViewportFraction);
     _startAutoScroll();
   }
 
   void _startAutoScroll() {
     if (widget.items.length <= 1) return;
-
+    _autoScrollTimer?.cancel();
     _autoScrollTimer = Timer.periodic(widget.autoScrollInterval, (_) {
       if (!mounted) return;
+      if (!_pageController.hasClients) return;
 
       final nextPage = (_currentPage + 1) % widget.items.length;
       _pageController.animateToPage(
         nextPage,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.fastOutSlowIn,
       );
     });
   }
@@ -71,50 +73,67 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> {
   Widget build(BuildContext context) {
     if (widget.items.isEmpty) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: widget.height,
-      child: Column(
-        children: [
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: widget.items.length,
-              onPageChanged: (index) {
-                setState(() => _currentPage = index);
-              },
-              itemBuilder: (context, index) {
-                return AnimatedBuilder(
-                  animation: _pageController,
-                  builder: (context, child) {
-                    double scale = 1.0;
-                    if (_pageController.position.haveDimensions) {
-                      double page = _pageController.page ?? 0;
-                      scale = (1 - (index - page).abs() * 0.05).clamp(
-                        0.95,
-                        1.0,
-                      );
-                    }
-                    return Transform.scale(
-                      scale: scale,
-                      child: _FeaturedCard(
-                        item: widget.items[index],
-                        onTap: widget.onItemTap,
-                      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsiveness:
+        // ideally we would change viewportFraction here but requires controller recreation.
+        // For now, we stick to mobile-optimized 0.85.
+
+        return SizedBox(
+          height: widget.height,
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  // We use a slightly smaller fraction to show next card
+                  controller: _pageController,
+                  itemCount: widget.items.length,
+                  onPageChanged: (index) {
+                    setState(() => _currentPage = index);
+                  },
+                  itemBuilder: (context, index) {
+                    return AnimatedBuilder(
+                      animation: _pageController,
+                      builder: (context, child) {
+                        double scale = 1.0;
+                        if (_pageController.position.haveDimensions) {
+                          double page = _pageController.page ?? 0;
+                          scale = (1 - (index - page).abs() * 0.1).clamp(
+                            0.9,
+                            1.0,
+                          );
+                        }
+
+                        // Center the card
+                        return Center(
+                          child: SizedBox(
+                            // Dynamic height based on scale
+                            height:
+                                Curves.easeOut.transform(scale) * widget.height,
+                            // Responsive width: max 360px or 100% of fraction
+                            // actually let PageView handle width, just scale content
+                            child: _FeaturedCard(
+                              item: widget.items[index],
+                              onTap: widget.onItemTap,
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+              if (widget.items.length > 1) ...[
+                const SizedBox(height: 16),
+                _PageIndicator(
+                  count: widget.items.length,
+                  currentIndex: _currentPage,
+                ),
+              ],
+            ],
           ),
-          if (widget.items.length > 1) ...[
-            const SizedBox(height: 12),
-            _PageIndicator(
-              count: widget.items.length,
-              currentIndex: _currentPage,
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -130,137 +149,168 @@ class _FeaturedCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onTap?.call(item),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 8), // Gap between cards
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: const Color(0xFF2E1A36), // Solid dark background
+          borderRadius: BorderRadius.circular(24),
+          color: const Color(0xFF2E1A36),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            // Image Section (Top, 70%)
-            Expanded(
-              flex: 7,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (item.imageUrl != null)
-                    CachedNetworkImage(
-                      imageUrl: item.imageUrl!,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter, // Focus on faces
-                      placeholder: (context, url) => Center(
-                        child: CircularProgressIndicator(
-                          color: DesignSystem.purpleAccent.withOpacity(0.5),
-                          strokeWidth: 2,
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => _imagePlaceholder(),
-                    )
-                  else
-                    _imagePlaceholder(),
+            // 1. Full Height Image
+            if (item.imageUrl != null)
+              CachedNetworkImage(
+                imageUrl: item.imageUrl!,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter, // Crucial for faces
+                placeholder: (context, url) => Container(
+                  color: const Color(0xFF3A2743),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (_, __, ___) => _imagePlaceholder(),
+              )
+            else
+              _imagePlaceholder(),
 
-                  // Badge (Cleaner look)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        item.badge ?? 'FEATURED',
-                        style: TextStyle(
-                          color: DesignSystem.purpleAccent,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
+            // 2. Gradient Overlay (Bottom Protection)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.0),
+                      Colors.black.withOpacity(0.6),
+                      Colors.black.withOpacity(0.9),
+                    ],
+                    stops: const [0.0, 0.4, 0.7, 1.0],
                   ),
-                ],
+                ),
               ),
             ),
 
-            // Text Section (Bottom, 30%)
-            Expanded(
-              flex: 3,
+            // 3. Badge (Top Left)
+            Positioned(
+              top: 16,
+              left: 16,
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF2E1A36),
-                  border: Border(
-                    top: BorderSide(color: Color(0xFFE94CFF), width: 1.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 0.5,
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 14,
+                      color: DesignSystem.purpleAccent,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      item.title,
+                      item.badge?.toUpperCase() ?? 'FEATURED',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16, // Slightly smaller to fix text
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
-                    if (item.description != null)
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.format_quote_rounded,
-                                color: DesignSystem.purpleAccent.withOpacity(
-                                  0.5,
-                                ),
-                                size: 14,
+                  ],
+                ),
+              ),
+            ),
+
+            // 4. Info Section (Bottom with Glassmorphism)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(
+                        0.2,
+                      ), // Darker for readability
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                            shadows: [
+                              Shadow(
+                                offset: Offset(0, 2),
+                                blurRadius: 4,
+                                color: Colors.black,
                               ),
-                              const SizedBox(width: 6),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        if (item.description != null) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                width: 2,
+                                height: 14,
+                                color: DesignSystem.purpleAccent,
+                                margin: const EdgeInsets.only(right: 8),
+                              ),
                               Expanded(
                                 child: Text(
                                   item.description!,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13, // Smaller for better fit
-                                    fontStyle: FontStyle.italic,
-                                    fontFamily: 'Georgia',
-                                    height: 1.2,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.3,
                                   ),
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                  ],
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -275,8 +325,8 @@ class _FeaturedCard extends StatelessWidget {
       color: const Color(0xFF3A2743),
       child: Center(
         child: Icon(
-          Icons.school_rounded,
-          size: 48,
+          Icons.person_rounded,
+          size: 64,
           color: Colors.white.withOpacity(0.2),
         ),
       ),
@@ -298,14 +348,17 @@ class _PageIndicator extends StatelessWidget {
         final isActive = index == currentIndex;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: isActive ? 20 : 6,
-          height: 6,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: isActive ? 24 : 8,
+          height: 4,
           decoration: BoxDecoration(
-            color: isActive
-                ? DesignSystem.purpleAccent
-                : Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(3),
+            gradient: isActive
+                ? LinearGradient(
+                    colors: [DesignSystem.purpleAccent, Color(0xFFB030D0)],
+                  )
+                : null,
+            color: isActive ? null : Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(2),
           ),
         );
       }),
