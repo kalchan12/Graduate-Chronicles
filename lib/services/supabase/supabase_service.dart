@@ -2031,28 +2031,76 @@ class SupabaseService {
   // MENTORSHIP
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Fetch users eligible to be mentors (e.g. graduates, staff)
-  Future<List<Map<String, dynamic>>> fetchMentors() async {
+  /// Fetch mentorship candidates based on current user role
+  /// Students/Graduates/Alumni see Staff/Mentors
+  /// Staff see Students/Graduates
+  Future<List<Map<String, dynamic>>> fetchMentorshipCandidates() async {
     final myId = _client.auth.currentUser?.id;
     if (myId == null) throw Exception('Not authenticated');
 
     try {
-      // Get users who are 'graduate' or 'staff'
+      // 1. Get my role
+      final myProfile = await _client
+          .from('users')
+          .select('role')
+          .eq('auth_user_id', myId)
+          .single();
+      final myRole = myProfile['role'] as String? ?? 'student';
+
+      // 2. Determine target roles
+      // If I am student/graduate/alumni -> I look for Staff or specific Alumni mentors
+      // If I am Staff -> I look for Students/Graduates to mentor?
+      // Simplified Logic:
+      // - Students/Graduates see: Staff, Alumni (who are willing to mentor)
+      // - Staff/Alumni see: Students, Graduates (who need mentoring)
+
+      List<String> targetRoles;
+      // Normalize role to lowercase for check
+      final normalizedRole = myRole.toLowerCase();
+
+      if (['student', 'graduate', 'alumni'].contains(normalizedRole)) {
+        // Students/Grads see Staff/Faculty
+        targetRoles = [
+          'staff',
+          'Staff',
+          'faculty',
+          'Faculty',
+          'alumni',
+          'Alumni',
+        ];
+        // If I am alumni, I might want to see students? User said "Staff/Alumni see Students".
+        // Let's refine based on user prompt: "If student -> load staff, alumni".
+        if (normalizedRole == 'alumni') {
+          // Alumni can apparently act as mentors OR mentees depending on context?
+          // Prompt said: "If staff OR alumni -> Load students".
+          targetRoles = ['student', 'Student', 'graduate', 'Graduate'];
+        }
+      } else {
+        // Staff/Alumni (caught above if alumni, so this is mostly Staff)
+        targetRoles = ['student', 'Student', 'graduate', 'Graduate'];
+      }
+
+      // 3. Fetch candidates
       final response = await _client
           .from('users')
-          .select('user_id, full_name, role, job_title, company, auth_user_id')
-          .or('role.eq.graduate,role.eq.staff') // Filter eligible roles
+          .select(
+            'user_id, full_name, role, auth_user_id',
+          ) // Removed job_title, company
+          .filter(
+            'role',
+            'in',
+            targetRoles,
+          ) // Filter by calculated target roles
           .neq('auth_user_id', myId); // Exclude self
 
-      // Enrich with profile picture and tags if needed
-      // For now, returning basic user info + role/job
-      final List<Map<String, dynamic>> mentors = [];
+      final List<Map<String, dynamic>> candidates = [];
 
       for (var user in response) {
         final userId = user['user_id'] as String;
 
-        // Fetch profile specifically for the image & tags/skills
-        // (Assuming tags might be in profile or bio?)
+        // Debug print
+        // print('Fetching profile for user: $userId (Auth: ${user['auth_user_id']})');
+
         final profile = await _client
             .from('profile')
             .select('profile_picture, bio')
@@ -2064,17 +2112,20 @@ class SupabaseService {
           avatarUrl = _client.storage
               .from('avatar')
               .getPublicUrl(profile['profile_picture']);
+          // print('Found avatar: $avatarUrl');
+        } else {
+          // print('No profile or picture found');
         }
 
-        mentors.add({
+        candidates.add({
           ...user,
           'bio': profile?['bio'] ?? '',
           'avatar_url': avatarUrl,
         });
       }
-      return mentors;
+      return candidates;
     } catch (e) {
-      print('❌ fetchMentors error: $e');
+      print('❌ fetchMentorshipCandidates error: $e');
       rethrow;
     }
   }
@@ -2096,12 +2147,35 @@ class SupabaseService {
     }
   }
 
-  Future<void> requestMentorship(String mentorId) async {
+  /// Send a mentorship request to [targetUserId].
+  /// Automatically determines if I am the mentor or mentee based on roles.
+  Future<void> requestMentorship(String targetUserId) async {
     final myId = _client.auth.currentUser?.id;
     if (myId == null) throw Exception('Not authenticated');
 
+    // Get my role to determine direction
+    final myProfile = await _client
+        .from('users')
+        .select('role')
+        .eq('auth_user_id', myId)
+        .single();
+    final myRole = myProfile['role'] as String? ?? 'student';
+
+    String mentorId;
+    String menteeId;
+
+    if (['student', 'graduate'].contains(myRole)) {
+      // I am requesting to BE the mentee
+      menteeId = myId;
+      mentorId = targetUserId;
+    } else {
+      // I am requesting to BE the mentor (offering)
+      mentorId = myId;
+      menteeId = targetUserId;
+    }
+
     await _client.from('mentorships').insert({
-      'mentee_id': myId,
+      'mentee_id': menteeId,
       'mentor_id': mentorId,
       'status': 'pending',
     });
@@ -2124,7 +2198,7 @@ class SupabaseService {
     try {
       final user = await _client
           .from('users')
-          .select('user_id, full_name, role, job_title, company')
+          .select('user_id, full_name, role') // Removed job_title, company
           .eq('auth_user_id', authUserId)
           .maybeSingle();
 

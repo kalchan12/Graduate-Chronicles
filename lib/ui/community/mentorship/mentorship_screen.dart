@@ -48,7 +48,7 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
 
       // Fetch data in parallel
       final results = await Future.wait([
-        service.fetchMentors(),
+        service.fetchMentorshipCandidates(),
         service.fetchMyMentorships(),
       ]);
 
@@ -336,12 +336,16 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
                           const SizedBox(height: 32),
                         ],
 
-                        // Suggested Mentors
+                        // Suggested Candidates (Mentors or Mentees)
+                        // We can check the first item's role or just use a generic title,
+                        // but let's try to be specific if possible.
+                        // Ideally we'd know OUR role here to set the title.
+                        // For now, let's use "Suggested Connections" or similar.
                         const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Suggested Mentors',
+                              'Suggested Connections',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -358,7 +362,7 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
                             padding: EdgeInsets.only(top: 20),
                             child: Center(
                               child: Text(
-                                "No eligible mentors found.",
+                                "No suggested connections found.",
                                 style: TextStyle(color: Colors.white54),
                               ),
                             ),
@@ -369,12 +373,10 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
                               padding: const EdgeInsets.only(bottom: 16),
                               child: _MentorCard(
                                 name: mentor['full_name'] ?? 'User',
-                                role: mentor['job_title'] != null
-                                    ? '${mentor['job_title']} @ ${mentor['company'] ?? "Unknown"}'
-                                    : (mentor['role'] ?? 'Graduate'),
+                                role: mentor['role'] ?? 'Graduate',
                                 tags: [
                                   mentor['role'] ?? 'Alumni',
-                                  mentor['company'] ?? 'Industry',
+                                  // mentor['company'] ?? 'Industry', // Company not available in users table
                                 ], // Placeholder tags
                                 avatarUrl: mentor['avatar_url'],
                                 onRequest: () => _handleRequest(
@@ -553,22 +555,42 @@ class _MentorCard extends StatelessWidget {
         color: const Color(0xFF241228),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: const Color(0xFF2D1F35),
-                backgroundImage: avatarUrl != null
-                    ? NetworkImage(avatarUrl!)
-                    : null,
-                child: avatarUrl == null
-                    ? const Icon(Icons.person, color: Colors.white, size: 30)
-                    : null,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: DesignSystem.purpleAccent.withOpacity(0.5),
+                    width: 2,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 32,
+                  backgroundColor: const Color(0xFF2D1F35),
+                  backgroundImage: avatarUrl != null
+                      ? NetworkImage(avatarUrl!)
+                      : null,
+                  child: avatarUrl == null
+                      ? const Icon(
+                          Icons.person,
+                          color: Colors.white54,
+                          size: 32,
+                        )
+                      : null,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -581,48 +603,65 @@ class _MentorCard extends StatelessWidget {
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      role,
-                      style: const TextStyle(
-                        color: Color(0xFFB04CFF),
-                        fontSize: 13,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: tags
-                          .map(
-                            (t) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                t,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
+                      decoration: BoxDecoration(
+                        color: DesignSystem.purpleAccent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        role.toUpperCase(),
+                        style: const TextStyle(
+                          color: DesignSystem.purpleAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          if (tags.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: tags
+                  .where((t) => t.isNotEmpty)
+                  .map(
+                    (t) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Text(
+                        t,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -633,9 +672,13 @@ class _MentorCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 0,
               ),
-              child: const Text('Request Mentorship'),
+              child: const Text(
+                'Connect',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
