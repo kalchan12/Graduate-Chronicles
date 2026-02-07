@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
 import 'auth_provider.dart';
+import '../services/local/portfolio_local_service.dart';
 
 /*
   Portfolio State Management.
@@ -27,6 +28,7 @@ class PortfolioState {
   final String? ownerName;
   final String? ownerDegree;
   final String? ownerRole;
+  final String? ownerBatchYear;
 
   const PortfolioState({
     this.achievements = const [],
@@ -43,6 +45,7 @@ class PortfolioState {
     this.ownerName,
     this.ownerDegree,
     this.ownerRole,
+    this.ownerBatchYear,
   });
 
   PortfolioState copyWith({
@@ -60,6 +63,7 @@ class PortfolioState {
     String? ownerName,
     String? ownerDegree,
     String? ownerRole,
+    String? ownerBatchYear,
   }) {
     return PortfolioState(
       achievements: achievements ?? this.achievements,
@@ -76,6 +80,47 @@ class PortfolioState {
       ownerName: ownerName ?? this.ownerName,
       ownerDegree: ownerDegree ?? this.ownerDegree,
       ownerRole: ownerRole ?? this.ownerRole,
+      ownerBatchYear: ownerBatchYear ?? this.ownerBatchYear,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'achievements': achievements,
+      'resumes': resumes,
+      'certificates': certificates,
+      'links': links,
+      'profileImageUrl': profileImageUrl,
+      'coverImageUrl': coverImageUrl,
+      'isLoading': false, // Always false when saving
+      'id': id,
+      'likes': likes,
+      'views': views,
+      'isLiked': isLiked,
+      'ownerName': ownerName,
+      'ownerDegree': ownerDegree,
+      'ownerRole': ownerRole,
+      'ownerBatchYear': ownerBatchYear,
+    };
+  }
+
+  factory PortfolioState.fromMap(Map<String, dynamic> map) {
+    return PortfolioState(
+      achievements: List<Map<String, dynamic>>.from(map['achievements'] ?? []),
+      resumes: List<Map<String, dynamic>>.from(map['resumes'] ?? []),
+      certificates: List<Map<String, dynamic>>.from(map['certificates'] ?? []),
+      links: List<Map<String, dynamic>>.from(map['links'] ?? []),
+      profileImageUrl: map['profileImageUrl'],
+      coverImageUrl: map['coverImageUrl'],
+      isLoading: false,
+      id: map['id'],
+      likes: map['likes'] ?? 0,
+      views: map['views'] ?? 0,
+      isLiked: map['isLiked'] ?? false,
+      ownerName: map['ownerName'],
+      ownerDegree: map['ownerDegree'],
+      ownerRole: map['ownerRole'],
+      ownerBatchYear: map['ownerBatchYear'],
     );
   }
 }
@@ -87,7 +132,7 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
     if (!auth.isAuthenticated) {
       return const PortfolioState();
     }
-    return const PortfolioState(isLoading: false);
+    return const PortfolioState(isLoading: true);
   }
 
   /*
@@ -95,12 +140,25 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
     Resolves Auth ID first.
   */
   Future<void> loadPortfolio(String publicUserId) async {
-    state = state.copyWith(isLoading: true);
+    // Only show loading if no cached data exists
+    final hasCache = state.id != null;
+    if (!hasCache) {
+      state = state.copyWith(isLoading: true);
+    }
     try {
       final service = ref.read(supabaseServiceProvider);
 
       // 1. Resolve Public ID -> Auth ID
       final authId = await service.getAuthIdFromPublicId(publicUserId);
+
+      if (authId != null) {
+        // Try Cache First - show instantly
+        final loaded = await _loadFromCache(authId);
+        if (loaded) {
+          // Cache found, stop showing loading spinner
+          state = state.copyWith(isLoading: false);
+        }
+      }
 
       if (authId == null) {
         // User might not exist or data fetch failed
@@ -130,12 +188,20 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       // 3. Fetch Owner Profile Info
       final profile = await service.fetchUserProfile(authId);
 
+      print(
+        'DEBUG: Portfolio loaded. Items found: '
+        'Ach: ${data['achievement']?.length}, '
+        'Res: ${data['resume']?.length}, '
+        'Cert: ${data['certificate']?.length}, '
+        'Links: ${data['link']?.length}',
+      );
+
       state = state.copyWith(
         achievements: data['achievement'] ?? [],
         resumes: data['resume'] ?? [],
         certificates: data['certificate'] ?? [],
         links: data['link'] ?? [],
-        profileImageUrl: images['profile'],
+        profileImageUrl: images['profile'] ?? profile?['profile_picture'],
         coverImageUrl: images['cover'],
         id: portfolioId,
         likes: stats['likes'],
@@ -145,7 +211,11 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         ownerName: profile?['full_name'],
         ownerDegree: profile?['major'],
         ownerRole: profile?['role'],
+        ownerBatchYear: profile?['batch_year']?.toString(),
       );
+
+      // Cache the result
+      await _cacheState(authId);
     } catch (e) {
       print('Portfolio Load Error: $e');
       state = state.copyWith(isLoading: false);
@@ -153,7 +223,11 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
   }
 
   Future<void> loadCurrentPortfolio() async {
-    state = state.copyWith(isLoading: true);
+    // Only show loading if no cached data exists
+    final hasCache = state.id != null;
+    if (!hasCache) {
+      state = state.copyWith(isLoading: true);
+    }
     try {
       final service = ref.read(supabaseServiceProvider);
       final user = service.currentUser;
@@ -161,6 +235,13 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       if (user == null) {
         state = state.copyWith(isLoading: false);
         return;
+      }
+
+      // Try Cache First - show instantly
+      final loaded = await _loadFromCache(user.id);
+      if (loaded) {
+        // Cache found, stop showing loading spinner
+        state = state.copyWith(isLoading: false);
       }
 
       final data = await service.fetchPortfolio(user.id);
@@ -182,7 +263,7 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         resumes: data['resume'] ?? [],
         certificates: data['certificate'] ?? [],
         links: data['link'] ?? [],
-        profileImageUrl: images['profile'],
+        profileImageUrl: images['profile'] ?? profile?['profile_picture'],
         coverImageUrl: images['cover'],
         id: portfolioId,
         likes: stats['likes'],
@@ -192,7 +273,11 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
         ownerName: profile?['full_name'],
         ownerDegree: profile?['major'],
         ownerRole: profile?['role'],
+        ownerBatchYear: profile?['batch_year']?.toString(),
       );
+
+      // Cache the result
+      await _cacheState(user.id);
     } catch (e) {
       print('Current Portfolio Load Error: $e');
       state = state.copyWith(isLoading: false);
@@ -224,11 +309,13 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
 
   Future<void> addItem(String type, Map<String, dynamic> data) async {
     try {
+      print('DEBUG: Adding item type: $type');
       final service = ref.read(supabaseServiceProvider);
       await service.addPortfolioItem(type: type, data: data);
 
       // Force refresh current user portfolio
       final currentPublicId = await service.getCurrentUserId();
+      print('DEBUG: Item added. Refreshing portfolio for: $currentPublicId');
       if (currentPublicId != null) {
         await loadPortfolio(currentPublicId);
       }
@@ -253,7 +340,34 @@ class PortfolioNotifier extends Notifier<PortfolioState> {
       rethrow;
     }
   }
+
+  Future<void> _cacheState(String userId) async {
+    try {
+      final localService = ref.read(portfolioLocalServiceProvider);
+      await localService.cachePortfolio(userId, state.toMap());
+    } catch (e) {
+      print('Cache Save Error: $e');
+    }
+  }
+
+  Future<bool> _loadFromCache(String userId) async {
+    try {
+      final localService = ref.read(portfolioLocalServiceProvider);
+      final cachedMap = await localService.getCachedPortfolio(userId);
+      if (cachedMap != null) {
+        state = PortfolioState.fromMap(cachedMap);
+        return true;
+      }
+    } catch (e) {
+      print('Cache Load Error: $e');
+    }
+    return false;
+  }
 }
+
+final portfolioLocalServiceProvider = Provider(
+  (ref) => PortfolioLocalService(),
+);
 
 final portfolioProvider = NotifierProvider<PortfolioNotifier, PortfolioState>(
   PortfolioNotifier.new,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
 import 'portfolio_viewed_screen.dart';
@@ -123,6 +125,16 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     final myProfile = ref.watch(profileProvider);
     final isOwner = widget.userId == null || widget.userId == myProfile.id;
 
+    // Listen to profile changes to auto-load if we were waiting for ID
+    ref.listen<UserProfile>(profileProvider, (previous, next) {
+      if (widget.userId == null &&
+          previous?.id != next.id &&
+          next.id.isNotEmpty) {
+        // User ID just became available, try loading again
+        _loadData();
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlobalBackground(
@@ -171,14 +183,16 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                                         stops: [0.0, 0.5, 1.0],
                                       ).createShader(rect);
                                     },
-                                    blendMode: BlendMode
-                                        .dstOut, // logic inverse? No, let's use srcOver with gradient overlay instead for better control.
-                                    // Actually, simple gradient overlay is better than shadermask for this.
+                                    blendMode: BlendMode.dstOut,
                                     child: portfolio.coverImageUrl != null
-                                        ? Image.network(
-                                            portfolio.coverImageUrl!,
+                                        ? CachedNetworkImage(
+                                            imageUrl: portfolio.coverImageUrl!,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (c, e, s) => Image.asset(
+                                            placeholder: (context, url) =>
+                                                Container(
+                                                  color: Colors.black26,
+                                                ),
+                                            errorWidget: (c, e, s) => Image.asset(
                                               'assets/images/user_placeholder.png',
                                               fit: BoxFit.cover,
                                             ),
@@ -294,12 +308,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Text(
-                        (portfolio.ownerDegree != null &&
-                                portfolio.ownerDegree!.isNotEmpty)
-                            ? '${portfolio.ownerDegree} @ Graduate Chronicles'
-                            : (isOwner && userProfile.degree.isNotEmpty
-                                  ? '${userProfile.degree} @ Graduate Chronicles'
-                                  : 'Graduate Student'),
+                        _buildSubtitle(portfolio, userProfile, isOwner),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: DesignSystem.purpleAccent.withValues(
@@ -450,6 +459,26 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     );
   }
 
+  String _buildSubtitle(
+    PortfolioState portfolio,
+    dynamic userProfile,
+    bool isOwner,
+  ) {
+    final degree =
+        portfolio.ownerDegree ?? (isOwner ? userProfile.degree : null);
+    final batchYear = portfolio.ownerBatchYear;
+
+    if (degree == null || degree.isEmpty) {
+      return batchYear != null ? 'Batch of $batchYear' : 'Graduate Student';
+    }
+
+    if (batchYear != null && batchYear.isNotEmpty) {
+      return '$degree • Batch of $batchYear';
+    }
+
+    return degree;
+  }
+
   Widget _buildAvatar(String? imageUrl, bool isOwner) {
     return GestureDetector(
       onTap: isOwner ? () => _pickAndUploadImage('profile') : null,
@@ -475,7 +504,9 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
             child: CircleAvatar(
               radius: 54,
               backgroundColor: const Color(0xFFC7A069),
-              backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+              backgroundImage: imageUrl != null
+                  ? CachedNetworkImageProvider(imageUrl)
+                  : null,
               child: imageUrl == null
                   ? const Icon(Icons.person, size: 64, color: Colors.white24)
                   : null,
@@ -683,7 +714,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
 
   Widget _buildAchievementsList(List<Map<String, dynamic>> items) {
     return SizedBox(
-      height: 100,
+      height: 120, // Increased height to prevent overflow
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -710,46 +741,47 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     String subtitle, {
     String? imageUrl,
   }) {
-    return Container(
-      width: 260,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1F1F2E).withValues(alpha: 0.9),
-            const Color(0xFF151019).withValues(alpha: 0.95),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return _GlassCard(
+      width: 280,
+      padding: const EdgeInsets.all(18),
+      onTap: () {}, // Optional: Add detail view later
       child: Row(
         children: [
+          // Image/Icon with glow effect
           Container(
-            width: 50,
-            height: 50,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              gradient: imageUrl == null
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        DesignSystem.purpleAccent.withValues(alpha: 0.2),
+                        DesignSystem.purpleAccent.withValues(alpha: 0.05),
+                      ],
+                    )
+                  : null,
               borderRadius: BorderRadius.circular(16),
               image: imageUrl != null
                   ? DecorationImage(
-                      image: NetworkImage(imageUrl),
+                      image: CachedNetworkImageProvider(imageUrl),
                       fit: BoxFit.cover,
                     )
                   : null,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: DesignSystem.purpleAccent.withValues(alpha: 0.15),
+                  blurRadius: 12,
+                ),
+              ],
             ),
             child: imageUrl == null
-                ? Icon(icon, color: DesignSystem.purpleAccent, size: 22)
+                ? Icon(icon, color: DesignSystem.purpleAccent, size: 26)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -764,23 +796,36 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 11,
-                    height: 1.3,
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                    height: 1.4,
                   ),
                 ),
               ],
+            ),
+          ),
+          // Arrow indicator
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withValues(alpha: 0.4),
+              size: 18,
             ),
           ),
         ],
@@ -797,69 +842,79 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
       itemBuilder: (context, index) {
         final item = items[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: InkWell(
+          padding: const EdgeInsets.only(bottom: 14.0),
+          child: _GlassCard(
+            padding: const EdgeInsets.all(18),
             onTap: () {
               if (item['file_url'] != null) {
                 _launchUrl(item['file_url']);
               }
             },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF151019).withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.description_rounded,
-                      color: DesignSystem.purpleAccent,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['file_name'] ?? 'Resume',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (item['notes'] != null && item['notes'].isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              item['notes'],
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
+            child: Row(
+              children: [
+                // Icon with gradient background
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        DesignSystem.purpleAccent.withValues(alpha: 0.25),
+                        DesignSystem.purpleAccent.withValues(alpha: 0.08),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.2),
+                    ),
                   ),
-                  const Icon(
+                  child: const Icon(
+                    Icons.description_rounded,
+                    color: DesignSystem.purpleAccent,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['file_name'] ?? 'Resume',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (item['notes'] != null && item['notes'].isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Text(
+                            item['notes'],
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
                     Icons.arrow_outward_rounded,
                     size: 16,
-                    color: Colors.white30,
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -869,7 +924,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
 
   Widget _buildCertsGrid(List<Map<String, dynamic>> items) {
     return SizedBox(
-      height: 120,
+      height: 140,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -882,62 +937,66 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   item['certificate_url'].endsWith('.png'));
 
           return Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: InkWell(
+            padding: const EdgeInsets.only(right: 14.0),
+            child: _GlassCard(
+              width: 150,
+              padding: const EdgeInsets.all(14),
               onTap: () {
                 if (item['certificate_url'] != null) {
                   _launchUrl(item['certificate_url']);
                 }
               },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: 140,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF151019).withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        image: hasImage
-                            ? DecorationImage(
-                                image: NetworkImage(item['certificate_url']),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: !hasImage
-                          ? const Icon(
-                              Icons.workspace_premium_rounded,
-                              color: Color(0xFF81C784),
-                              size: 24,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: !hasImage
+                          ? LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF81C784).withValues(alpha: 0.2),
+                                const Color(0xFF81C784).withValues(alpha: 0.05),
+                              ],
                             )
                           : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      item['certificate_name'] ?? 'Certificate',
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      borderRadius: BorderRadius.circular(14),
+                      image: hasImage
+                          ? DecorationImage(
+                              image: CachedNetworkImageProvider(
+                                item['certificate_url'],
+                              ),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      border: Border.all(
+                        color: const Color(0xFF81C784).withValues(alpha: 0.25),
                       ),
                     ),
-                  ],
-                ),
+                    child: !hasImage
+                        ? const Icon(
+                            Icons.workspace_premium_rounded,
+                            color: Color(0xFF81C784),
+                            size: 26,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    item['certificate_name'] ?? 'Certificate',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -1002,6 +1061,61 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  final double width;
+  final EdgeInsetsGeometry padding;
+  final VoidCallback? onTap;
+
+  const _GlassCard({
+    required this.child,
+    this.width = double.infinity,
+    this.padding = const EdgeInsets.all(16),
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            width: width,
+            padding: padding,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF252535).withValues(alpha: 0.7),
+                  const Color(0xFF1A1A28).withValues(alpha: 0.85),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        ),
       ),
     );
   }
