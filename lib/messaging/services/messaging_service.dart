@@ -150,6 +150,19 @@ class MessagingService {
             ? DateTime.parse(convoData['last_message_at'] as String)
             : createdAt; // Fallback to created_at if last_message_at is null
 
+        // Decrypt last message content if present
+        String? lastMessageContent = lastMsg?['content'] as String?;
+        if (lastMessageContent != null) {
+          try {
+            // Re-use existing encryption service instance? No, we don't have access to the private instance here easily
+            // unless we make it public or use a new instance.
+            // Actually, _encryption is a field in this class.
+            lastMessageContent = _encryption.decrypt(lastMessageContent);
+          } catch (e) {
+            print('Error decrypting preview for convo $convoId: $e');
+          }
+        }
+
         result.add(
           Conversation(
             id: convoData['id'] as String,
@@ -158,7 +171,7 @@ class MessagingService {
             otherUserId: otherUserId,
             otherUserName: userDetails?['full_name'] as String? ?? 'User',
             otherUserAvatar: avatarUrl,
-            lastMessageContent: lastMsg?['content'] as String?,
+            lastMessageContent: lastMessageContent,
             lastMessageTime: lastMsg?['created_at'] != null
                 ? DateTime.parse(lastMsg!['created_at'] as String)
                 : null,

@@ -194,18 +194,26 @@ class _ConversationTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1F1623), // Darker, sleeker background
-          borderRadius: BorderRadius.circular(20),
+          color: const Color(
+            0xFF1F1623,
+          ).withOpacity(0.8), // Slightly more transparent
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [const Color(0xFF2D1F35), const Color(0xFF1F1623)],
+          ),
+          borderRadius: BorderRadius.circular(24), // Softer corners
           border: Border.all(
             color: isUnread
-                ? DesignSystem.purpleAccent.withValues(alpha: 0.3)
-                : Colors.white.withValues(alpha: 0.05),
+                ? DesignSystem.purpleAccent.withOpacity(0.5)
+                : Colors.white.withOpacity(0.08),
+            width: isUnread ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8), // Deeper shadow
             ),
           ],
         ),
