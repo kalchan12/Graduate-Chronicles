@@ -2230,6 +2230,16 @@ class SupabaseService {
     });
   }
 
+  /// Mark all notifications as read for a user
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    await _client
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('user_id', userId)
+        .eq('is_read', false); // Only update unread ones to save Resources?
+    // Actually fine to update all unwatched? No, just unread.
+  }
+
   // ========== POSTS SYSTEM ==========
 
   /// Upload media for a post

@@ -140,9 +140,37 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
   Future<void> markAsRead(String id) async {
     final service = ref.read(supabaseServiceProvider);
     await service.markNotificationAsRead(id);
-    // Stream should auto-update if Supabase echoes the update back.
-    // If not, we do optimistic update.
-    // Default Supabase stream includes UPDATEs.
+  }
+
+  Future<void> markAllAsRead() async {
+    final service = ref.read(supabaseServiceProvider);
+    final userId = service.currentAuthUserId;
+    if (userId == null) return;
+
+    // Optimistically update state
+    if (state.value != null) {
+      state = AsyncValue.data(
+        state.value!
+            .map(
+              (item) => NotificationItem(
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                time: item.time,
+                iconType: item.iconType,
+                createdAt: item.createdAt,
+                isRead: true, // Mark as read
+                referenceId: item.referenceId,
+                relatedUserId: item.relatedUserId,
+                senderProfile: item.senderProfile,
+              ),
+            )
+            .toList(),
+      );
+    }
+
+    // Perform DB update
+    await service.markAllNotificationsAsRead(userId);
   }
 
   Future<void> acceptConnectionRequest(
