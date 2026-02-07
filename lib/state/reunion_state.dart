@@ -35,13 +35,10 @@ class ReunionState {
 class ReunionNotifier extends Notifier<ReunionState> {
   @override
   ReunionState build() {
-    // Listen to Auth for data isolation
-    final auth = ref.watch(authProvider);
-    if (!auth.isAuthenticated) {
-      return const ReunionState();
-    }
+    // Listen to Auth for data isolation (only if we need user-specific data, but public is fine)
+    ref.watch(authProvider);
 
-    // Initial fetch
+    // Initial fetch - Allow even if not authenticated (for public events)
     Future.microtask(() => loadReunions());
     return const ReunionState(isLoading: true);
   }

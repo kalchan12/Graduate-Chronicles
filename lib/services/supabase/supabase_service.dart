@@ -712,30 +712,25 @@ class SupabaseService {
     bool futureEventsOnly = false, // Persist future events
   }) async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Not authenticated');
+    // Allow anonymous fetch (public events)
+    // if (userId == null) throw Exception('Not authenticated');
 
-    // Get current user's UUID (not Auth ID) for join check
-    final userRes = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', userId)
-        .single();
-    final userUuid = userRes['user_id'] as String;
+    String? userUuid;
+    if (userId != null) {
+      // Get current user's UUID (not Auth ID) for join check
+      final userRes = await _client
+          .from('users')
+          .select('user_id')
+          .eq('auth_user_id', userId)
+          .maybeSingle(); // Use maybeSingle to avoid crash if user record missing
+      userUuid = userRes?['user_id'] as String?;
+    }
 
     var query = _client.from('reunions').select('''
       *,
       reunion_participants (count),
       is_joined:reunion_participants!left(user_id)
     ''');
-    // Note: The !left join with filtering specific to current user
-    // is tricky in simple syntax. simpler approach:
-    // fetch all, then map. Or use rpc if performance needed.
-    // For now, let's fetch raw and process.
-
-    // Actually, simpler query pattern for 'is_joined':
-    // We can just fetch the list, and for each, check participation?
-    // OR: use a view.
-    // Let's stick to standard select and separate check or join.
 
     // Better query:
     final res = await _client
@@ -753,17 +748,14 @@ class SupabaseService {
 
     for (final item in res) {
       final dateStr = item['event_date'] as String;
-      // Simple string comparison works for ISO dates YYYY-MM-DD
-      // If we want "persist as long as still there", we show past events too?
-      // User said: "persist as long as the reunion is still there in futures" -> Future events.
-      // But maybe they want history? Let's show all for now, sorted.
-      // User complaint: "once reunion plan is created it does not persist".
-      // This implies it disappears. Maybe RLS hides it?
-      // RLS policies were: visible if public or batch match.
 
       final participants = item['reunion_participants'] as List;
       final goingCount = participants.length;
-      final isJoined = participants.any((p) => p['user_id'] == userUuid);
+
+      // Check if joined (only if logged in)
+      final isJoined = userUuid != null
+          ? participants.any((p) => p['user_id'] == userUuid)
+          : false;
 
       if (futureEventsOnly && dateStr.compareTo(todayStr) < 0) {
         continue;
