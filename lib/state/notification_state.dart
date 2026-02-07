@@ -63,6 +63,12 @@ class NotificationItem {
 }
 
 class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
+  // Keep track of the stream subscription if needed,
+  // but simpler to just return the stream in build() if we want it to be stream-based.
+  // However, NotificationNotifier is an AsyncNotifier, which expects a Future usually,
+  // or we can use StreamNotifier.
+  // Let's stick to AsyncNotifier but set up a listener in build().
+
   @override
   Future<List<NotificationItem>> build() async {
     // Watch auth state to invalidate/refresh on login/logout
@@ -73,7 +79,43 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
       return [];
     }
 
-    return _fetchNotifications();
+    // Initial fetch
+    final initialData = await _fetchNotifications();
+
+    // Setup Realtime Subscription
+    _subscribeToNotifications();
+
+    // Ensure we close subscription when provider is disposed?
+    // Riverpod handles disposal of the notifier, we should implement a dispose logical equivalent
+    // but AsyncNotifier doesn't have a simple dispose override.
+    // The stream subscription should be cancelled when the provider is re-evaluated.
+    // Actually, `ref.onDispose` is the way.
+
+    return initialData;
+  }
+
+  void _subscribeToNotifications() {
+    final service = ref.read(supabaseServiceProvider);
+    final userId = service.currentAuthUserId;
+    if (userId == null) return;
+
+    final subscription = service.client
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .listen((data) {
+          // Convert to models
+          final items = data.map((e) => NotificationItem.fromMap(e)).toList();
+
+          // Update state
+          state = AsyncValue.data(items);
+        });
+
+    // Cleanup
+    ref.onDispose(() {
+      subscription.cancel();
+    });
   }
 
   Future<List<NotificationItem>> _fetchNotifications() async {
@@ -88,33 +130,19 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
   }
 
   Future<void> refresh() async {
+    // With stream, simple refresh might just be re-fetching or letting stream handle it.
+    // But manual refresh is still useful.
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _fetchNotifications());
+    // Re-subscribe? No, stream stays active unless invalidated.
   }
 
   Future<void> markAsRead(String id) async {
     final service = ref.read(supabaseServiceProvider);
     await service.markNotificationAsRead(id);
-
-    // Optimistic update
-    state = state.whenData(
-      (list) => list.map((item) {
-        if (item.id == id) {
-          return NotificationItem(
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            time: item.time,
-            iconType: item.iconType,
-            createdAt: item.createdAt,
-            isRead: true,
-            referenceId: item.referenceId,
-            relatedUserId: item.relatedUserId,
-          );
-        }
-        return item;
-      }).toList(),
-    );
+    // Stream should auto-update if Supabase echoes the update back.
+    // If not, we do optimistic update.
+    // Default Supabase stream includes UPDATEs.
   }
 
   Future<void> acceptConnectionRequest(
@@ -126,7 +154,6 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
       final service = ref.read(supabaseServiceProvider);
       await service.respondToConnectionRequest(requestId, 'accepted');
       await service.markNotificationAsRead(notificationId); // Auto read
-      await refresh(); // Refresh notification list
 
       // Invalidate connection counts to reflect change immediately
       if (senderId != null) {
@@ -154,7 +181,6 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
       final service = ref.read(supabaseServiceProvider);
       await service.respondToConnectionRequest(requestId, 'denied');
       await service.markNotificationAsRead(notificationId);
-      await refresh();
 
       if (senderId != null) {
         ref.invalidate(connectionStatusProvider(senderId));
@@ -172,7 +198,6 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
       final service = ref.read(supabaseServiceProvider);
       await service.updateMentorshipStatus(mentorshipId, 'accepted');
       await service.markNotificationAsRead(notificationId);
-      await refresh();
     } catch (e) {
       print('Error accepting mentorship: $e');
     }
@@ -186,7 +211,6 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationItem>> {
       final service = ref.read(supabaseServiceProvider);
       await service.updateMentorshipStatus(mentorshipId, 'rejected');
       await service.markNotificationAsRead(notificationId);
-      await refresh();
     } catch (e) {
       print('Error denying mentorship: $e');
     }

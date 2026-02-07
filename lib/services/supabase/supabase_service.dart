@@ -20,6 +20,7 @@ final supabaseServiceProvider = Provider<SupabaseService>((ref) {
 
 class SupabaseService {
   final SupabaseClient _client;
+  SupabaseClient get client => _client;
 
   SupabaseService(this._client);
 
