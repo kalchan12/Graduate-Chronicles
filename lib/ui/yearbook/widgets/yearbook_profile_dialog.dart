@@ -3,6 +3,7 @@ import '../../../../theme/design_system.dart';
 import '../../../../models/yearbook_entry.dart';
 import '../../profile/profile_screen.dart';
 import '../../portfolio/portfolio_hub_screen.dart';
+import '../../widgets/fullscreen_image_viewer.dart';
 
 class YearbookProfileDialog extends StatelessWidget {
   final YearbookEntry entry;
@@ -47,41 +48,57 @@ class YearbookProfileDialog extends StatelessWidget {
                 children: [
                   // Main Photo Section
                   Center(
-                    child: Hero(
-                      tag: 'yearbook_photo_${entry.id}',
-                      child: Container(
-                        width: 160, // Increased size slightly
-                        height: 160,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(32),
-                          image: entry.yearbookPhotoUrl.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(entry.yearbookPhotoUrl),
-                                  fit: BoxFit.cover,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (entry.yearbookPhotoUrl.isNotEmpty) {
+                          final allImages = [
+                            entry.yearbookPhotoUrl,
+                            ...entry.morePictures,
+                          ];
+                          FullscreenImageViewer.show(
+                            context,
+                            imageUrls: allImages,
+                            initialIndex: 0,
+                            heroTag: 'yearbook_photo_${entry.id}',
+                          );
+                        }
+                      },
+                      child: Hero(
+                        tag: 'yearbook_photo_${entry.id}',
+                        child: Container(
+                          width: 160,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(32),
+                            image: entry.yearbookPhotoUrl.isNotEmpty
+                                ? DecorationImage(
+                                    image: NetworkImage(entry.yearbookPhotoUrl),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            color: entry.yearbookPhotoUrl.isEmpty
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : null,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: entry.yearbookPhotoUrl.isEmpty
+                              ? const Icon(
+                                  Icons.person_rounded,
+                                  color: Colors.white24,
+                                  size: 48,
                                 )
                               : null,
-                          color: entry.yearbookPhotoUrl.isEmpty
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : null,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
                         ),
-                        child: entry.yearbookPhotoUrl.isEmpty
-                            ? const Icon(
-                                Icons.person_rounded,
-                                color: Colors.white24,
-                                size: 48,
-                              )
-                            : null,
                       ),
                     ),
                   ),
@@ -221,7 +238,19 @@ class YearbookProfileDialog extends StatelessWidget {
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              // TODO: Full screen viewer if needed
+                              // Build full gallery list with profile image first
+                              final allImages = [
+                                if (entry.yearbookPhotoUrl.isNotEmpty)
+                                  entry.yearbookPhotoUrl,
+                                ...entry.morePictures,
+                              ];
+                              FullscreenImageViewer.show(
+                                context,
+                                imageUrls: allImages,
+                                initialIndex: entry.yearbookPhotoUrl.isNotEmpty
+                                    ? index + 1
+                                    : index,
+                              );
                             },
                             child: Container(
                               width: 180, // Wider cards

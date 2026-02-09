@@ -51,9 +51,14 @@ dependencies:
   tflite_flutter: ^0.12.1
   cached_network_image: ^3.4.1
   shared_preferences: ^2.5.4
+  path_provider: ^2.1.5
+  open_filex: ^4.7.0
+  mime: ^2.0.0
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

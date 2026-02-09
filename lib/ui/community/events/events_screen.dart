@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui';
 import '../../../services/supabase/supabase_service.dart';
 import '../../../theme/design_system.dart';
 import '../../../models/community_event.dart';
 import '../../widgets/global_background.dart';
 import '../../widgets/featured_carousel.dart';
+import '../../widgets/fullscreen_image_viewer.dart';
 
 /*
   EventsScreen
@@ -212,7 +215,7 @@ class _CategoryCard extends StatelessWidget {
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(28.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -233,6 +236,8 @@ class _CategoryCard extends StatelessWidget {
                   const Spacer(),
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -548,150 +553,365 @@ class _EventsFeedState extends ConsumerState<EventsFeed> {
   }
 }
 
-class _EventCard extends StatelessWidget {
+class _EventCard extends StatefulWidget {
   final CommunityEvent event;
 
   const _EventCard({required this.event});
 
   @override
+  State<_EventCard> createState() => _EventCardState();
+}
+
+class _EventCardState extends State<_EventCard> {
+  int _currentImageIndex = 0;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _openFullscreen(int index) {
+    FullscreenImageViewer.show(
+      context,
+      imageUrls: widget.event.mediaUrls,
+      initialIndex: index,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final coverImage = event.mediaUrls.isNotEmpty
-        ? event.mediaUrls.first
-        : 'https://placehold.co/400x400/png?text=No+Image';
+    final event = widget.event;
+    final hasMultipleImages = event.mediaUrls.length > 1;
 
     return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20), // More rounded
-        color: const Color(
-          0xFF1E1E1E,
-        ), // Slightly lighter, closer to DesignSystem.surface
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Image
-          Stack(
-            children: [
-              // Display first image
-              AspectRatio(
-                // Dynamically adjust ratio if possible, or fixed for grid
-                aspectRatio: 1,
-                child: Image.network(
-                  coverImage,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: Colors.grey.shade900),
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1F).withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+                width: 1,
               ),
-              if (event.mediaType == 'video')
-                const Positioned.fill(
-                  child: Center(
-                    child: Icon(
-                      Icons.play_circle_fill,
-                      color: Colors.white70,
-                      size: 48,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Image Section with Carousel
+                Stack(
+                  children: [
+                    // Image/Carousel
+                    AspectRatio(
+                      aspectRatio: 1,
+                      child: hasMultipleImages
+                          ? PageView.builder(
+                              controller: _pageController,
+                              itemCount: event.mediaUrls.length,
+                              onPageChanged: (i) =>
+                                  setState(() => _currentImageIndex = i),
+                              itemBuilder: (context, index) {
+                                return GestureDetector(
+                                  onTap: () => _openFullscreen(index),
+                                  child: _buildCachedImage(
+                                    event.mediaUrls[index],
+                                  ),
+                                );
+                              },
+                            )
+                          : GestureDetector(
+                              onTap: event.mediaUrls.isNotEmpty
+                                  ? () => _openFullscreen(0)
+                                  : null,
+                              child: _buildCachedImage(
+                                event.mediaUrls.isNotEmpty
+                                    ? event.mediaUrls.first
+                                    : null,
+                              ),
+                            ),
                     ),
-                  ),
-                ),
-              if (event.mediaUrls.length > 1)
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white24, width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.grid_view_rounded, // Better icon
-                          color: Colors.white,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '+${event.mediaUrls.length - 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+
+                    // Video play icon
+                    if (event.mediaType == 'video')
+                      const Positioned.fill(
+                        child: Center(
+                          child: Icon(
+                            Icons.play_circle_fill_rounded,
+                            color: Colors.white70,
+                            size: 56,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+                      ),
 
-          // Details
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (event.caption != null && event.caption!.isNotEmpty)
-                  Text(
-                    event.caption!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 12, // Slightly larger
-                      backgroundColor: Colors.grey.shade800,
-                      backgroundImage: NetworkImage(
-                        event.userProfilePic ??
-                            'https://ui-avatars.com/api/?name=${event.username ?? "User"}',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        event.username ?? "Unknown",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
+                    // Carousel indicators
+                    if (hasMultipleImages)
+                      Positioned(
+                        bottom: 12,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            event.mediaUrls.length,
+                            (i) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: _currentImageIndex == i ? 20 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _currentImageIndex == i
+                                    ? DesignSystem.purpleAccent
+                                    : Colors.white38,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    _LikeButton(
-                      eventId: event.id,
-                      initialCount: event.likeCount,
-                      initialLiked: event.isLikedByMe,
-                    ),
+
+                    // Image count badge
+                    if (hasMultipleImages)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.photo_library_rounded,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${event.mediaUrls.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // Batch badge
+                    if (event.batchYear != null)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                DesignSystem.purpleAccent,
+                                DesignSystem.purpleAccent.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            'Batch ${event.batchYear}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
+                ),
+
+                // Details Section
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Caption/Description
+                      if (event.caption != null && event.caption!.isNotEmpty)
+                        Text(
+                          event.caption!,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                      const SizedBox(height: 14),
+
+                      // User row + Like
+                      Row(
+                        children: [
+                          // User avatar
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.grey.shade800,
+                            backgroundImage: event.userProfilePic != null
+                                ? CachedNetworkImageProvider(
+                                    event.userProfilePic!,
+                                  )
+                                : null,
+                            child: event.userProfilePic == null
+                                ? Text(
+                                    (event.username ?? 'U')[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.username ?? 'Unknown',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          _LikeButton(
+                            eventId: event.id,
+                            initialCount: event.likeCount,
+                            initialLiked: event.isLikedByMe,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildCachedImage(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return Container(
+        color: Colors.grey.shade900,
+        child: const Center(
+          child: Icon(Icons.image, color: Colors.white24, size: 48),
+        ),
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: const Color(0xFF252530),
+        child: Center(child: _ShimmerLoading()),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey.shade900,
+        child: const Center(
+          child: Icon(Icons.broken_image, color: Colors.white24, size: 48),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shimmer loading animation
+class _ShimmerLoading extends StatefulWidget {
+  @override
+  State<_ShimmerLoading> createState() => _ShimmerLoadingState();
+}
+
+class _ShimmerLoadingState extends State<_ShimmerLoading>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(-1.0 + _controller.value * 2, 0),
+              end: Alignment(_controller.value * 2, 0),
+              colors: const [
+                Color(0xFF2A2A35),
+                Color(0xFF3A3A45),
+                Color(0xFF2A2A35),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

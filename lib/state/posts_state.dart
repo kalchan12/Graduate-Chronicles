@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase/supabase_service.dart';
 import '../services/recommendation/supabase_recommender.dart';
+import '../services/recommendation/gorse_service.dart';
 
 // ========== MODAL/DATA CLASSES ============
 
@@ -208,6 +209,20 @@ class FeedNotifier extends AsyncNotifier<List<PostItem>> {
     var updatedList = List<PostItem>.from(currentState);
     updatedList[index] = post.copyWith(commentsCount: post.commentsCount + 1);
     state = AsyncValue.data(updatedList);
+
+    // Sync comment feedback to Gorse
+    _syncCommentFeedback(postId);
+  }
+
+  Future<void> _syncCommentFeedback(String postId) async {
+    final userId = await ref.read(supabaseServiceProvider).getCurrentUserId();
+    if (userId != null) {
+      GorseService.insertFeedback(
+        feedbackType: 'comment',
+        userId: userId,
+        itemId: postId,
+      );
+    }
   }
 
   void removePost(String postId) {
@@ -287,6 +302,14 @@ class CreatePostNotifier extends Notifier<CreatePostState> {
 
       // Trigger embedding generation (fire-and-forget)
       SupabaseRecommender.generateEmbedding(postId, description);
+
+      // Register with Gorse
+      GorseService.insertItem(
+        itemId: postId,
+        timestamp: DateTime.now(),
+        comment: description,
+        // Could extract hashtags as labels here if needed
+      );
 
       state = CreatePostState(); // Reset
       return true;

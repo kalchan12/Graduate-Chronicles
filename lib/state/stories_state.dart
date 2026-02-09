@@ -13,6 +13,7 @@ class Story {
   final String? caption;
   final DateTime createdAt;
   final DateTime expiresAt;
+  final bool isLiked; // Frontend-only state
 
   Story({
     required this.id,
@@ -22,6 +23,7 @@ class Story {
     this.caption,
     required this.createdAt,
     required this.expiresAt,
+    this.isLiked = false,
   });
 
   factory Story.fromMap(Map<String, dynamic> map) {
@@ -41,6 +43,29 @@ class Story {
       expiresAt: map['expires_at'] != null
           ? DateTime.parse(map['expires_at'])
           : DateTime.parse(map['created_at']).add(const Duration(hours: 24)),
+      isLiked: false,
+    );
+  }
+
+  Story copyWith({
+    String? id,
+    String? userId,
+    String? mediaUrl,
+    StoryMediaType? mediaType,
+    String? caption,
+    DateTime? createdAt,
+    DateTime? expiresAt,
+    bool? isLiked,
+  }) {
+    return Story(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      mediaUrl: mediaUrl ?? this.mediaUrl,
+      mediaType: mediaType ?? this.mediaType,
+      caption: caption ?? this.caption,
+      createdAt: createdAt ?? this.createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      isLiked: isLiked ?? this.isLiked,
     );
   }
 }
@@ -273,6 +298,32 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
       print('Upload story error: $e');
       rethrow; // Let UI handle error toast
     }
+  }
+
+  Future<void> deleteStory(String storyId) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      await service.deleteStory(storyId);
+      await loadStories(); // Refresh list to remove deleted story
+    } catch (e) {
+      print('Delete story error: $e');
+      rethrow;
+    }
+  }
+
+  void toggleStoryLike(String userId, String storyId) {
+    state = state.map((group) {
+      if (group.userId == userId) {
+        final updatedStories = group.stories.map((story) {
+          if (story.id == storyId) {
+            return story.copyWith(isLiked: !story.isLiked);
+          }
+          return story;
+        }).toList();
+        return group.copyWith(stories: updatedStories);
+      }
+      return group;
+    }).toList();
   }
 
   void toggleLike(String userId) {

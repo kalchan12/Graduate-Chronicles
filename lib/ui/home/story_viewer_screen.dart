@@ -13,6 +13,7 @@ class StoryViewerScreen extends ConsumerStatefulWidget {
 
 class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
   final StoryController _controller = StoryController();
+  int _currentIndex = 0;
 
   @override
   void dispose() {
@@ -22,7 +23,22 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<StoryItem> storyItems = widget.userGroup.stories.map((story) {
+    // 1. Get the latest data for this user group to ensure reactivity
+    final allGroups = ref.watch(storiesProvider);
+    final currentGroup = allGroups.firstWhere(
+      (g) => g.userId == widget.userGroup.userId,
+      orElse: () => widget.userGroup,
+    );
+
+    // If no stories left (e.g. after delete), close viewer
+    if (currentGroup.stories.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
+      return const SizedBox.shrink();
+    }
+
+    final List<StoryItem> storyItems = currentGroup.stories.map((story) {
       if (story.mediaType == StoryMediaType.video) {
         return StoryItem.pageVideo(
           story.mediaUrl,
@@ -57,28 +73,24 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
       body: Stack(
         children: [
           // The main StoryView
-          GestureDetector(
-            onVerticalDragUpdate: (details) {
-              // Simple swipe down to dismiss
-              if (details.delta.dy > 10) {
-                Navigator.pop(context);
-              }
+          StoryView(
+            storyItems: storyItems,
+            controller: _controller,
+            onComplete: () {
+              Navigator.pop(context);
             },
-            child: StoryView(
-              storyItems: storyItems,
-              controller: _controller,
-              onComplete: () {
-                Navigator.pop(context);
-              },
-              onVerticalSwipeComplete: (direction) {
-                if (direction == Direction.down) {
-                  Navigator.pop(context);
+            // Removed onVerticalSwipeComplete to avoid potential null/bool type error in package
+            // Removed outer GestureDetector as StoryView handles gestures
+            onStoryShow: (s, index) {
+              // Defer state update to avoid build conflicts
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
                 }
-              },
-              onStoryShow: (s, index) {
-                // Potential analytics or state updates
-              },
-            ),
+              });
+            },
           ),
 
           // Top overlay: User info and Close button
@@ -92,17 +104,17 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
                   radius: 18,
                   backgroundColor: Colors.grey[900],
                   backgroundImage:
-                      widget.userGroup.profilePicUrl != null &&
-                          widget.userGroup.profilePicUrl!.isNotEmpty
-                      ? NetworkImage(widget.userGroup.profilePicUrl!)
+                      currentGroup.profilePicUrl != null &&
+                          currentGroup.profilePicUrl!.isNotEmpty
+                      ? NetworkImage(currentGroup.profilePicUrl!)
                       : null,
-                  child: widget.userGroup.profilePicUrl == null
+                  child: currentGroup.profilePicUrl == null
                       ? const Icon(Icons.person, color: Colors.white, size: 20)
                       : null,
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  widget.userGroup.username,
+                  currentGroup.username,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -110,6 +122,47 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
                   ),
                 ),
                 const Spacer(),
+                // Delete Option (Only if it's me)
+                if (currentGroup.isMe)
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.white),
+                    onPressed: () {
+                      _controller.pause();
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete Story?'),
+                          content: const Text(
+                            'Are you sure you want to delete this story?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _controller.play();
+                              },
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                final story =
+                                    currentGroup.stories[_currentIndex];
+                                await ref
+                                    .read(storiesProvider.notifier)
+                                    .deleteStory(story.id);
+                                // The reactive build will handle the update (rebuild or pop if empty)
+                              },
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
@@ -119,22 +172,34 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
           ),
 
           // Bottom Liquid UI state (Like button overlay)
-          // Since story_view covers the screen, we can overlay buttons if needed.
-          // Note: story_view has its own tap handlers, so we must ensure overlays don't block navigation taps
-          // unless specifically needed.
-          Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 20,
-            right: 20,
-            child: FloatingActionButton(
-              mini: true,
-              backgroundColor: Colors.white12,
-              onPressed: () {
-                // Local UI like interaction - state update via provider
-                // In a real app, this would update Supabase
-              },
-              child: const Icon(Icons.favorite_border, color: Colors.white),
+          // Hide like button if it's my own story? Usually you don't like your own story, but let's allow it or hide it.
+          // Common pattern: Viewers list for me, Like button for others.
+          if (!currentGroup.isMe)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+              right: 20,
+              child: FloatingActionButton(
+                mini: true,
+                backgroundColor: Colors.white12,
+                onPressed: () {
+                  final story = currentGroup.stories[_currentIndex];
+                  ref
+                      .read(storiesProvider.notifier)
+                      .toggleStoryLike(currentGroup.userId, story.id);
+                },
+                child: Icon(
+                  currentGroup.stories.isNotEmpty &&
+                          currentGroup.stories[_currentIndex].isLiked
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  color:
+                      currentGroup.stories.isNotEmpty &&
+                          currentGroup.stories[_currentIndex].isLiked
+                      ? Colors.red
+                      : Colors.white,
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );

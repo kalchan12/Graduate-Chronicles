@@ -9,6 +9,8 @@ import '../../../state/signup_state.dart';
   Features:
   - Multi-select interest chips
   - Triggers Account Creation on Finish
+  
+  Refined UI: Matches Login Screen aesthetics.
 */
 class SignupStep3 extends ConsumerStatefulWidget {
   const SignupStep3({super.key});
@@ -36,7 +38,6 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
     'Movies',
   ];
 
-  // Custom Interest Logic
   final TextEditingController _customInterestController =
       TextEditingController();
   bool _isAddingCustom = false;
@@ -44,7 +45,6 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
   @override
   void initState() {
     super.initState();
-    // Sync existing selected interests (e.g. from back navigation) to local list
     final selected = ref.read(signupFormProvider).interests;
     for (final interest in selected) {
       if (!_allInterests.contains(interest)) {
@@ -60,12 +60,11 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
   }
 
   Future<void> _onFinish() async {
-    // Confirm and Signup
     final confirmed = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Confirm',
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       pageBuilder: (context, a1, a2) => Container(),
       transitionBuilder: (ctx, anim, secondaryAnim, child) {
         return ScaleTransition(
@@ -73,10 +72,12 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
           child: FadeTransition(
             opacity: anim,
             child: AlertDialog(
-              backgroundColor: const Color(0xFF1E1024), // Darker, cleaner
+              backgroundColor: const Color(
+                0xFF1A0A1F,
+              ), // Matches new card color
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
               titlePadding: const EdgeInsets.only(top: 32, left: 24, right: 24),
               contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -85,7 +86,7 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: DesignSystem.purpleAccent.withOpacity(0.3),
+                      color: DesignSystem.purpleAccent.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -171,7 +172,6 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
     );
 
     if (confirmed == true && mounted) {
-      // Trigger Signup + DB Insert
       ref.read(signupFormProvider.notifier).submitSignup(context);
     }
   }
@@ -181,265 +181,108 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
     final state = ref.watch(signupFormProvider);
     final notifier = ref.read(signupFormProvider.notifier);
 
+    final bgGradient = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [DesignSystem.purpleDark, Color(0xFF240A28)],
+    );
+
     return Scaffold(
       backgroundColor: DesignSystem.purpleDark,
+      resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(gradient: bgGradient),
         child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
-                        size: 20,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, bottom: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white70,
+                        ),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushReplacementNamed('/signup2'),
                       ),
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pushReplacementNamed('/signup2'),
-                    ),
-                    Expanded(
-                      child: Center(
+                      const Expanded(
                         child: Text(
                           'Step 3 of 4',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Colors.white54,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Text(
-                  'What are you into?',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Text(
-                  'Select a few interests.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.center,
-                    children:
-                        _allInterests.map((k) {
-                          final active = state.interests.contains(k);
-                          return GestureDetector(
-                            onTap: () => notifier.toggleInterest(k),
-                            child: _buildChip(k, active),
-                          );
-                        }).toList()..add(
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isAddingCustom = true;
-                              });
-                            },
-                            child: _isAddingCustom
-                                ? IntrinsicWidth(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 0,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: DesignSystem.purpleAccent,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 100,
-                                            child: TextField(
-                                              controller:
-                                                  _customInterestController,
-                                              autofocus: true,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                              ),
-                                              decoration: const InputDecoration(
-                                                border: InputBorder.none,
-                                                hintText: 'Add...',
-                                                hintStyle: TextStyle(
-                                                  color: Colors.white38,
-                                                ),
-                                              ),
-                                              onSubmitted: (val) {
-                                                if (val.trim().isNotEmpty) {
-                                                  final interest = val.trim();
-                                                  setState(() {
-                                                    if (!_allInterests.contains(
-                                                      interest,
-                                                    )) {
-                                                      _allInterests.add(
-                                                        interest,
-                                                      );
-                                                    }
-                                                    _isAddingCustom = false;
-                                                    _customInterestController
-                                                        .clear();
-                                                  });
-                                                  // Only toggle if NOT already selected
-                                                  if (!state.interests.contains(
-                                                    interest,
-                                                  )) {
-                                                    notifier.toggleInterest(
-                                                      interest,
-                                                    );
-                                                  }
-                                                } else {
-                                                  setState(
-                                                    () =>
-                                                        _isAddingCustom = false,
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.check,
-                                              size: 16,
-                                              color: DesignSystem.purpleAccent,
-                                            ),
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            onPressed: () {
-                                              final val =
-                                                  _customInterestController.text
-                                                      .trim();
-                                              if (val.isNotEmpty) {
-                                                setState(() {
-                                                  if (!_allInterests.contains(
-                                                    val,
-                                                  )) {
-                                                    _allInterests.add(val);
-                                                  }
-                                                  _isAddingCustom = false;
-                                                  _customInterestController
-                                                      .clear();
-                                                });
-                                                // Only toggle if NOT already selected
-                                                if (!state.interests.contains(
-                                                  val,
-                                                )) {
-                                                  notifier.toggleInterest(val);
-                                                }
-                                              } else {
-                                                setState(
-                                                  () => _isAddingCustom = false,
-                                                );
-                                              }
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.transparent,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: Colors.white38,
-                                        width: 1.5,
-                                        style: BorderStyle.solid,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: const [
-                                        Icon(
-                                          Icons.add,
-                                          color: Colors.white70,
-                                          size: 16,
-                                        ),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Custom',
-                                          style: TextStyle(
-                                            color: Colors.white70,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
                   ),
                 ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 24,
+                const SizedBox(height: 24),
+                Text(
+                  'What are you into?',
+                  style: DesignSystem.theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-                child: SizedBox(
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Select a few interests to personalize\nyour experience.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white54, height: 1.4),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
                   width: double.infinity,
-                  height: 54,
+                  padding: const EdgeInsets.all(20),
+                  decoration: DesignSystem.cardDecoration().copyWith(
+                    borderRadius: BorderRadius.circular(28),
+                    color: const Color(0xFF1A0A1F).withValues(alpha: 0.85),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [_buildInterestsList(state, notifier)],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
                   child: ElevatedButton(
                     onPressed: state.isSubmitting ? () {} : _onFinish,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DesignSystem.purpleAccent,
                       elevation: 8,
-                      shadowColor: DesignSystem.purpleAccent.withOpacity(0.4),
+                      shadowColor: DesignSystem.purpleAccent.withValues(
+                        alpha: 0.4,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: state.isSubmitting
                         ? const SizedBox(
-                            width: 24,
-                            height: 24,
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
                               color: Colors.white,
                               strokeWidth: 2,
@@ -455,32 +298,145 @@ class _SignupStep3State extends ConsumerState<SignupStep3> {
                           ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildChip(String label, bool active) {
+  Widget _buildInterestsList(SignupState state, SignupNotifier notifier) {
+    final List<Widget> children = _allInterests.map((k) {
+      final active = state.interests.contains(k);
+      return GestureDetector(
+        onTap: () => notifier.toggleInterest(k),
+        child: _buildChip(k, active),
+      );
+    }).toList();
+
+    children.add(
+      GestureDetector(
+        onTap: () {
+          setState(() {
+            _isAddingCustom = true;
+          });
+        },
+        child: _isAddingCustom
+            ? Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical:
+                      6, // Added vertical padding to match chip height better
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: DesignSystem.purpleAccent),
+                ),
+                child: Row(
+                  mainAxisSize:
+                      MainAxisSize.min, // Replaces IntrinsicWidth effect
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: TextField(
+                        controller: _customInterestController,
+                        autofocus: true,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Add...',
+                          hintStyle: TextStyle(color: Colors.white38),
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onSubmitted: (val) {
+                          if (val.trim().isNotEmpty) {
+                            final interest = val.trim();
+                            setState(() {
+                              if (!_allInterests.contains(interest)) {
+                                _allInterests.add(interest);
+                              }
+                              _isAddingCustom = false;
+                              _customInterestController.clear();
+                            });
+                            if (!state.interests.contains(interest)) {
+                              notifier.toggleInterest(interest);
+                            }
+                          } else {
+                            setState(() => _isAddingCustom = false);
+                          }
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.check,
+                        size: 16,
+                        color: DesignSystem.purpleAccent,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        final val = _customInterestController.text.trim();
+                        if (val.isNotEmpty) {
+                          setState(() {
+                            if (!_allInterests.contains(val)) {
+                              _allInterests.add(val);
+                            }
+                            _isAddingCustom = false;
+                            _customInterestController.clear();
+                          });
+                          if (!state.interests.contains(val)) {
+                            notifier.toggleInterest(val);
+                          }
+                        } else {
+                          setState(() => _isAddingCustom = false);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              )
+            : _buildChip('Custom +', false, isCustom: true),
+      ),
+    );
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.center,
+      children: children,
+    );
+  }
+
+  Widget _buildChip(String label, bool active, {bool isCustom = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: active
             ? DesignSystem.purpleAccent
-            : Colors.white.withOpacity(0.05),
+            : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: active
               ? DesignSystem.purpleAccent
-              : Colors.white.withOpacity(0.15),
+              : (isCustom
+                    ? Colors.white38
+                    : Colors.white.withValues(alpha: 0.1)),
           width: 1.5,
+          style: isCustom && !active ? BorderStyle.solid : BorderStyle.solid,
+          // Custom was dashed/solid in previous? Standardizing to solid for consistency.
         ),
         boxShadow: active
             ? [
                 BoxShadow(
-                  color: DesignSystem.purpleAccent.withOpacity(0.3),
+                  color: DesignSystem.purpleAccent.withValues(alpha: 0.3),
                   blurRadius: 8,
                   spreadRadius: 0,
                 ),

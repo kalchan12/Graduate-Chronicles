@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/recommendation/gorse_service.dart';
 import '../services/recommendation/post_recommender.dart';
 import '../services/recommendation/supabase_recommender.dart';
 import '../services/supabase/supabase_service.dart';
@@ -52,6 +53,9 @@ class PersonalizedFeedNotifier extends AsyncNotifier<List<PostItem>> {
       allPosts.add(PostItem.fromMap(p, isLiked: isLiked));
     }
 
+    // Randomize the order of posts to provide a fresh feed on each load
+    allPosts.shuffle();
+
     // 2. Get user info
     final userId = await service.getCurrentUserId();
     if (userId == null) return allPosts;
@@ -64,24 +68,48 @@ class PersonalizedFeedNotifier extends AsyncNotifier<List<PostItem>> {
 
     List<PostItem> recommendedPosts = [];
 
-    // 3. Try AI Recommendations (Supabase Edge Function)
+    // 3. Try Gorse AI (PRIMARY - self-hosted recommendation engine)
     try {
-      final rawRecs = await SupabaseRecommender.getRecommendations(
-        interests: interestStrings,
-        userId: userId,
+      final gorseItemIds = await GorseService.getRecommendations(
+        userId,
+        count: 10,
       );
 
-      if (rawRecs.isNotEmpty) {
-        for (var rec in rawRecs) {
-          final isLiked = await service.hasLikedPost(rec['id']);
-          recommendedPosts.add(PostItem.fromMap(rec, isLiked: isLiked));
+      if (gorseItemIds.isNotEmpty) {
+        // Map Gorse item IDs to full PostItem objects
+        for (var itemId in gorseItemIds) {
+          try {
+            final post = allPosts.firstWhere((p) => p.id == itemId);
+            recommendedPosts.add(post);
+          } catch (_) {
+            // Post not in current fetch, skip
+          }
         }
       }
     } catch (e) {
-      // Silently fail to fallback
+      // Gorse unavailable - continue to fallback
     }
 
-    // 4. Fallback to Keyword-Based if AI failed or returned nothing
+    // 4. Fallback to Supabase Edge Function (if Gorse returned nothing)
+    if (recommendedPosts.isEmpty) {
+      try {
+        final rawRecs = await SupabaseRecommender.getRecommendations(
+          interests: interestStrings,
+          userId: userId,
+        );
+
+        if (rawRecs.isNotEmpty) {
+          for (var rec in rawRecs) {
+            final isLiked = await service.hasLikedPost(rec['id']);
+            recommendedPosts.add(PostItem.fromMap(rec, isLiked: isLiked));
+          }
+        }
+      } catch (e) {
+        // Silently fail to fallback
+      }
+    }
+
+    // 5. Fallback to Keyword-Based if AI systems failed or returned nothing
     if (recommendedPosts.isEmpty) {
       final recommender = ref.read(postRecommenderProvider);
       recommendedPosts = await recommender.getRecommendedPosts(
@@ -91,7 +119,7 @@ class PersonalizedFeedNotifier extends AsyncNotifier<List<PostItem>> {
       );
     }
 
-    // 5. Mix feed (1 recommended + 2 chronological)
+    // 6. Mix feed (1 recommended + 2 chronological)
     return _mixFeed(recommendedPosts, allPosts);
   }
 
@@ -150,6 +178,26 @@ class PersonalizedFeedNotifier extends AsyncNotifier<List<PostItem>> {
     try {
       final service = ref.read(supabaseServiceProvider);
       await service.toggleLike(postId, wantLike: !wasLiked);
+
+      // Sync feedback to Gorse for AI training
+      final userId = await service.getCurrentUserId();
+      if (userId != null) {
+        if (!wasLiked) {
+          // User liked - insert feedback
+          GorseService.insertFeedback(
+            feedbackType: 'like',
+            userId: userId,
+            itemId: postId,
+          );
+        } else {
+          // User unliked - remove feedback
+          GorseService.deleteFeedback(
+            feedbackType: 'like',
+            userId: userId,
+            itemId: postId,
+          );
+        }
+      }
     } catch (e) {
       ref.invalidateSelf();
     }
@@ -173,6 +221,18 @@ class PersonalizedFeedNotifier extends AsyncNotifier<List<PostItem>> {
     if (currentPosts == null) return;
     final updatedList = currentPosts.where((p) => p.id != postId).toList();
     state = AsyncValue.data(updatedList);
+  }
+
+  /// Track when a post is viewed ("read")
+  void trackRead(String postId) async {
+    final userId = await ref.read(supabaseServiceProvider).getCurrentUserId();
+    if (userId != null) {
+      GorseService.insertFeedback(
+        feedbackType: 'read',
+        userId: userId,
+        itemId: postId,
+      );
+    }
   }
 }
 

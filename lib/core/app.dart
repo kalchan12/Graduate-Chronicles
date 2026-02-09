@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../theme/design_system.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../theme/app_theme.dart';
+import '../state/theme_provider.dart';
 import '../screens/screens.dart';
+import '../state/auth_provider.dart';
 import '../ui/community/mentorship/mentorship_screen.dart';
 import '../ui/community/reunion/reunion_list_screen.dart';
 import '../ui/community/reunion/reunion_create_screen.dart';
@@ -25,17 +28,46 @@ import '../ui/community/events/create_event_screen.dart';
   
   Responsible for:
   - Initializing the MaterialApp
-  - Applying global theme settings
+  - Applying global theme settings (supports light/dark mode)
   - Defining the routing map for navigation
 */
-class App extends StatelessWidget {
+class App extends ConsumerStatefulWidget {
   const App({super.key});
 
   @override
+  ConsumerState<App> createState() => _AppState();
+}
+
+class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh session logic when app comes to foreground
+      ref.read(authProvider.notifier).restoreSession();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'Graduate Chronicles',
-      theme: DesignSystem.theme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       routes: {
         '/onboarding': (_) => const OnboardingScreen(),

@@ -8,6 +8,7 @@ import '../profile/profile_screen.dart';
 import '../../services/supabase/supabase_service.dart';
 import 'comments_sheet.dart';
 import 'toast_helper.dart';
+import '../../state/post_recommendation_state.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final PostItem post;
@@ -63,6 +64,9 @@ class _PostCardState extends ConsumerState<PostCard>
   }
 
   void _showComments() {
+    // Treat opening comments as a "read" signal
+    ref.read(personalizedFeedProvider.notifier).trackRead(widget.post.id);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -77,7 +81,7 @@ class _PostCardState extends ConsumerState<PostCard>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1224),
+      backgroundColor: DesignSystem.modalSurface(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -161,15 +165,15 @@ class _PostCardState extends ConsumerState<PostCard>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1224),
+        backgroundColor: DesignSystem.modalSurface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Delete post?',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: DesignSystem.textPrimary(context)),
         ),
         content: Text(
           'This will permanently remove this post from your profile.',
-          style: TextStyle(color: Colors.white.withOpacity(0.7)),
+          style: TextStyle(color: DesignSystem.textSubtle(context)),
         ),
         actions: [
           TextButton(
@@ -194,6 +198,9 @@ class _PostCardState extends ConsumerState<PostCard>
                 ref.read(feedProvider.notifier).removePost(widget.post.id);
                 // Also invalidate personalized feed if possible, or let user refresh
                 // ref.invalidate(personalizedFeedProvider); // Optional but clean
+                ref
+                    .read(personalizedFeedProvider.notifier)
+                    .removePost(widget.post.id);
 
                 if (mounted) ToastHelper.show(context, 'Post deleted');
               } catch (e) {
@@ -227,13 +234,13 @@ class _PostCardState extends ConsumerState<PostCard>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1224),
+          backgroundColor: DesignSystem.modalSurface(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
+          title: Text(
             'Report Post',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: DesignSystem.textPrimary(context)),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -312,9 +319,12 @@ class _PostCardState extends ConsumerState<PostCard>
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF180D1D), // Dark, clean background
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.04), width: 0.5),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.1),
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +348,9 @@ class _PostCardState extends ConsumerState<PostCard>
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: const Color(0xFF2E1A36),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         backgroundImage: widget.post.userAvatar != null
                             ? CachedNetworkImageProvider(
                                 widget.post.userAvatar!,
@@ -347,7 +359,7 @@ class _PostCardState extends ConsumerState<PostCard>
                         child: widget.post.userAvatar == null
                             ? Icon(
                                 Icons.person,
-                                color: Colors.white.withOpacity(0.5),
+                                color: DesignSystem.textSubtle(context),
                                 size: 20,
                               )
                             : null,
@@ -358,8 +370,8 @@ class _PostCardState extends ConsumerState<PostCard>
                         children: [
                           Text(
                             widget.post.userName ?? 'User',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: DesignSystem.textPrimary(context),
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                               letterSpacing: 0.3,
@@ -369,7 +381,7 @@ class _PostCardState extends ConsumerState<PostCard>
                           Text(
                             _timeAgo(widget.post.createdAt),
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.4),
+                              color: DesignSystem.textSubtle(context),
                               fontSize: 12,
                             ),
                           ),
@@ -399,7 +411,7 @@ class _PostCardState extends ConsumerState<PostCard>
               child: Text(
                 widget.post.description,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: DesignSystem.textPrimary(context).withOpacity(0.9),
                   fontSize: 15,
                   height: 1.5,
                   fontWeight: FontWeight.w400,
@@ -438,13 +450,14 @@ class _PostCardState extends ConsumerState<PostCard>
                 const Spacer(),
                 IconButton(
                   icon: Icon(
-                    Icons.share_outlined,
+                    Icons.flag_outlined,
                     color: Colors.white.withOpacity(0.6),
                     size: 22,
                   ),
-                  onPressed: () {}, // Share placeholder
+                  onPressed: _showReportDialog,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
+                  tooltip: 'Report Post',
                 ),
               ],
             ),

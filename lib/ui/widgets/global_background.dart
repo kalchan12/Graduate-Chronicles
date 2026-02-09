@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../theme/design_system.dart';
+import '../../theme/app_theme.dart';
 
 /*
   Global Background Widget.
 
   Applies the application's standard gradient background to the child widget.
-  - Uses specific brand colors defined in existing designs.
+  - Automatically adapts to light/dark theme.
+  - Uses specific brand colors defined in AppTheme.
   - Ensures visual consistency across the app.
 */
 class GlobalBackground extends StatelessWidget {
@@ -13,17 +14,13 @@ class GlobalBackground extends StatelessWidget {
 
   const GlobalBackground({super.key, required this.child});
 
-  static const LinearGradient globalGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF2E0F3A), DesignSystem.purpleDark, Color(0xFF150518)],
-    stops: [0.0, 0.5, 1.0],
-  );
-
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradient = isDark ? AppTheme.darkGradient : AppTheme.lightGradient;
+
     return Container(
-      decoration: const BoxDecoration(gradient: globalGradient),
+      decoration: BoxDecoration(gradient: gradient),
       child: child,
     );
   }

@@ -33,12 +33,14 @@ class CommunityHomeScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Welcome back',
-                          style: DesignSystem.theme.textTheme.bodyMedium
-                              ?.copyWith(color: Colors.white70),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: DesignSystem.textSubtle(context),
+                              ),
                         ),
                         Text(
                           'Community Hub',
-                          style: DesignSystem.theme.textTheme.titleLarge,
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ],
                     ),
@@ -66,13 +68,13 @@ class CommunityHomeScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Your Community',
-                      style: DesignSystem.theme.textTheme.titleMedium,
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Stay connected with alumni & mentors.',
-                      style: DesignSystem.theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white54,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: DesignSystem.textSubtle(context),
                       ),
                     ),
                     const SizedBox(height: 32),

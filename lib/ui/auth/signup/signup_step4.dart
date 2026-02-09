@@ -13,6 +13,8 @@ import '../../../state/signup_state.dart';
   - Image selection from gallery
   - Upload to Supabase Storage
   - Validation (8MB, types)
+  
+  Refined UI: Matches Login Screen aesthetics.
 */
 class SignupStep4 extends ConsumerStatefulWidget {
   const SignupStep4({super.key});
@@ -25,7 +27,6 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
-    // Permission check
     var status = await Permission.photos.status;
     if (!status.isGranted) {
       status = await Permission.photos.request();
@@ -49,7 +50,6 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
       );
 
       if (image != null) {
-        // Validate File Size (Max 8MB)
         final int sizeInBytes = await image.length();
         final double sizeInMb = sizeInBytes / (1024 * 1024);
         if (sizeInMb > 8) {
@@ -63,31 +63,19 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
           return;
         }
 
-        // Validate File Type
         final String ext = image.name.split('.').last.toLowerCase();
-        final allowed = [
-          'jpg',
-          'jpeg',
-          'png',
-          'webp',
-          'svg',
-        ]; // Added webp, svg
-        // SVG is tricky with ImagePicker, usually picks raster. But allowing extension check.
-        if (!allowed.contains(ext)) {
-          // Also allow if it's heic (converted automatically often)
-          if (ext != 'heic') {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Unsupported file type.'),
-                backgroundColor: Colors.redAccent,
-              ),
-            );
-            return;
-          }
+        final allowed = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
+        if (!allowed.contains(ext) && ext != 'heic') {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unsupported file type.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          return;
         }
 
-        // Compress/Convert to JPEG
         final compressedBytes = await FlutterImageCompress.compressWithFile(
           image.path,
           minWidth: 800,
@@ -118,156 +106,138 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
   Widget build(BuildContext context) {
     final state = ref.watch(signupFormProvider);
 
+    final bgGradient = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [DesignSystem.purpleDark, Color(0xFF240A28)],
+    );
+
     return Scaffold(
       backgroundColor: DesignSystem.purpleDark,
+      resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(gradient: bgGradient),
         child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 48),
-                    const Expanded(
-                      child: Center(
-                        child: Text(
-                          'Step 4 of 4',
-                          style: TextStyle(color: Colors.white70),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'Step 4 of 4',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Set up your profile',
+                  style: DesignSystem.theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Add a photo to personalize your profile',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Column(
+                  children: [
+                    Text(
+                      state.fullName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(width: 48),
+                    const SizedBox(height: 2),
+                    Text(
+                      '@${state.username}',
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Text(
-                  'Set up your profile',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Text(
-                  'Add a photo to personalize your profile',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.white54),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              // Shared User Info (Part 3 Requirement)
-              Column(
-                children: [
-                  Text(
-                    state.fullName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: DesignSystem.cardDecoration().copyWith(
+                    borderRadius: BorderRadius.circular(28),
+                    color: const Color(0xFF1A0A1F).withValues(alpha: 0.85),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 1,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '@${state.username}',
-                    style: const TextStyle(color: Colors.white60, fontSize: 14),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Avatar with gradient ring
-                      Center(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 16),
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                DesignSystem.purpleAccent,
-                                DesignSystem.purpleAccent.withValues(
-                                  alpha: 0.5,
-                                ),
-                                Colors.pinkAccent.withValues(alpha: 0.3),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: DesignSystem.purpleAccent.withValues(
-                                  alpha: 0.3,
-                                ),
-                                blurRadius: 20,
-                                spreadRadius: 2,
-                              ),
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              DesignSystem.purpleAccent,
+                              DesignSystem.purpleAccent.withValues(alpha: 0.5),
                             ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          child: Container(
-                            height: 160,
-                            width: 160,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF1E1024),
-                            ),
-                            child: state.profileImage == null
-                                ? Center(
-                                    child: Icon(
-                                      Icons.person_rounded,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      size: 80,
-                                    ),
-                                  )
-                                : ClipOval(
-                                    child: Image.memory(
-                                      state.profileImage!,
-                                      fit: BoxFit.cover,
-                                      width: 160,
-                                      height: 160,
-                                    ),
+                        ),
+                        child: Container(
+                          height: 120,
+                          width: 120,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF1E1024),
+                          ),
+                          child: state.profileImage == null
+                              ? Center(
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    size: 60,
                                   ),
-                          ),
+                                )
+                              : ClipOval(
+                                  child: Image.memory(
+                                    state.profileImage!,
+                                    fit: BoxFit.cover,
+                                    width: 120,
+                                    height: 120,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Upload/Change button
                       TextButton.icon(
                         onPressed: _pickImage,
                         icon: Icon(
                           state.profileImage == null
                               ? Icons.add_a_photo_rounded
                               : Icons.edit_rounded,
-                          size: 18,
+                          size: 16,
                           color: DesignSystem.purpleAccent,
                         ),
                         label: Text(
@@ -277,49 +247,59 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                           style: const TextStyle(
                             color: DesignSystem.purpleAccent,
                             fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      // Bio Input
+                      const SizedBox(height: 12),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'BIO (OPTIONAL)',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 1.2,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 4),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(16),
+                          color: const Color(0xFF2D1B36),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.08),
+                            color: Colors.white.withValues(alpha: 0.1),
+                            width: 0.5,
                           ),
                         ),
                         child: TextFormField(
                           initialValue: state.bio,
-                          maxLength: 200,
-                          maxLines: 3,
+                          maxLength: 150,
+                          maxLines: 2,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 15,
+                            fontSize: 14,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Tell us a bit about yourself...',
                             hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.25),
+                              color: Colors.white.withValues(alpha: 0.2),
+                              fontSize: 13,
                             ),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.all(18),
+                            contentPadding: const EdgeInsets.all(12),
                             counterStyle: TextStyle(
                               color: Colors.white.withValues(alpha: 0.3),
+                              fontSize: 10,
                             ),
                           ),
                           onChanged: (val) {
@@ -327,13 +307,10 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                           },
                         ),
                       ),
-
-                      const SizedBox(height: 32),
-
-                      // Finish Button
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 48,
                         child: ElevatedButton(
                           onPressed: state.isSubmitting
                               ? null
@@ -344,21 +321,17 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                                           .skipProfile(context)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
-                            elevation: 0,
-                            shadowColor: DesignSystem.purpleAccent.withValues(
-                              alpha: 0.4,
-                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: state.isSubmitting
                               ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(
                                     color: Colors.white,
-                                    strokeWidth: 2.5,
+                                    strokeWidth: 2,
                                   ),
                                 )
                               : Text(
@@ -367,32 +340,31 @@ class _SignupStep4State extends ConsumerState<SignupStep4> {
                                       : 'Finish',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     color: Colors.white,
                                   ),
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () {
-                          ref
-                              .read(signupFormProvider.notifier)
-                              .skipProfile(context);
-                        },
-                        child: Text(
-                          'Skip for now',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 32),
+                TextButton(
+                  onPressed: () {
+                    ref.read(signupFormProvider.notifier).skipProfile(context);
+                  },
+                  child: Text(
+                    'Skip for now',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),

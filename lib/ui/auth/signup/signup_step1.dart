@@ -13,7 +13,7 @@ import '../../../services/supabase/supabase_service.dart';
   - Email
   - Password
   
-  Validates input before allowing navigation to Step 2.
+  Refined UI: Matches Login Screen aesthetics.
 */
 class SignupStep1 extends ConsumerStatefulWidget {
   const SignupStep1({super.key});
@@ -52,138 +52,203 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
     super.dispose();
   }
 
+  InputDecoration _fieldDecoration(String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+      hintStyle: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: Colors.white24),
+      filled: true,
+      fillColor: const Color(0xFF2D1B36), // Matches Login
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: DesignSystem.purpleAccent,
+          width: 1.5,
+        ),
+      ),
+      errorStyle: const TextStyle(
+        color: Colors.orangeAccent,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(signupFormProvider);
     final notifier = ref.read(signupFormProvider.notifier);
 
+    // Matches Login Screen Gradient
+    final bgGradient = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [DesignSystem.purpleDark, Color(0xFF240A28)],
+    );
+
     return Scaffold(
+      backgroundColor: DesignSystem.purpleDark,
+      resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(gradient: bgGradient),
         child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () =>
-                          Navigator.of(context).pushReplacementNamed('/login'),
-                    ),
-                    const Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 48), // Balance icon
-                        child: Center(
-                          child: Text(
-                            'Step 1 of 4',
-                            style: TextStyle(color: Colors.white70),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, bottom: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white70,
+                        ),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushReplacementNamed('/login'),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Step 1 of 4',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 28),
-                child: Text(
-                  'Create Your Account',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
+                      const SizedBox(width: 48),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
-
-              const SizedBox(height: 18),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                const SizedBox(height: 24),
+                Text(
+                  'Create Account',
+                  style: DesignSystem.theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: DesignSystem.cardDecoration().copyWith(
+                    borderRadius: BorderRadius.circular(28),
+                    color: const Color(0xFF1A0A1F).withValues(alpha: 0.85),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 1,
+                    ),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 6),
-                      _buildField(
-                        label: 'Username',
-                        hint: 'Choose a username',
-                        icon: Icons.alternate_email,
+                      _buildLabel('Username'),
+                      const SizedBox(height: 4),
+                      TextField(
                         controller: _username,
-                        errorText: state.usernameError,
+                        decoration: _fieldDecoration(
+                          'Choose a username',
+                          Icons.alternate_email,
+                        ).copyWith(errorText: state.usernameError),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                         onChanged: (v) => notifier.setField('username', v),
                       ),
-                      const SizedBox(height: 12),
-                      _buildField(
-                        label: 'Full Name',
-                        hint: 'Enter your full name',
-                        icon: Icons.person,
+                      const SizedBox(height: 10),
+                      _buildLabel('Full Name'),
+                      const SizedBox(height: 4),
+                      TextField(
                         controller: _fullName,
-                        errorText: state.fullNameError,
+                        decoration: _fieldDecoration(
+                          'Enter your full name',
+                          Icons.person_outline,
+                        ).copyWith(errorText: state.fullNameError),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
+                        textCapitalization: TextCapitalization.words,
                         onChanged: (v) => notifier.setField('fullName', v),
                       ),
-                      const SizedBox(height: 12),
-                      _buildField(
-                        label: 'Email',
-                        hint: 'Enter your email',
-                        icon: Icons.email,
+                      const SizedBox(height: 10),
+                      _buildLabel('Email'),
+                      const SizedBox(height: 4),
+                      TextField(
                         controller: _email,
-                        errorText: state.emailError,
+                        decoration: _fieldDecoration(
+                          'Enter your email',
+                          Icons.email_outlined,
+                        ).copyWith(errorText: state.emailError),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
+                        keyboardType: TextInputType.emailAddress,
                         onChanged: (v) => notifier.setField('email', v),
                       ),
-                      const SizedBox(height: 12),
-                      _buildField(
-                        label: 'Password',
-                        hint: 'Must be at least 8 characters',
-                        icon: Icons.lock,
-                        obscure: true,
+                      const SizedBox(height: 10),
+                      _buildLabel('Password'),
+                      const SizedBox(height: 4),
+                      _PasswordField(
                         controller: _password,
-                        errorText: state.passwordError,
-
+                        decoration: _fieldDecoration(
+                          'Min 8 characters',
+                          Icons.lock_outline,
+                        ),
                         onChanged: (v) {
                           notifier.setField('password', v);
-                          setState(() {}); // Rebuild for strength indicator
+                          setState(() {});
                         },
+                        errorText: state.passwordError,
                       ),
-                      const SizedBox(height: 8),
-                      // Password Strength Indicator
                       if (state.password.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(left: 4, bottom: 8),
+                          padding: const EdgeInsets.only(top: 4, bottom: 2),
                           child: _buildPasswordStrengthIndicator(
                             state.password,
                           ),
                         ),
+                      const SizedBox(height: 10),
+                      _buildLabel('Confirm Password'),
                       const SizedBox(height: 4),
-                      _buildField(
-                        label: 'Confirm Password',
-                        hint: 'Re-enter your password',
-                        icon: Icons.lock_outline,
-                        obscure: true,
+                      _PasswordField(
                         controller: _confirmPassword,
-                        errorText: state.confirmPasswordError,
+                        decoration: _fieldDecoration(
+                          'Re-enter password',
+                          Icons.lock_outline,
+                        ).copyWith(errorText: state.confirmPasswordError),
                         onChanged: (v) =>
                             notifier.setField('confirmPassword', v),
                       ),
-                      const SizedBox(height: 18),
-                      // Button always visible/enabled
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        height: 52,
+                        height: 50,
                         child: ElevatedButton(
                           onPressed: _isLoading
                               ? null
@@ -194,162 +259,121 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
                                       final service = ref.read(
                                         supabaseServiceProvider,
                                       );
-                                      // Note: Institutional ID is collected in Step 2.
-                                      // Step 1 collects Username, Email.
                                       final error = await service
                                           .checkUserUniqueness(
                                             username: state.username,
                                             email: state.email,
                                           );
-
+                                      if (!mounted) return;
                                       if (error != null) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(error),
-                                              backgroundColor: Colors.redAccent,
-                                            ),
-                                          );
-                                        }
-                                        return;
-                                      }
-
-                                      if (mounted) {
-                                        Navigator.of(
-                                          context,
-                                        ).pushReplacementNamed('/signup2');
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
                                           SnackBar(
-                                            content: Text(
-                                              'Verification failed: $e',
-                                            ),
+                                            content: Text(error),
+                                            backgroundColor: Colors.redAccent,
                                           ),
                                         );
+                                        return;
                                       }
+                                      Navigator.of(
+                                        context,
+                                      ).pushReplacementNamed('/signup2');
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Verification failed: $e',
+                                          ),
+                                        ),
+                                      );
                                     } finally {
-                                      if (mounted)
+                                      if (mounted) {
                                         setState(() => _isLoading = false);
+                                      }
                                     }
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: DesignSystem.purpleAccent,
+                            elevation: 4,
+                            shadowColor: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.4,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           child: _isLoading
                               ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
+                                  height: 20,
+                                  width: 20,
                                   child: CircularProgressIndicator(
                                     color: Colors.white,
                                     strokeWidth: 2,
                                   ),
                                 )
                               : const Text(
-                                  'Next',
-                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                  'Next Step',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () => Navigator.of(
-                          context,
-                        ).pushReplacementNamed('/login'),
-                        child: const Text(
-                          'Already have an account? Log In',
-                          style: TextStyle(color: Colors.white70),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 32),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushReplacementNamed('/login'),
+                  child: Text.rich(
+                    TextSpan(
+                      text: "Already have an account? ",
+                      style: const TextStyle(color: Colors.white54),
+                      children: [
+                        TextSpan(
+                          text: 'Log In',
+                          style: TextStyle(
+                            color: DesignSystem.purpleAccent.withValues(
+                              alpha: 0.9,
+                            ),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildField({
-    required String label,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-    TextEditingController? controller,
-    String? errorText,
-    ValueChanged<String>? onChanged,
-  }) {
-    controller ??= TextEditingController();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Color(0xFFD6C9E6))),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white10,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              Icon(icon, color: Colors.white54),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  obscureText: obscure,
-                  onChanged: onChanged,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: hint,
-                    hintStyle: const TextStyle(color: Colors.white38),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (errorText != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 4),
-            child: Text(
-              errorText,
-              style: const TextStyle(
-                color: Colors.orangeAccent,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-      ],
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: Colors.white70,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 
   Widget _buildPasswordStrengthIndicator(String password) {
     if (password.isEmpty) return const SizedBox.shrink();
 
-    // Password Strength Rules:
-    // 0: Weak - < 8 chars OR just letters/numbers
-    // 1: Medium - 8+ chars AND (letters + numbers)
-    // 2: Strong - 8+ chars AND (letters + numbers + special)
-    // 3: Secure - 12+ chars AND (letters + numbers + special)
-
     int strength = 0;
-
     bool hasLetters = password.contains(RegExp(r'[a-zA-Z]'));
     bool hasDigits = password.contains(RegExp(r'[0-9]'));
     bool hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
@@ -367,7 +391,7 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
     }
 
     final color = switch (strength) {
-      3 => const Color(0xFF00FF9D), // Secure Green
+      3 => const Color(0xFF00FF9D),
       2 => Colors.greenAccent,
       1 => Colors.orangeAccent,
       _ => Colors.redAccent,
@@ -390,36 +414,67 @@ class _SignupStep1State extends ConsumerState<SignupStep1> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 margin: const EdgeInsets.only(right: 6),
-                height: 6, // Thicker bar
+                height: 4,
                 decoration: BoxDecoration(
                   color: active ? color : Colors.white10,
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             );
           }),
         ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            // Optional: Helper text
-            if (strength < 2)
-              const Text(
-                'Use letters, numbers & symbols',
-                style: TextStyle(color: Colors.white38, fontSize: 11),
-              ),
-          ],
+        const SizedBox(height: 4),
+        Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _PasswordField extends StatefulWidget {
+  final InputDecoration decoration;
+  final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
+  final String? errorText;
+
+  const _PasswordField({
+    required this.decoration,
+    required this.controller,
+    this.onChanged,
+    this.errorText,
+  });
+
+  @override
+  State<_PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      style: const TextStyle(color: Colors.white, fontSize: 15),
+      onChanged: widget.onChanged,
+      decoration: widget.decoration.copyWith(
+        errorText: widget.errorText,
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white38,
+            size: 20,
+          ),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
+      ),
     );
   }
 }

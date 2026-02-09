@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/providers.dart'
-    hide conversationsProvider, notificationsProvider;
 import '../../state/profile_state.dart';
 import '../../state/notification_state.dart';
 import '../../theme/design_system.dart';
@@ -13,6 +11,7 @@ import '../widgets/post_card.dart';
 
 import '../widgets/announcement_carousel.dart';
 import '../widgets/featured_carousel.dart';
+import '../widgets/skeleton.dart';
 
 import '../../services/supabase/supabase_service.dart';
 import '../../messaging/providers/messaging_provider.dart';
@@ -62,25 +61,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: DesignSystem.purpleDark,
+      backgroundColor: DesignSystem.scaffoldBackground(context),
       body: Container(
-        decoration: const BoxDecoration(
-          // Subtle gradient background
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF2E0F3A),
-              DesignSystem.purpleDark,
-              Color(0xFF150518),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
+        decoration: BoxDecoration(
+          // Theme-aware gradient background
+          gradient: DesignSystem.backgroundGradient(context),
         ),
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: () async {
-              await ref.read(profileProvider.notifier).refresh();
+              await Future.wait([
+                ref.read(profileProvider.notifier).refresh(),
+                ref.read(personalizedFeedProvider.notifier).refresh(),
+              ]);
             },
             child: ListView(
               padding: const EdgeInsets.only(bottom: 96),
@@ -127,9 +120,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       final batchYear =
                           int.tryParse(profile.year) ?? DateTime.now().year;
 
-                      // Debug log for batch year
-                      print('🏠 Home screen using batch year: $batchYear');
-
                       return FutureBuilder<List<Map<String, dynamic>>>(
                         future: ref
                             .read(supabaseServiceProvider)
@@ -138,148 +128,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               batchYear: batchYear,
                             ),
                         builder: (context, snapshot) {
-                          // Loading state - Modern skeleton matching new card design
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return Container(
+                            return SizedBox(
                               height: 450,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
                               child: PageView.builder(
                                 controller: PageController(
                                   viewportFraction: 0.85,
                                 ),
                                 itemCount: 3,
-                                itemBuilder: (context, index) {
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF2E1A36),
-                                      borderRadius: BorderRadius.circular(24),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.4),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 8),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        // Full height shimmer placeholder
-                                        Positioned.fill(
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  Colors.white.withOpacity(
-                                                    0.03,
-                                                  ),
-                                                  Colors.white.withOpacity(
-                                                    0.06,
-                                                  ),
-                                                  Colors.white.withOpacity(
-                                                    0.03,
-                                                  ),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(24),
-                                            ),
-                                          ),
-                                        ),
-                                        // Badge placeholder (top left)
-                                        Positioned(
-                                          top: 16,
-                                          left: 16,
-                                          child: Container(
-                                            width: 80,
-                                            height: 28,
-                                            decoration: BoxDecoration(
-                                              color: Colors.black.withOpacity(
-                                                0.3,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                            ),
-                                          ),
-                                        ),
-                                        // Text overlay placeholder (bottom)
-                                        Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          bottom: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(20),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                colors: [
-                                                  Colors.transparent,
-                                                  Colors.black.withOpacity(0.6),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                    bottom: Radius.circular(24),
-                                                  ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // Title placeholder
-                                                Container(
-                                                  height: 20,
-                                                  width: 160,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white
-                                                        .withOpacity(0.15),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 10),
-                                                // Description placeholder
-                                                Row(
-                                                  children: [
-                                                    Container(
-                                                      width: 2,
-                                                      height: 14,
-                                                      color: Colors.white
-                                                          .withOpacity(0.2),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    Container(
-                                                      height: 14,
-                                                      width: 120,
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white
-                                                            .withOpacity(0.1),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                itemBuilder: (_, _) =>
+                                    const SkeletonFeaturedCard(),
                               ),
                             );
                           }
@@ -315,7 +174,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               .toList();
                           return FeaturedCarousel(
                             items: items,
-                            height: 450, // Updated height for portrait aspect
+                            height: 450,
                             onItemTap: (item) {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
@@ -386,9 +245,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           scrollDirection: Axis.horizontal,
                           itemCount: 2,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 16),
-                          itemBuilder: (_, __) => Container(
+                          separatorBuilder: (_, _) => const SizedBox(width: 16),
+                          itemBuilder: (_, _) => Container(
                             width: 300,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.05),
@@ -466,7 +324,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             'ANNOUNCEMENT',
                                             style: GoogleFonts.outfit(
                                               fontSize: 32,
-                                              fontWeight: FontWeight.w900,
+                                              fontWeight: FontWeight.w600,
                                               color: Colors.white,
                                               letterSpacing: 1.0,
                                             ),
@@ -517,12 +375,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             child: Text(
                                               description,
                                               style: GoogleFonts.outfit(
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.95,
-                                                ),
+                                                color: Colors.white70,
                                                 fontSize: 18,
                                                 height: 1.6,
-                                                fontWeight: FontWeight.w400,
+                                                fontWeight: FontWeight.w300,
                                               ),
                                             ),
                                           ),
@@ -640,10 +496,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         }).toList(),
                       );
                     },
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: DesignSystem.purpleAccent,
-                      ),
+                    loading: () => ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 2,
+                      itemBuilder: (_, _) => const SkeletonPostCard(),
                     ),
                     error: (e, st) => Center(
                       child: Text(
@@ -709,7 +566,7 @@ class _HomeAppBar extends ConsumerWidget {
                 style: GoogleFonts.outfit(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: DesignSystem.textPrimary(context),
                   letterSpacing: -0.5,
                 ),
               ),
@@ -725,7 +582,10 @@ class _HomeAppBar extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const DiscoverScreen()),
                   );
                 },
-                icon: const Icon(Icons.search, color: Colors.white),
+                icon: Icon(
+                  Icons.search,
+                  color: DesignSystem.textPrimary(context),
+                ),
                 splashRadius: 24,
                 tooltip: 'Discover Classmates',
               ),
@@ -735,9 +595,9 @@ class _HomeAppBar extends ConsumerWidget {
                   IconButton(
                     // Message
                     onPressed: () => Navigator.pushNamed(context, '/messages'),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.messenger_outline_rounded,
-                      color: Colors.white,
+                      color: DesignSystem.textPrimary(context),
                     ),
                     splashRadius: 24,
                     tooltip: 'Messages',
@@ -780,9 +640,9 @@ class _HomeAppBar extends ConsumerWidget {
                     // Notification
                     onPressed: () =>
                         Navigator.pushNamed(context, '/notifications'),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.notifications_outlined,
-                      color: Colors.white,
+                      color: DesignSystem.textPrimary(context),
                     ),
                     splashRadius: 24,
                     tooltip: 'Notifications',
@@ -839,142 +699,74 @@ class _HomeSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DesignSystem.purpleDark,
+      backgroundColor: DesignSystem.scaffoldBackground(context),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF2E0F3A),
-              DesignSystem.purpleDark,
-              Color(0xFF150518),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
+        decoration: BoxDecoration(
+          gradient: DesignSystem.backgroundGradient(context),
         ),
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.only(bottom: 96),
+            physics: const NeverScrollableScrollPhysics(),
             children: [
               const _HomeAppBar(),
               const SizedBox(height: 12),
               // Stories Skeleton
               SizedBox(
                 height: 110,
-                child: ListView.separated(
+                child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
-                  itemCount: 5,
-                  separatorBuilder: (_, __) => const SizedBox(width: 16),
-                  itemBuilder: (_, __) => const _SkeletonAvatar(),
+                  itemCount: 6,
+                  itemBuilder: (_, _) => const SkeletonStoryCard(),
                 ),
               ),
               const SizedBox(height: 24),
-              // Featured Skeleton
+              // Featured Header Skeleton
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
+                child: const SkeletonBase(
                   height: 24,
                   width: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(4)),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              // Featured Carousel Skeleton
+              SizedBox(
+                height: 450,
+                child: PageView.builder(
+                  controller: PageController(viewportFraction: 0.85),
+                  itemCount: 3,
+                  itemBuilder: (_, _) => const SkeletonFeaturedCard(),
                 ),
               ),
               const SizedBox(height: 32),
-              // Batch Skeleton
+              // Feed Header Skeleton
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
+                child: const SkeletonBase(
                   height: 24,
                   width: 150,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(4)),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                height: 150,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 3,
-                  separatorBuilder: (_, __) => const SizedBox(width: 16),
-                  itemBuilder: (_, __) => Container(
-                    width: 280,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
+              // Feed Skeleton
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: 2,
+                itemBuilder: (_, _) => const SkeletonPostCard(),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SkeletonAvatar extends StatefulWidget {
-  const _SkeletonAvatar();
-
-  @override
-  State<_SkeletonAvatar> createState() => _SkeletonAvatarState();
-}
-
-class _SkeletonAvatarState extends State<_SkeletonAvatar>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.3, end: 0.6).animate(_controller),
-      child: Column(
-        children: [
-          Container(
-            width: 74,
-            height: 74,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(width: 60, height: 10, color: Colors.white),
-        ],
       ),
     );
   }

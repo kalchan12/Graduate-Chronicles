@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:graduate_chronicles/services/supabase/supabase_service.dart';
+import 'package:graduate_chronicles/ui/widgets/toast_helper.dart';
 
 /*
   Admin: Yearbook Monitoring Screen.
@@ -152,21 +153,15 @@ class _YearbookMonitoringScreenState
                 await _loadBatches();
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Batch "$label" created successfully'),
-                      backgroundColor: Colors.green,
-                    ),
+                  ToastHelper.show(
+                    context,
+                    'Batch "$label" created successfully',
+                    type: ToastType.success,
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  ToastHelper.show(context, 'Error: $e', type: ToastType.error);
                 }
               }
             },
@@ -208,20 +203,16 @@ class _YearbookMonitoringScreenState
       await _loadPendingEntries();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isApproved ? 'Entry Approved' : 'Entry Rejected'),
-            backgroundColor: isApproved ? Colors.green : Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
+        ToastHelper.show(
+          context,
+          isApproved ? 'Entry Approved' : 'Entry Rejected',
+          type: isApproved ? ToastType.success : ToastType.error,
         );
       }
     } catch (e) {
       debugPrint('Error updating entry: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        ToastHelper.show(context, 'Error: $e', type: ToastType.error);
       }
     }
   }

@@ -18,9 +18,13 @@ class AnnouncementCarousel extends StatelessWidget {
         height: 180,
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+          ),
         ),
         child: Center(
           child: Column(
@@ -28,14 +32,16 @@ class AnnouncementCarousel extends StatelessWidget {
             children: [
               Icon(
                 Icons.campaign_outlined,
-                color: Colors.white.withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 size: 32,
               ),
               const SizedBox(height: 12),
               Text(
                 'No announcements yet',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14,
                 ),
               ),

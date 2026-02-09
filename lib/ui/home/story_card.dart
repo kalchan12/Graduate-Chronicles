@@ -71,15 +71,20 @@ class StoryCard extends ConsumerWidget {
                   ),
                   child: CircleAvatar(
                     radius: 32,
-                    backgroundColor: Colors.black,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     child: CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.grey[900],
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       backgroundImage: group.profilePicUrl != null
                           ? CachedNetworkImageProvider(group.profilePicUrl!)
                           : null,
                       child: group.profilePicUrl == null
-                          ? const Icon(Icons.person, color: Colors.white54)
+                          ? Icon(
+                              Icons.person,
+                              color: DesignSystem.textSubtle(context),
+                            )
                           : null,
                     ),
                   ),
@@ -113,7 +118,10 @@ class StoryCard extends ConsumerWidget {
             group.username.length > 10
                 ? '${group.username.substring(0, 9)}...'
                 : group.username,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: TextStyle(
+              color: DesignSystem.textSubtle(context),
+              fontSize: 12,
+            ),
           ),
         ],
       ),

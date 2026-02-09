@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:graduate_chronicles/services/supabase/supabase_service.dart';
+import 'package:graduate_chronicles/ui/widgets/toast_helper.dart';
 
 /*
   Admin: Reports Monitoring Screen.
@@ -61,18 +62,19 @@ class _ReportsMonitoringScreenState
       await service.banPost(postId);
       await _loadReportedPosts();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post banned and removed.'),
-            backgroundColor: Colors.redAccent,
-          ),
+        ToastHelper.show(
+          context,
+          'Post banned and removed.',
+          type: ToastType.error,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        ToastHelper.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error banning post: $e')));
+          'Error banning post: $e',
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -83,18 +85,15 @@ class _ReportsMonitoringScreenState
       await service.dismissReport(reportId);
       await _loadReportedPosts();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Report dismissed.'),
-            backgroundColor: Colors.grey,
-          ),
-        );
+        ToastHelper.show(context, 'Report dismissed.', type: ToastType.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        ToastHelper.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error dismissing report: $e')));
+          'Error dismissing report: $e',
+          type: ToastType.error,
+        );
       }
     }
   }

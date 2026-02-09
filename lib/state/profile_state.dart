@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
+import '../services/recommendation/gorse_service.dart';
 import 'auth_provider.dart';
 
 /*
@@ -144,6 +145,17 @@ class ProfileNotifier extends Notifier<UserProfile> {
         username: username,
         bio: bio,
         profileImage: imagePathForDb,
+      );
+
+      // Sync specific fields to Gorse if changed (ignoring image/bio for labels for now)
+      // Ideally we sync labels (interests) but they aren't part of updateProfile yet?
+      // UserProfile has interests. If we had an updateInterests method, we'd call it there.
+      // Current implementation of updateProfile only updates basic info.
+      // But we should at least ensure the user exists in Gorse.
+      GorseService.insertUser(
+        userId: currentUserId,
+        comment: '$name ($username)',
+        // No labels update here as updateProfile doesn't accept interests
       );
 
       // Re-fetch to confirm server state and get signed URLs if needed

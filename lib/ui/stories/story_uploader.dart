@@ -23,7 +23,16 @@ class StoryUploader {
         final file = File(result.files.single.path!);
         final extension = result.files.single.extension?.toLowerCase();
 
-        final isVideo = ['mp4', 'mov', 'avi'].contains(extension);
+        final isVideo = [
+          'mp4',
+          'mov',
+          'avi',
+          'mkv',
+          'webm',
+          'wmv',
+          'flv',
+          '3gp',
+        ].contains(extension);
         final mediaType = isVideo ? StoryMediaType.video : StoryMediaType.image;
 
         // Show loading toast

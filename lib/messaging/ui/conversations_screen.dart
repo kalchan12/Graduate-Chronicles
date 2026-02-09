@@ -54,15 +54,15 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
         bottom: 16,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF130B16).withValues(alpha: 0.9),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Messages',
             style: TextStyle(
-              color: Colors.white,
+              color: DesignSystem.textPrimary(context),
               fontSize: 28,
               fontWeight: FontWeight.bold,
               letterSpacing: -0.5,

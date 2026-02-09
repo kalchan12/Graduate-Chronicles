@@ -70,4 +70,74 @@ class DesignSystem {
       ),
     ],
   );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // THEME-AWARE HELPERS (call with BuildContext)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Returns theme-aware card surface color
+  static Color cardSurface(BuildContext context) =>
+      Theme.of(context).colorScheme.surface;
+
+  /// Returns theme-aware scaffold background
+  static Color scaffoldBackground(BuildContext context) =>
+      Theme.of(context).scaffoldBackgroundColor;
+
+  /// Returns theme-aware background gradient
+  static LinearGradient backgroundGradient(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2E0F3A), purpleDark, Color(0xFF150518)],
+            stops: [0.0, 0.5, 1.0],
+          )
+        : const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8F6FA), Color(0xFFEDE8F5), Color(0xFFF5F2FA)],
+            stops: [0.0, 0.5, 1.0],
+          );
+  }
+
+  /// Returns theme-aware shadow color
+  static Color shadowColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark
+        ? Colors.black.withValues(alpha: 0.45)
+        : Colors.black.withValues(alpha: 0.08);
+  }
+
+  /// Returns theme-aware text color (primary)
+  static Color textPrimary(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurface;
+
+  /// Returns theme-aware subtle text color
+  static Color textSubtle(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurfaceVariant;
+
+  /// Returns theme-aware modal/dialog surface color
+  static Color modalSurface(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0xFF1E1224) : Colors.white;
+  }
+
+  /// Returns theme-aware card decoration with proper shadows
+  static BoxDecoration themedCardDecoration(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(borderRadius),
+      boxShadow: [
+        BoxShadow(
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.45)
+              : purpleAccent.withValues(alpha: 0.08),
+          blurRadius: isDark ? 18 : 12,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
 }

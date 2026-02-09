@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:mime/mime.dart';
 
 /*
   Supabase Service.
@@ -114,7 +115,7 @@ class SupabaseService {
     Creates a new user in Supabase Auth and then creates a corresponding
     record in the public 'users' table using the STRICT final schema.
   */
-  Future<void> signUp({
+  Future<String> signUp({
     required String email,
     required String password,
     required String username,
@@ -153,6 +154,8 @@ class SupabaseService {
         'school': school,
         'interests': interests,
       });
+
+      return userId;
     } catch (e) {
       print('DB Sync error: $e');
       throw Exception('Profile creation failed: $e');
@@ -745,6 +748,48 @@ class SupabaseService {
     final todayStr =
         "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
+    // Collection to gather creator Auth IDs to fetch their profiles
+    final Set<String> creatorAuthIds = {};
+
+    for (final item in res) {
+      if (item['created_by'] != null) {
+        creatorAuthIds.add(item['created_by'] as String);
+      }
+    }
+
+    // Batch fetch creator profiles
+    Map<String, Map<String, dynamic>> creatorProfiles = {};
+    if (creatorAuthIds.isNotEmpty) {
+      try {
+        final profilesData = await _client
+            .from('users')
+            .select('auth_user_id, full_name, username, user_id')
+            .inFilter('auth_user_id', creatorAuthIds.toList());
+
+        for (final p in profilesData) {
+          final authId = p['auth_user_id'] as String;
+          creatorProfiles[authId] = p;
+        }
+
+        // Also fetch avatars (requires internal user_id)
+        final userIds = profilesData
+            .map((e) => e['user_id'] as String)
+            .toList();
+        final avatars = await fetchProfilePicturesForUsers(userIds);
+
+        // Merge avatar into profile data
+        for (final p in profilesData) {
+          final uId = p['user_id'] as String;
+          if (avatars.containsKey(uId)) {
+            creatorProfiles[p['auth_user_id']]!['profile_picture'] =
+                avatars[uId];
+          }
+        }
+      } catch (e) {
+        print('Error fetching creator profiles: $e');
+      }
+    }
+
     final List<Map<String, dynamic>> enriched = [];
 
     for (final item in res) {
@@ -762,11 +807,16 @@ class SupabaseService {
         continue;
       }
 
+      // Attach creator info
+      final creatorAuthId = item['created_by'] as String?;
+      final creator = creatorProfiles[creatorAuthId];
+
       enriched.add({
         ...item,
         'going_count': goingCount,
         'is_joined': isJoined,
         'reunion_participants': null, // Remove raw list to keep clean
+        'creator': creator, // Add creator object
       });
     }
 
@@ -866,17 +916,24 @@ class SupabaseService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    // Simple file validation
+    // File validation (Increased to 50MB for video support)
     final length = await file.length();
-    if (length > 15 * 1024 * 1024) throw Exception('File size exceeds 15MB');
+    if (length > 50 * 1024 * 1024) throw Exception('File size exceeds 50MB');
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final ext = file.path.split('.').last;
     final path = '$userId/story_$timestamp.$ext';
 
+    // Lookup mime type
+    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+
     await _client.storage
         .from('stories')
-        .upload(path, file, fileOptions: const FileOptions(upsert: true));
+        .upload(
+          path,
+          file,
+          fileOptions: FileOptions(upsert: true, contentType: mimeType),
+        );
 
     final url = _client.storage.from('stories').getPublicUrl(path);
     return url;
@@ -919,6 +976,15 @@ class SupabaseService {
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<void> deleteStory(String storyId) async {
+    final publicUserId = await _getPublicUserId();
+    await _client
+        .from('stories')
+        .delete()
+        .eq('id', storyId)
+        .eq('user_id', publicUserId);
   }
 
   // --- Yearbook Feature ---
@@ -966,13 +1032,20 @@ class SupabaseService {
         query = query.eq('yearbook_batches.batch_year', batchYear);
       }
 
+      // Fetch more than needed to ensure good randomization client-side
+      final fetchLimit = limit * 3;
+
       final res = await query
           .order('created_at', ascending: false)
-          .limit(limit);
+          .limit(fetchLimit);
 
-      print('🔍 Featured results count: ${res.length}');
+      print('🔍 Featured results raw count: ${res.length}');
 
-      return res.map((e) {
+      // Client-side shuffle
+      final List<dynamic> shuffledRes = List.from(res)..shuffle();
+      final selectedRes = shuffledRes.take(limit).toList();
+
+      return selectedRes.map((e) {
         final data = e as Map<String, dynamic>;
         final user = data['users'] as Map<String, dynamic>?;
         final batch = data['yearbook_batches'] as Map<String, dynamic>?;
@@ -1377,6 +1450,42 @@ class SupabaseService {
     }
 
     return {'views': views, 'likes': likes, 'isLiked': isLiked};
+  }
+
+  /// Report a post
+  Future<void> reportPost(
+    String postId,
+    String reason,
+    String reportedUserId,
+  ) async {
+    final publicUserId = await getCurrentUserId();
+    if (publicUserId == null) throw Exception('Not authenticated');
+
+    // 1. Check if already reported by this user to avoid duplicates (optional but good)
+    final existing = await _client
+        .from('post_reports')
+        .select()
+        .eq('post_id', postId)
+        .eq('reporter_id', publicUserId)
+        .maybeSingle();
+
+    if (existing != null) {
+      // Already reported, simpler to just return success than error
+      return;
+    }
+
+    // 2. Insert Report
+    await _client.from('post_reports').insert({
+      'post_id': postId,
+      'reporter_id': publicUserId,
+      'reason': reason,
+      'post_owner_id': reportedUserId, // schema name is post_owner_id
+      'status': 'pending',
+    });
+
+    // 3. (Optional) Auto-hide for this user?
+    // The UI handles removal from feed.
+    // We could insert into 'hidden_posts' table if we had one.
   }
 
   Future<void> togglePortfolioLike(String portfolioId) async {
@@ -1858,32 +1967,6 @@ class SupabaseService {
 
   // ... at the bottom ...
 
-  /// Report a post
-  Future<void> reportPost(
-    String postId,
-    String reason,
-    String postOwnerId,
-  ) async {
-    final authId = _client.auth.currentUser?.id;
-    if (authId == null) throw Exception('Not authenticated');
-
-    // Lookup real user_id
-    final userRow = await _client
-        .from('users')
-        .select('user_id')
-        .eq('auth_user_id', authId)
-        .single();
-    final userId = userRow['user_id'] as String;
-
-    await _client.from('post_reports').insert({
-      'post_id': postId,
-      'reporter_id': userId,
-      'post_owner_id': postOwnerId, // Added
-      'reason': reason,
-      'status': 'pending', // Explicitly set
-    });
-  }
-
   /// Respond to a connection request (Accept/Deny)
   Future<void> respondToConnectionRequest(
     String requestId,
@@ -2048,55 +2131,35 @@ class SupabaseService {
           .single();
       final myRole = myProfile['role'] as String? ?? 'student';
 
-      // 2. Determine target roles
-      // If I am student/graduate/alumni -> I look for Staff or specific Alumni mentors
-      // If I am Staff -> I look for Students/Graduates to mentor?
-      // Simplified Logic:
-      // - Students/Graduates see: Staff, Alumni (who are willing to mentor)
-      // - Staff/Alumni see: Students, Graduates (who need mentoring)
-
+      // 2. Determine target roles based on whether user is Mentor-type or Mentee-type
+      // Staff, Faculty, Alumni are mentor-types → show potential mentees
+      // Students, Graduates are mentee-types → show potential mentors
       List<String> targetRoles;
-      // Normalize role to lowercase for check
-      final normalizedRole = myRole.toLowerCase();
+      final lowerRole = myRole.toLowerCase();
 
-      if (['student', 'graduate', 'alumni'].contains(normalizedRole)) {
-        // Students/Grads see Staff/Faculty
-        targetRoles = [
-          'staff',
-          'Staff',
-          'faculty',
-          'Faculty',
-          'alumni',
-          'Alumni',
-        ];
-        // If I am alumni, I might want to see students? User said "Staff/Alumni see Students".
-        // Let's refine based on user prompt: "If student -> load staff, alumni".
-        if (normalizedRole == 'alumni') {
-          // Alumni can apparently act as mentors OR mentees depending on context?
-          // Prompt said: "If staff OR alumni -> Load students".
-          targetRoles = ['student', 'Student', 'graduate', 'Graduate'];
-        }
+      if (['staff', 'faculty', 'alumni'].contains(lowerRole)) {
+        // Mentor-types see potential mentees
+        targetRoles = ['student', 'graduate'];
       } else {
-        // Staff/Alumni (caught above if alumni, so this is mostly Staff)
-        targetRoles = ['student', 'Student', 'graduate', 'Graduate'];
+        // Mentee-types (students/graduates) see potential mentors
+        targetRoles = ['staff', 'faculty', 'alumni'];
       }
 
-      // 3. Fetch candidates
+      // 3. Fetch all users except self
       final response = await _client
           .from('users')
-          .select(
-            'user_id, full_name, role, auth_user_id',
-          ) // Removed job_title, company
-          .filter(
-            'role',
-            'in',
-            targetRoles,
-          ) // Filter by calculated target roles
-          .neq('auth_user_id', myId); // Exclude self
+          .select('user_id, full_name, role, auth_user_id')
+          .neq('auth_user_id', myId);
+
+      // 4. Filter with case-insensitive role matching
+      final filteredResponse = (response as List).where((user) {
+        final userRole = (user['role'] as String? ?? '').toLowerCase();
+        return targetRoles.contains(userRole);
+      }).toList();
 
       final List<Map<String, dynamic>> candidates = [];
 
-      for (var user in response) {
+      for (var user in filteredResponse) {
         final userId = user['user_id'] as String;
 
         // Debug print
@@ -2179,6 +2242,7 @@ class SupabaseService {
       'mentee_id': menteeId,
       'mentor_id': mentorId,
       'status': 'pending',
+      'initiator_id': myId,
     });
   }
 

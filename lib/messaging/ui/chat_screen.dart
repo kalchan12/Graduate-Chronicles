@@ -137,7 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       Text(
                         'Failed to load messages',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: DesignSystem.textSubtle(context),
                         ),
                       ),
                     ],
@@ -167,13 +167,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF1B141E),
-            const Color(0xFF1B141E).withValues(alpha: 0.95),
+            Theme.of(context).colorScheme.surface,
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: DesignSystem.shadowColor(context),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -187,12 +187,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_ios_new,
-                color: Colors.white,
+                color: DesignSystem.textPrimary(context),
                 size: 20,
               ),
             ),
@@ -220,7 +220,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     height: 44,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF2B1F2E),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       border: Border.all(
                         color: DesignSystem.purpleAccent.withValues(alpha: 0.4),
                         width: 1.5,
@@ -239,15 +241,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ? Image.network(
                               widget.participantAvatar!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
+                              errorBuilder: (_, __, ___) => Icon(
                                 Icons.person,
-                                color: Colors.white54,
+                                color: DesignSystem.textSubtle(context),
                                 size: 24,
                               ),
                             )
-                          : const Icon(
+                          : Icon(
                               Icons.person,
-                              color: Colors.white54,
+                              color: DesignSystem.textSubtle(context),
                               size: 24,
                             ),
                     ),
@@ -262,35 +264,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       children: [
                         Text(
                           widget.participantName,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: DesignSystem.textPrimary(context),
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF00E676),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Online',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
+
+                        // Removed online status indicator as it was hardcoded false positive
+                        // TODO: Implement real presence
                       ],
                     ),
                   ),
@@ -325,7 +309,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Text(
               'Say Hello!',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: DesignSystem.textPrimary(context),
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -334,7 +318,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Text(
               'Start the conversation with ${widget.participantName}',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: DesignSystem.textSubtle(context),
                 fontSize: 14,
               ),
             ),
@@ -369,7 +353,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 child: Text(
                   _formatDate(message.createdAt),
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: DesignSystem.textSubtle(context),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -417,12 +401,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             width: 48,
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.add_rounded,
-              color: Colors.white70,
+              color: DesignSystem.textSubtle(context),
               size: 24,
             ),
           ),
@@ -431,9 +415,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.2),
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -441,11 +429,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      style: TextStyle(
+                        color: DesignSystem.textPrimary(context),
+                        fontSize: 15,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Message...',
                         hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: DesignSystem.textSubtle(context),
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(

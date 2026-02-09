@@ -63,7 +63,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
   Future<void> _launchUrl(String urlString) async {
     final uri = Uri.parse(urlString);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -278,6 +278,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                               child: _buildAvatar(
                                 portfolio.profileImageUrl,
                                 isOwner,
+                                (portfolio.ownerName ?? userProfile.name),
                               ),
                             ),
                           ),
@@ -479,7 +480,18 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     return degree;
   }
 
-  Widget _buildAvatar(String? imageUrl, bool isOwner) {
+  Widget _buildAvatar(String? imageUrl, bool isOwner, String name) {
+    // Get initials from name
+    String initials = 'U';
+    if (name.isNotEmpty) {
+      final parts = name.trim().split(' ');
+      if (parts.length >= 2) {
+        initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      } else {
+        initials = parts[0][0].toUpperCase();
+      }
+    }
+
     return GestureDetector(
       onTap: isOwner ? () => _pickAndUploadImage('profile') : null,
       child: Stack(
@@ -501,16 +513,39 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                 ),
               ],
             ),
-            child: CircleAvatar(
-              radius: 54,
-              backgroundColor: const Color(0xFFC7A069),
-              backgroundImage: imageUrl != null
-                  ? CachedNetworkImageProvider(imageUrl)
-                  : null,
-              child: imageUrl == null
-                  ? const Icon(Icons.person, size: 64, color: Colors.white24)
-                  : null,
-            ),
+            child: imageUrl != null
+                ? CircleAvatar(
+                    radius: 54,
+                    backgroundColor: const Color(0xFF2A2A35),
+                    backgroundImage: CachedNetworkImageProvider(imageUrl),
+                  )
+                : Container(
+                    width: 108,
+                    height: 108,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF6366F1),
+                          Color(0xFF8B5CF6),
+                          Color(0xFFA855F7),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -728,6 +763,7 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
               item['title'] ?? 'Achievement',
               item['description'] ?? '',
               imageUrl: item['cover_image_url'],
+              downloadUrl: item['evidence_url'],
             ),
           );
         },
@@ -740,11 +776,12 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
     String title,
     String subtitle, {
     String? imageUrl,
+    String? downloadUrl,
   }) {
     return _GlassCard(
       width: 280,
       padding: const EdgeInsets.all(18),
-      onTap: () {}, // Optional: Add detail view later
+      onTap: downloadUrl != null ? () => _launchUrl(downloadUrl) : null,
       child: Row(
         children: [
           // Image/Icon with glow effect
@@ -815,16 +852,16 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
               ],
             ),
           ),
-          // Arrow indicator
+          // Download icon indicator
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: DesignSystem.purpleAccent.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.white.withValues(alpha: 0.4),
+              Icons.download_rounded,
+              color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
               size: 18,
             ),
           ),
@@ -905,13 +942,13 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    Icons.arrow_outward_rounded,
+                    Icons.download_rounded,
                     size: 16,
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: DesignSystem.purpleAccent.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -946,54 +983,81 @@ class _PortfolioHubScreenState extends ConsumerState<PortfolioHubScreen> {
                   _launchUrl(item['certificate_url']);
                 }
               },
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      gradient: !hasImage
-                          ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                const Color(0xFF81C784).withValues(alpha: 0.2),
-                                const Color(0xFF81C784).withValues(alpha: 0.05),
-                              ],
-                            )
-                          : null,
-                      borderRadius: BorderRadius.circular(14),
-                      image: hasImage
-                          ? DecorationImage(
-                              image: CachedNetworkImageProvider(
-                                item['certificate_url'],
-                              ),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                      border: Border.all(
-                        color: const Color(0xFF81C784).withValues(alpha: 0.25),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: !hasImage
+                              ? LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(
+                                      0xFF81C784,
+                                    ).withValues(alpha: 0.2),
+                                    const Color(
+                                      0xFF81C784,
+                                    ).withValues(alpha: 0.05),
+                                  ],
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(14),
+                          image: hasImage
+                              ? DecorationImage(
+                                  image: CachedNetworkImageProvider(
+                                    item['certificate_url'],
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          border: Border.all(
+                            color: const Color(
+                              0xFF81C784,
+                            ).withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: !hasImage
+                            ? const Icon(
+                                Icons.workspace_premium_rounded,
+                                color: Color(0xFF81C784),
+                                size: 26,
+                              )
+                            : null,
                       ),
-                    ),
-                    child: !hasImage
-                        ? const Icon(
-                            Icons.workspace_premium_rounded,
-                            color: Color(0xFF81C784),
-                            size: 26,
-                          )
-                        : null,
+                      const SizedBox(height: 12),
+                      Text(
+                        item['certificate_name'] ?? 'Certificate',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    item['certificate_name'] ?? 'Certificate',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                  // Download indicator badge
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF81C784).withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.download_rounded,
+                        size: 12,
+                        color: const Color(0xFF81C784).withValues(alpha: 0.9),
+                      ),
                     ),
                   ),
                 ],

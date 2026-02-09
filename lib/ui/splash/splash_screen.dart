@@ -73,11 +73,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _mainCtrl.forward();
 
-    Future.delayed(_splashDuration, () async {
+    Future.delayed(_splashDuration).then((_) async {
       if (!mounted) return;
 
       // Restore Session Logic
-      await ref.read(authProvider.notifier).restoreSession();
+      try {
+        await ref.read(authProvider.notifier).restoreSession();
+      } catch (e) {
+        debugPrint('Splash restore session error: $e');
+      }
 
       if (!mounted) return;
 
@@ -90,21 +94,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         // Check if onboarding has been completed before
         final onboardingCompleted = await OnboardingStorage.isCompleted();
 
-        if (onboardingCompleted) {
-          // Skip onboarding, go directly to login
-          Navigator.of(context).pushReplacementNamed('/login');
-        } else {
-          // Show onboarding for first-time users
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (context, a1, a2) => const OnboardingScreen(),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-              transitionDuration: const Duration(milliseconds: 800),
-            ),
-          );
+        if (mounted) {
+          if (onboardingCompleted) {
+            // Skip onboarding, go directly to login
+            Navigator.of(context).pushReplacementNamed('/login');
+          } else {
+            // Show onboarding for first-time users
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (context, a1, a2) => const OnboardingScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                transitionDuration: const Duration(milliseconds: 800),
+              ),
+            );
+          }
         }
       }
     });
@@ -144,32 +150,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   child: ScaleTransition(
                     scale: _logoScaleAnim,
                     child: Container(
-                      width: 160,
-                      height: 160,
-                      padding: const EdgeInsets.all(24),
+                      width: 200, // Increased for better balance
+                      height: 200,
+                      padding: const EdgeInsets.all(
+                        12,
+                      ), // Keep logo large but balanced
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
+                        color: Colors.white, // Keep white bg for contrast?
                         boxShadow: [
                           BoxShadow(
                             color: DesignSystem.purpleAccent.withValues(
                               alpha: 0.5,
                             ),
-                            blurRadius: 40,
-                            spreadRadius: 5,
+                            blurRadius: 50,
+                            spreadRadius: 4,
                           ),
                         ],
                       ),
                       child: ClipOval(
                         child: Image.asset(
-                          'assets/images/GC_logo.png',
+                          'assets/images/splashlogo.png',
                           fit: BoxFit.contain,
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 48),
 
                 // Animated Text
                 SlideTransition(
@@ -181,7 +189,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         Text(
                           'GRADUATE',
                           style: GoogleFonts.outfit(
-                            fontSize: 32,
+                            fontSize: 36,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
                             letterSpacing: 4.0,
@@ -191,11 +199,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         Text(
                           'CHRONICLES',
                           style: GoogleFonts.outfit(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.w300,
                             color: DesignSystem.purpleAccent,
                             letterSpacing: 8.0,
                             height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 24,
+                        ), // "Place this text a little bit lower"
+                        Text(
+                          'ASTU GC 2026',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(
+                              0xFFD6C9E6,
+                            ), // Light purple/lavender
+                            letterSpacing: 2.0,
                           ),
                         ),
                       ],

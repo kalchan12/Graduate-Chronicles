@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase/supabase_service.dart';
+import '../services/recommendation/gorse_service.dart';
 
 class SignupState {
   final int currentStep;
@@ -369,7 +370,7 @@ class SignupNotifier extends Notifier<SignupState> {
 
     try {
       final supabase = ref.read(supabaseServiceProvider);
-      await supabase.signUp(
+      final newUserId = await supabase.signUp(
         email: state.email,
         password: state.password,
         username: state.username,
@@ -384,6 +385,9 @@ class SignupNotifier extends Notifier<SignupState> {
         ), // Fixed duplicate
         interests: state.interests,
       );
+
+      // Register with Gorse
+      GorseService.insertUser(userId: newUserId, labels: state.interests);
 
       // DO NOT Reset draft yet - we need it for Step 4
       // state = const SignupState();

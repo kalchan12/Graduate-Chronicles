@@ -102,12 +102,8 @@ class LoginNotifier extends Notifier<LoginState> {
       }
     } catch (e) {
       state = state.copy(isSubmitting: false);
-      // We could set a global error in authProvider or just show snackbar here?
-      // For now, let's update global auth state's error message if possible or just log.
-      // Better yet, update authProvider to show error.
-      ref
-          .read(authProvider.notifier)
-          .setError(e.toString().replaceAll('Exception: ', ''));
+      // Generic error for security
+      ref.read(authProvider.notifier).setError('Invalid credentials');
     }
   }
 

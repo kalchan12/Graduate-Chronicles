@@ -262,7 +262,7 @@ class _ReunionListScreenState extends ConsumerState<ReunionListScreen> {
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
-                      height: 220,
+                      height: 280, // Increased height for larger cards
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -540,42 +540,48 @@ class _FeaturedEventCard extends StatelessWidget {
     final goingCount = event['going_count'] ?? 0;
     final isJoined = event['is_joined'] ?? false;
 
+    // Creator Info
+    final creator = event['creator'] as Map<String, dynamic>?;
+    final creatorName = creator?['full_name'] ?? 'Organizer';
+    final creatorImage = creator?['profile_picture'] as String?;
+
     return Container(
-      width: 280,
-      padding: const EdgeInsets.all(20),
+      width: 340, // Increased width (nearly full screen width usually)
+      padding: const EdgeInsets.all(24), // Increased padding
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         gradient: LinearGradient(
-          colors: [color, color.withValues(alpha: 0.5)],
+          colors: [color, color.withValues(alpha: 0.6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: Colors.white.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header: Date & Creator
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 12,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.1),
                   ),
@@ -584,32 +590,65 @@ class _FeaturedEventCard extends StatelessWidget {
                   date,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              if (isJoined)
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+
+              // Creator Avatar
+              Row(
+                children: [
+                  Text(
+                    'by $creatorName',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 12,
+                    ),
                   ),
-                  child: Icon(Icons.check, size: 12, color: color),
-                ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                      image: creatorImage != null
+                          ? DecorationImage(
+                              image: NetworkImage(creatorImage),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                    child: creatorImage == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 18,
+                            color: Colors.white70,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
             ],
           ),
+
           const Spacer(),
+
+          // Title
           Text(
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontSize: 24, // Larger font
+              fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
+              height: 1.1,
               shadows: [
                 Shadow(
                   color: Colors.black45,
@@ -619,33 +658,42 @@ class _FeaturedEventCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+
+          // Location
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.location_on,
-                  size: 12,
-                  color: Colors.white70,
+                  Icons.location_on_rounded,
+                  size: 14,
+                  color: Colors.white,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   location,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 20),
+
+          // Bottom Actions
           Row(
             children: [
               Expanded(
@@ -653,22 +701,26 @@ class _FeaturedEventCard extends StatelessWidget {
                   onTap: onShowParticipants,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 12,
+                      vertical: 10,
+                      horizontal: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.black.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.people, size: 14, color: Colors.white),
+                        const Icon(
+                          Icons.people_alt_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           '$goingCount Going',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -680,24 +732,33 @@ class _FeaturedEventCard extends StatelessWidget {
               const SizedBox(width: 12),
               InkWell(
                 onTap: isJoined ? onLeave : onJoin,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                    horizontal: 20,
+                    vertical: 11,
                   ),
                   decoration: BoxDecoration(
                     color: isJoined
                         ? Colors.white.withValues(alpha: 0.2)
                         : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: !isJoined
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [],
                   ),
                   child: Text(
-                    isJoined ? 'Leave' : 'Join',
+                    isJoined ? 'Joined' : 'Join',
                     style: TextStyle(
                       color: isJoined ? Colors.white : color,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 14,
                     ),
                   ),
                 ),

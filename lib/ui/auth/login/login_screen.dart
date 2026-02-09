@@ -39,174 +39,111 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final bgGradient = const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF2E0F3B), DesignSystem.purpleDark],
+      colors: [
+        DesignSystem.purpleDark,
+        Color(0xFF240A28), // Deep purple variant
+      ],
     );
 
     InputDecoration fieldDecoration(String hint) => InputDecoration(
       hintText: hint,
       hintStyle: Theme.of(
         context,
-      ).textTheme.bodyMedium?.copyWith(color: Colors.white38),
+      ).textTheme.bodyMedium?.copyWith(color: Colors.white24),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.05),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      fillColor: const Color(0xFF2D1B36), // Slightly lighter than bg
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
+      ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(
           color: DesignSystem.purpleAccent,
-          width: 1,
+          width: 1.5,
         ),
       ),
     );
 
     return Scaffold(
       backgroundColor: DesignSystem.purpleDark,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(gradient: bgGradient),
-              child: SafeArea(
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(gradient: bgGradient),
+        child: SafeArea(
+          child: CustomScrollView(
+            physics: const ClampingScrollPhysics(),
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 8),
-
+                      const SizedBox(height: 24), // Top padding
                       // Logo
                       Hero(
                         tag: 'app_logo',
                         child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: DesignSystem.purpleAccent.withValues(
-                                  alpha: 0.2,
-                                ),
-                                blurRadius: 24,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/images/GC_logo.png',
-                              fit: BoxFit.contain,
-                            ),
+                          height: 120,
+                          alignment: Alignment.center,
+                          child: Image.asset(
+                            'assets/images/login icon.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 16),
 
                       Text(
-                        'Graduate Chronicles',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleLarge?.copyWith(fontSize: 26),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Your University Story, Reimagined.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFD6C9E6),
-                        ),
+                        'Welcome to ASTU GC',
+                        style: DesignSystem.theme.textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
+                      // Login Form Card
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(24),
                         decoration: DesignSystem.cardDecoration().copyWith(
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(32),
                           color: const Color(
-                            0xFF1E0A25,
-                          ), // Slightly lighter than bg
+                            0xFF1A0A1F,
+                          ).withValues(alpha: 0.85),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Tab row
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.black26,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: DesignSystem.purpleAccent,
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.2,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Center(
-                                        child: Text(
-                                          'Login',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(10),
-                                      onTap: () => Navigator.of(
-                                        context,
-                                      ).pushReplacementNamed('/signup1'),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 10,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            'Sign Up',
-                                            style: TextStyle(
-                                              color: Colors.white54,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(height: 18),
-
                             // User ID Field
                             Text(
                               'User ID',
@@ -238,7 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               ),
 
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
 
                             // Password Field
                             Text(
@@ -304,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                             const SizedBox(height: 10),
 
-                            // Action Links
+                            // Action Links Row
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -335,7 +272,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     'Forgot Password?',
                                     style: TextStyle(
                                       color: DesignSystem.purpleAccent
-                                          .withValues(alpha: 0.8),
+                                          .withValues(alpha: 0.9),
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -394,11 +331,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ),
                               ),
                             ),
+
+                            const SizedBox(height: 16),
+
+                            // Sign Up CTA
+                            Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    "Don't have an account? ",
+                                    style: TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => Navigator.of(
+                                      context,
+                                    ).pushReplacementNamed('/signup1'),
+                                    child: Text(
+                                      'Sign up',
+                                      style: TextStyle(
+                                        color: DesignSystem.purpleAccent,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 32),
 
                       // Footer
                       Text.rich(
@@ -406,7 +374,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           text: 'By continuing, you agree to our ',
                           style: const TextStyle(
                             color: Colors.white38,
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                           children: [
                             TextSpan(
@@ -435,9 +403,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       ),
     );
   }

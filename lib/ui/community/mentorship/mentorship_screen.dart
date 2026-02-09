@@ -159,6 +159,36 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
     }
   }
 
+  Future<void> _handleAcceptMentorship(
+    String mentorshipId,
+    String userName,
+  ) async {
+    try {
+      await ref
+          .read(supabaseServiceProvider)
+          .updateMentorshipStatus(mentorshipId, 'accepted');
+      _showToast('Accepted mentorship with $userName');
+      _loadData(); // Refresh to update UI
+    } catch (e) {
+      _showToast('Failed to accept: $e');
+    }
+  }
+
+  Future<void> _handleRejectMentorship(
+    String mentorshipId,
+    String userName,
+  ) async {
+    try {
+      await ref
+          .read(supabaseServiceProvider)
+          .updateMentorshipStatus(mentorshipId, 'rejected');
+      _showToast('Rejected mentorship request');
+      _loadData(); // Refresh to update UI
+    } catch (e) {
+      _showToast('Failed to reject: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Current user Auth ID
@@ -316,6 +346,16 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
                             final otherId = isMeMentee
                                 ? request['mentor_id']
                                 : request['mentee_id'];
+                            final mentorshipId = request['id'] as String;
+                            final initiatorId =
+                                request['initiator_id'] as String?;
+
+                            // Determine if I should see the Accept/Reject buttons
+                            // If initiator_id exists, I see buttons only if I am the Recipient (not initiator)
+                            // Fallback: Assume Student -> Mentor request (so Mentor sees buttons)
+                            final bool amITheRecipient = initiatorId != null
+                                ? myId != initiatorId
+                                : !isMeMentee;
 
                             final profile = _userProfiles[otherId] ?? {};
 
@@ -326,10 +366,20 @@ class _MentorshipScreenState extends ConsumerState<MentorshipScreen> {
                               otherUserId: otherId,
                               otherName: profile['full_name'],
                               otherAvatar: profile['avatar_url'],
+                              mentorshipId: mentorshipId,
+                              amITheRecipient: amITheRecipient,
                               onMessage: () => _openChat(
                                 otherId,
                                 profile['full_name'] ?? 'User',
                                 profile['avatar_url'],
+                              ),
+                              onAccept: () => _handleAcceptMentorship(
+                                mentorshipId,
+                                profile['full_name'] ?? 'User',
+                              ),
+                              onReject: () => _handleRejectMentorship(
+                                mentorshipId,
+                                profile['full_name'] ?? 'User',
                               ),
                             );
                           }),
@@ -443,7 +493,11 @@ class _ActiveMentorshipCard extends ConsumerWidget {
   final String otherUserId;
   final String? otherName;
   final String? otherAvatar;
+  final String mentorshipId;
+  final bool amITheRecipient;
   final VoidCallback onMessage;
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
 
   const _ActiveMentorshipCard({
     required this.status,
@@ -452,7 +506,11 @@ class _ActiveMentorshipCard extends ConsumerWidget {
     required this.otherUserId,
     this.otherName,
     this.otherAvatar,
+    required this.mentorshipId,
+    required this.amITheRecipient,
     required this.onMessage,
+    this.onAccept,
+    this.onReject,
   });
 
   @override
@@ -460,6 +518,9 @@ class _ActiveMentorshipCard extends ConsumerWidget {
     final statusColor = status == 'accepted'
         ? Colors.green
         : (status == 'rejected' ? Colors.red : Colors.amber);
+
+    // Show accept/reject buttons if it is a pending request sent TO me
+    final showActionButtons = status == 'pending' && amITheRecipient;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -482,39 +543,59 @@ class _ActiveMentorshipCard extends ConsumerWidget {
                 : null,
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                otherName ??
-                    (isMeMentee ? 'Mentorship Request' : 'Incoming Request'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    status.toUpperCase(),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  otherName ??
+                      (isMeMentee ? 'Mentorship Request' : 'Incoming Request'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
-                  if (otherName == null && isMeMentee)
-                    const Text(
-                      ' (Sent)',
-                      style: TextStyle(color: Colors.white54, fontSize: 10),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                ],
-              ),
-            ],
+                    if (isMeMentee && status == 'pending')
+                      const Text(
+                        ' (Sent)',
+                        style: TextStyle(color: Colors.white54, fontSize: 10),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
-          if (status == 'accepted')
+          if (showActionButtons) ...[
+            // Accept button
+            IconButton(
+              onPressed: onAccept,
+              icon: const Icon(Icons.check_circle, color: Colors.green),
+              tooltip: 'Accept',
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(8),
+            ),
+            const SizedBox(width: 4),
+            // Reject button
+            IconButton(
+              onPressed: onReject,
+              icon: const Icon(Icons.cancel, color: Colors.redAccent),
+              tooltip: 'Reject',
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(8),
+            ),
+          ] else if (status == 'accepted')
             ElevatedButton(
               onPressed: onMessage,
               style: ElevatedButton.styleFrom(

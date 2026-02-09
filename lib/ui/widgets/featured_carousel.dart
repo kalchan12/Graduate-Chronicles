@@ -152,10 +152,10 @@ class _FeaturedCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 8), // Gap between cards
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          color: const Color(0xFF2E1A36),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: DesignSystem.shadowColor(context),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
@@ -172,7 +172,7 @@ class _FeaturedCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 alignment: Alignment.topCenter, // Crucial for faces
                 placeholder: (context, url) => Container(
-                  color: const Color(0xFF3A2743),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: const Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (_, __, ___) => _imagePlaceholder(),
@@ -321,13 +321,15 @@ class _FeaturedCard extends StatelessWidget {
   }
 
   Widget _imagePlaceholder() {
-    return Container(
-      color: const Color(0xFF3A2743),
-      child: Center(
-        child: Icon(
-          Icons.person_rounded,
-          size: 64,
-          color: Colors.white.withOpacity(0.2),
+    return Builder(
+      builder: (context) => Container(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Icon(
+            Icons.person_rounded,
+            size: 64,
+            color: DesignSystem.textSubtle(context),
+          ),
         ),
       ),
     );
