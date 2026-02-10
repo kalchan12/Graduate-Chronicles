@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../theme/design_system.dart';
 import '../widgets/global_background.dart';
@@ -12,7 +12,7 @@ import '../../services/supabase/supabase_service.dart';
   Add Achievement Screen.
   
   Allows users to add a new achievement to their portfolio.
-  - Uploads evidence image to 'portfolio_uploads' bucket.
+  - Uploads evidence image/PDF to 'portfolio_uploads' bucket.
   - Saves record to 'portfolio_achievements' via PortfolioNotifier.
 */
 class AddAchievementScreen extends ConsumerStatefulWidget {
@@ -28,6 +28,7 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
   final _descCtrl = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String? _pickedFilePath;
+  String? _pickedFileName;
   bool _isUploading = false;
 
   @override
@@ -65,12 +66,16 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+    );
+
+    if (result != null && result.files.single.path != null) {
       setState(() {
-        _pickedFilePath = picked.path;
+        _pickedFilePath = result.files.single.path;
+        _pickedFileName = result.files.single.name;
       });
     }
   }
@@ -300,6 +305,10 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
   }
 
   Widget _buildUploadArea() {
+    bool isPdf =
+        _pickedFilePath != null &&
+        _pickedFilePath!.toLowerCase().endsWith('.pdf');
+
     return Container(
       height: 120,
       width: double.infinity,
@@ -314,13 +323,36 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
         ),
       ),
       child: InkWell(
-        onTap: _pickImage,
+        onTap: _pickFile,
         borderRadius: BorderRadius.circular(16),
         child: _pickedFilePath != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.file(File(_pickedFilePath!), fit: BoxFit.cover),
-              )
+            ? (isPdf
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.redAccent,
+                          size: 40,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _pickedFileName ?? 'PDF File',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(
+                        File(_pickedFilePath!),
+                        fit: BoxFit.cover,
+                      ),
+                    ))
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -331,7 +363,7 @@ class _AddAchievementScreenState extends ConsumerState<AddAchievementScreen> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Tap to upload image',
+                    'Tap to upload image or PDF',
                     style: TextStyle(color: Colors.white54, fontSize: 14),
                   ),
                 ],

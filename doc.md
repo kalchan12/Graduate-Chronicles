@@ -41,7 +41,7 @@ A centralized static class defines our visual language:
 ### 3.2. Architecture Overview
 
 ### 3.1. High-Level Architecture (3-Tier & MVVM)
-Our codebase follows a robust **3-Tier Architecture** mapped to the **MVVM (Model-View-ViewModel)** pattern suitable for Flutter. This ensures Separation of Concerns (SoC), making the codebase modular, testable, and maintainable.
+Our codebase follows a robust **3-Tier Architecture** mapped to the **MVP (Model-View-ViewModel)** pattern suitable for Flutter. This ensures Separation of Concerns (SoC), making the codebase modular, testable, and maintainable.
 
 #### The 3 Layers:
 1.  **Presentation Layer (View)**: handling UI and user interactions.
@@ -201,51 +201,57 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 ## 5. AI & Machine Learning Capabilities
 
-We leverage modern AI techniques to enhance user experience through personalized content delivery.
+We leverage a **Hybrid Recommendation Engine** to deliver personalized content, combining collaborative filtering with semantic search.
 
-### 5.1. Recommendation Engine (RAG / Vector Search)
-Our unified recommendation system (`RecommendationService`) powers the "Discover" feeds. It uses **text-embedding-3-small** (or similar) models to generate vector embeddings for posts, stored directly in Supabase using the `pgvector` extension.
+### 5.1. Multi-Tiered Recommendation Strategy
+Our system (`PersonalizedFeedNotifier`) uses a waterfall approach to ensure relevant content is always available:
 
-#### Workflow:
-1.  **Embedding Generation**: When a post is created, an edge function (or local service) generates an embedding vector representing its semantic content.
-2.  **Vector Storage**: Vectors are stored in the `posts.embedding` column (type `vector(384)`).
-3.  **Similarity Search**: We use a Postgres RPC function `match_posts_by_embedding` to find content semantically similar to what a user has previously engaged with.
+1.  **Primary: Gorse AI (Collaborative Filtering)**
+    *   **Goal**: Recommend items based on user behavior patterns (likes, reads) and similar users.
+    *   **Implementation**: `GorseService` communicates with a self-hosted Gorse instance.
+    *   **Feedback Loop**: User interactions (likes, reads) are asynchronously synced to Gorse for real-time model training.
 
-```sql
--- SQL snippet for similarity search
-CREATE OR REPLACE FUNCTION match_posts_by_embedding(
-  query_embedding vector(384),
-  match_threshold float DEFAULT 0.3,
-  match_count int DEFAULT 10
-)
-RETURNS TABLE (...)
-LANGUAGE sql STABLE
-AS $$
-  SELECT ...
-  FROM public.posts p
-  WHERE 1 - (p.embedding <=> query_embedding) > match_threshold
-  ORDER BY p.embedding <=> query_embedding
-  LIMIT match_count;
-$$;
-```
+2.  **Secondary: Supabase Vector Search (Semantic Embedding)**
+    *   **Goal**: Recommend items semantically similar to a user's stated interests.
+    *   **Implementation**: `SupabaseRecommender` uses `pgvector` to find posts with embeddings close to the user's interest profile.
+    *   **Embeddings**: Generated via **text-embedding-3-small** and stored in `posts.embedding` (`vector(384)`).
 
-#### Code Implementation (`SupabaseRecommender`)
-The Dart layer abstracts this complexity behind a clean interface:
+3.  **Fallback: Keyword-Based Matching**
+    *   **Goal**: Simple text matching if advanced models return no results or are unavailable.
+
+#### Code Snippet: Recommendation Waterfall (`PersonalizedFeedNotifier`)
+The logic layer orchestrates these services seamlessly:
+
 ```dart
-class SupabaseRecommender implements PostRecommender {
+Future<List<PostItem>> _fetchPersonalizedFeed() async {
   // ...
-  Future<List<Post>> getRecommendations(String userId) async {
-    // 1. Get user's interest profile (aggregate of liked post embeddings)
-    final userVector = await _getUserInterestVector(userId);
-    
-    // 2. RPC call for similarity search
-    final params = {
-      'query_embedding': userVector,
-      'match_threshold': 0.5,
-      'match_count': 20
-    };
-    return _client.rpc('match_posts_by_embedding', params: params).then(...);
+  
+  // 1. Try Gorse AI (Collaborative Filtering)
+  try {
+    final gorseItemIds = await GorseService.getRecommendations(userId);
+    if (gorseItemIds.isNotEmpty) {
+       // Convert IDs to Post objects...
+       recommendedPosts.addAll(gorsePosts);
+    }
+  } catch (e) {
+    // Gorse unavailable, continue to next layer
   }
+
+  // 2. Fallback to Supabase Vector Search (Semantic)
+  if (recommendedPosts.isEmpty) {
+    final rawRecs = await SupabaseRecommender.getRecommendations(
+      interests: userInterests,
+    );
+    // Add to list...
+  }
+
+  // 3. Last Resort: Keyword Matching
+  if (recommendedPosts.isEmpty) {
+    // ...
+  }
+  
+  // 4. Mix with chronological feed for variety
+  return _mixFeed(recommendedPosts, chronologicalPosts);
 }
 ```
 

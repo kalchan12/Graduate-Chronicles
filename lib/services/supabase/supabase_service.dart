@@ -648,12 +648,19 @@ class SupabaseService {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final storagePath = '$userId/$type/${timestamp}_$fileName';
 
+    // Determine mime type
+    final mimeType = lookupMimeType(path) ?? 'application/octet-stream';
+
     await _client.storage
         .from('portfolio_uploads')
         .upload(
           storagePath,
           file,
-          fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          fileOptions: FileOptions(
+            cacheControl: '3600',
+            upsert: false,
+            contentType: mimeType,
+          ),
         );
 
     final publicUrl = _client.storage
@@ -939,20 +946,26 @@ class SupabaseService {
     return url;
   }
 
-  Future<void> createStory({
+  Future<Map<String, dynamic>> createStory({
     required String mediaUrl,
     required String type, // 'image' or 'video'
     String? caption,
   }) async {
     final publicUserId = await _getPublicUserId();
 
-    await _client.from('stories').insert({
-      'user_id': publicUserId,
-      'media_url': mediaUrl,
-      'media_type': type,
-      'caption': caption,
-      // expires_at defaults to 24h in DB
-    });
+    final result = await _client
+        .from('stories')
+        .insert({
+          'user_id': publicUserId,
+          'media_url': mediaUrl,
+          'media_type': type,
+          'caption': caption,
+          // expires_at defaults to 24h in DB
+        })
+        .select()
+        .single();
+
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> fetchActiveStories() async {

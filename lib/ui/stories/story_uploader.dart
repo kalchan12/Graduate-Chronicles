@@ -16,41 +16,40 @@ class StoryUploader {
       // Pick file (Image or Video)
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.media,
-        allowMultiple: false,
+        allowMultiple: true, // Allow multiple selection
       );
 
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final extension = result.files.single.extension?.toLowerCase();
+      if (result != null && result.files.isNotEmpty) {
+        final List<File> filesToUpload = result.files
+            .where((f) => f.path != null)
+            .map((f) => File(f.path!))
+            .toList();
 
-        final isVideo = [
-          'mp4',
-          'mov',
-          'avi',
-          'mkv',
-          'webm',
-          'wmv',
-          'flv',
-          '3gp',
-        ].contains(extension);
-        final mediaType = isVideo ? StoryMediaType.video : StoryMediaType.image;
+        if (filesToUpload.isEmpty) return;
 
-        // Show loading toast
+        // Show comprehensive loading toast
         if (context.mounted) {
-          ToastHelper.show(context, 'Uploading story...');
+          ToastHelper.show(
+            context,
+            'Uploading ${filesToUpload.length} ${filesToUpload.length == 1 ? 'story' : 'stories'}...',
+          );
         }
 
-        // Upload
-        await ref.read(storiesProvider.notifier).uploadStory(file, mediaType);
+        // Check if already uploading to prevent double submission
+        final notifier = ref.read(storiesProvider.notifier);
+        if (notifier.isLoading) return;
+
+        // Batch Upload
+        await notifier.uploadStories(filesToUpload);
 
         // Success toast
         if (context.mounted) {
-          ToastHelper.show(context, 'Story uploaded!');
+          ToastHelper.show(context, 'Stories uploaded successfully!');
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ToastHelper.show(context, 'Failed to upload story', isError: true);
+        ToastHelper.show(context, 'Failed to upload stories', isError: true);
       }
     }
   }

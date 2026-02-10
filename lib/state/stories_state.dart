@@ -278,25 +278,125 @@ class StoriesNotifier extends Notifier<List<UserStoryGroup>> {
     }
   }
 
-  Future<void> uploadStory(File file, StoryMediaType type) async {
+  Future<void> uploadStories(List<File> files) async {
+    if (files.isEmpty) return;
+    _isLoading =
+        true; // Optional: Show global loading if needed, but toast handles it usually.
+
     try {
       final service = ref.read(supabaseServiceProvider);
 
-      // 1. Upload Media
-      // Note: SupabaseService.uploadStoryMedia expects a File.
-      final url = await service.uploadStoryMedia(file);
+      // 1. Authenticate & Initialize
+      final currentUserId = await service.getCurrentUserId();
+      if (currentUserId == null) throw Exception('Not authenticated');
 
-      // 2. Create DB Entry
-      await service.createStory(
-        mediaUrl: url,
-        type: type == StoryMediaType.video ? 'video' : 'image',
+      bool foundMyGroup = false;
+      // Check if we have my group
+      final hasProperState = state.any(
+        (g) => g.isMe && g.userId == currentUserId,
       );
 
-      // 3. Refresh
-      await loadStories();
+      // If state is empty or missing me, load first (once)
+      if (!hasProperState) {
+        await loadStories();
+        // Re-check after load
+        if (!state.any((g) => g.isMe && g.userId == currentUserId)) {
+          // If still missing even after load (fresh user?), we will insert placeholders later
+        }
+      }
+
+      final List<Story> newStories = [];
+
+      // 2. Iterate and Upload
+      for (final file in files) {
+        final extension = file.path.split('.').last.toLowerCase();
+        final isVideo = [
+          'mp4',
+          'mov',
+          'avi',
+          'mkv',
+          'webm',
+          'wmv',
+          'flv',
+          '3gp',
+        ].contains(extension);
+        final type = isVideo ? StoryMediaType.video : StoryMediaType.image;
+
+        try {
+          // Upload Media
+          final url = await service.uploadStoryMedia(file);
+
+          // Create DB Entry
+          final storyData = await service.createStory(
+            mediaUrl: url,
+            type: type == StoryMediaType.video ? 'video' : 'image',
+          );
+
+          // Create Story Object
+          final newStory = Story(
+            id: storyData['id'] as String,
+            userId: storyData['user_id'] as String,
+            mediaUrl: storyData['media_url'] as String,
+            mediaType: type,
+            caption: storyData['caption'] as String?,
+            // Parse logic for created_at
+            createdAt: DateTime.parse(storyData['created_at'] as String),
+            // Parse logic for expires_at with fallback
+            expiresAt: storyData['expires_at'] != null
+                ? DateTime.parse(storyData['expires_at'] as String)
+                : DateTime.now().add(const Duration(hours: 24)),
+          );
+          newStories.add(newStory);
+        } catch (e) {
+          print('Error uploading single story file ${file.path}: $e');
+        }
+      }
+
+      if (newStories.isEmpty) {
+        // If all failed
+        if (files.isNotEmpty) throw Exception('All uploads failed');
+        return;
+      }
+
+      // 3. Single Batch State Update
+      final newState = state.map((group) {
+        if (group.isMe) {
+          foundMyGroup = true;
+          return group.copyWith(stories: [...group.stories, ...newStories]);
+        }
+        return group;
+      }).toList();
+
+      // If my group was missing, create it now
+      if (!foundMyGroup) {
+        // Try fetch profile pic
+        String? myPic;
+        try {
+          final myProfile = await service.getFullProfile(currentUserId);
+          myPic = myProfile?['profile_picture'];
+        } catch (_) {}
+
+        newState.insert(
+          0,
+          UserStoryGroup(
+            userId: currentUserId,
+            username: 'Your Story',
+            isMe: true,
+            stories: newStories,
+            profilePicUrl: myPic,
+          ),
+        );
+      }
+
+      state = newState;
     } catch (e) {
-      print('Upload story error: $e');
-      rethrow; // Let UI handle error toast
+      print('Batch upload stories error: $e');
+      // Do not rethrow to avoid crashing UI if not caught
+      // Instead, we can expose error state or just log it.
+      // Rethrowing is okay if UI catches it.
+      rethrow;
+    } finally {
+      _isLoading = false;
     }
   }
 
