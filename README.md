@@ -6,6 +6,16 @@ Graduate Chronicles is a premium mobile platform designed to bridge the gap betw
 
 ---
 
+## 📲 Download
+
+Get the latest version of Graduate Chronicles:
+
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)](https://github.com/kalchan12/Graduate-Chronicles/releases/latest/download/graduate-chronicles.apk)
+
+> **Note:** Enable *"Install from unknown sources"* in your Android settings to install the APK.
+
+---
+
 ## ✨ Key Features
 
 ### 📖 Digital Yearbook
