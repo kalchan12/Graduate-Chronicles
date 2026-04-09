@@ -928,8 +928,9 @@ class SupabaseService {
     if (length > 50 * 1024 * 1024) throw Exception('File size exceeds 50MB');
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final uniqueSuffix = DateTime.now().microsecond.toString();
     final ext = file.path.split('.').last;
-    final path = '$userId/story_$timestamp.$ext';
+    final path = '$userId/story_${timestamp}_$uniqueSuffix.$ext';
 
     // Lookup mime type
     final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
@@ -952,6 +953,7 @@ class SupabaseService {
     String? caption,
   }) async {
     final publicUserId = await _getPublicUserId();
+    final expiresAt = DateTime.now().add(const Duration(hours: 24)).toIso8601String();
 
     final result = await _client
         .from('stories')
@@ -960,7 +962,7 @@ class SupabaseService {
           'media_url': mediaUrl,
           'media_type': type,
           'caption': caption,
-          // expires_at defaults to 24h in DB
+          'expires_at': expiresAt,
         })
         .select()
         .single();
