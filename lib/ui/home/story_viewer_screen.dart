@@ -14,6 +14,8 @@ class StoryViewerScreen extends ConsumerStatefulWidget {
 class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
   final StoryController _controller = StoryController();
   int _currentIndex = 0;
+  List<StoryItem>? _cachedStoryItems;
+  int _cachedStoryCount = -1;
 
   @override
   void dispose() {
@@ -21,31 +23,18 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // 1. Get the latest data for this user group to ensure reactivity
-    final allGroups = ref.watch(storiesProvider);
-    final currentGroup = allGroups.firstWhere(
-      (g) => g.userId == widget.userGroup.userId,
-      orElse: () => widget.userGroup,
-    );
-
-    // If no stories left (e.g. after delete), close viewer
-    if (currentGroup.stories.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.pop(context);
-      });
-      return const SizedBox.shrink();
+  void _generateStoryItems(UserStoryGroup group) {
+    if (_cachedStoryItems != null && _cachedStoryCount == group.stories.length) {
+      return; // Already generated and count hasn't changed
     }
 
-    final List<StoryItem> storyItems = currentGroup.stories.map((story) {
+    _cachedStoryCount = group.stories.length;
+    _cachedStoryItems = group.stories.map((story) {
       if (story.mediaType == StoryMediaType.video) {
         return StoryItem.pageVideo(
           story.mediaUrl,
           controller: _controller,
-          duration: const Duration(
-            seconds: 15,
-          ), // or actual dynamic duration if available
+          duration: const Duration(seconds: 15),
           caption: story.caption != null
               ? Text(
                   story.caption!,
@@ -67,6 +56,27 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
         );
       }
     }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. Get the latest data for this user group to ensure reactivity
+    final allGroups = ref.watch(storiesProvider);
+    final currentGroup = allGroups.firstWhere(
+      (g) => g.userId == widget.userGroup.userId,
+      orElse: () => widget.userGroup,
+    );
+
+    // If no stories left (e.g. after delete), close viewer
+    if (currentGroup.stories.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
+      return const SizedBox.shrink();
+    }
+
+    // Safely generate story items only if needed
+    _generateStoryItems(currentGroup);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -74,7 +84,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
         children: [
           // The main StoryView
           StoryView(
-            storyItems: storyItems,
+            storyItems: _cachedStoryItems!,
             controller: _controller,
             onComplete: () {
               Navigator.pop(context);
