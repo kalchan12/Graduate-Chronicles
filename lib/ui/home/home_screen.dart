@@ -38,6 +38,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  List<Map<String, dynamic>>? _announcements;
+  List<Map<String, dynamic>>? _featuredData;
+  int? _loadedBatchYear;
+
   @override
   void initState() {
     super.initState();
@@ -45,7 +49,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(profileProvider.notifier).refresh();
       ref.read(storiesProvider.notifier).loadStories();
+      _loadAnnouncements();
     });
+  }
+
+  Future<void> _loadAnnouncements() async {
+    final ann = await ref.read(supabaseServiceProvider).fetchLatestAnnouncements();
+    if (mounted) setState(() { _announcements = ann; });
+  }
+
+  Future<void> _loadFeaturedData(int batchYear) async {
+    final feats = await ref.read(supabaseServiceProvider).fetchRandomYearbookEntries(
+      limit: 10,
+      batchYear: batchYear,
+    );
+    if (mounted) setState(() { _featuredData = feats; });
   }
 
   @override
@@ -53,11 +71,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Read providers for dynamic mock content.
     final profile = ref.watch(profileProvider);
     final feed = ref.watch(personalizedFeedProvider);
-    final stories = ref.watch(storiesProvider);
 
     // Initial Loading State (Skeleton)
     if (profile.id.isEmpty) {
       return const _HomeSkeleton();
+    }
+
+    final currentBatchYear = int.tryParse(profile.year) ?? DateTime.now().year;
+    if (_loadedBatchYear != currentBatchYear) {
+      _loadedBatchYear = currentBatchYear;
+      _loadFeaturedData(currentBatchYear);
     }
 
     return Scaffold(
@@ -71,6 +94,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: RefreshIndicator(
             onRefresh: () async {
               await Future.wait([
+                _loadAnnouncements(),
+                _loadFeaturedData(currentBatchYear),
                 ref.read(profileProvider.notifier).refresh(),
                 ref.read(personalizedFeedProvider.notifier).refresh(),
               ]);
@@ -84,20 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                 // Story carousel (horizontal avatars)
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 110,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: stories.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final group = stories[index];
-                      return StoryCard(group: group);
-                    },
-                  ),
-                ),
+                const _StoryCarousel(),
 
                 // Featured Graduate section header
                 Padding(
@@ -116,20 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 0),
                   child: Builder(
                     builder: (context) {
-                      // Get dynamic batch year from current user's profile
-                      final batchYear =
-                          int.tryParse(profile.year) ?? DateTime.now().year;
-
-                      return FutureBuilder<List<Map<String, dynamic>>>(
-                        future: ref
-                            .read(supabaseServiceProvider)
-                            .fetchRandomYearbookEntries(
-                              limit: 10,
-                              batchYear: batchYear,
-                            ),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
+                          if (_featuredData == null) {
                             return SizedBox(
                               height: 450,
                               child: PageView.builder(
@@ -144,7 +143,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           }
 
                           // Empty state
-                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          if (_featuredData!.isEmpty) {
                             return Container(
                               height: 100,
                               margin: const EdgeInsets.symmetric(
@@ -159,7 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               child: Center(
                                 child: Text(
-                                  'No featured graduates for $batchYear yet',
+                                  'No featured graduates for $_loadedBatchYear yet',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.5),
                                     fontSize: 14,
@@ -169,7 +168,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             );
                           }
 
-                          final items = snapshot.data!
+                          final items = _featuredData!
                               .map((m) => FeaturedItem.fromMap(m))
                               .toList();
                           return FeaturedCarousel(
@@ -184,8 +183,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               );
                             },
                           );
-                        },
-                      );
                     },
                   ),
                 ),
@@ -233,12 +230,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
 
                 // Announcements Carousel
-                FutureBuilder<List<Map<String, dynamic>>>(
-                  future: ref
-                      .read(supabaseServiceProvider)
-                      .fetchLatestAnnouncements(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                Builder(
+                  builder: (context) {
+                    if (_announcements == null) {
                       return SizedBox(
                         height: 200,
                         child: ListView.separated(
@@ -257,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     }
 
-                    final announcements = snapshot.data ?? [];
+                    final announcements = _announcements!;
                     return AnnouncementCarousel(
                       announcements: announcements,
                       onItemTap: (item) {
@@ -767,6 +761,29 @@ class _HomeSkeleton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StoryCarousel extends ConsumerWidget {
+  const _StoryCarousel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stories = ref.watch(storiesProvider);
+
+    return SizedBox(
+      height: 110,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: stories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final group = stories[index];
+          return StoryCard(group: group);
+        },
       ),
     );
   }

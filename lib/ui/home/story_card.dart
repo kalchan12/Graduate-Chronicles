@@ -51,41 +51,30 @@ class StoryCard extends ConsumerWidget {
                     onAddStory();
                   }
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient:
-                        hasStories &&
-                            !group
-                                .isLiked // "Unseen" color
-                        ? const LinearGradient(
-                            colors: [Color(0xFFE94CFF), Color(0xFF7B2CBF)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    border: !hasStories && !isMe
-                        ? Border.all(color: Colors.white24, width: 2)
-                        : null,
+                child: CustomPaint(
+                  painter: StoryRingPainter(
+                    storyCount: group.stories.length,
+                    isLiked: group.isLiked,
+                    isMe: group.isMe,
                   ),
-                  child: CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
                     child: CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      backgroundImage: group.profilePicUrl != null
-                          ? CachedNetworkImageProvider(group.profilePicUrl!)
-                          : null,
-                      child: group.profilePicUrl == null
-                          ? Icon(
-                              Icons.person,
-                              color: DesignSystem.textSubtle(context),
-                            )
-                          : null,
+                      radius: 32,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      child: CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        backgroundImage: group.profilePicUrl != null && group.profilePicUrl!.isNotEmpty
+                            ? CachedNetworkImageProvider(group.profilePicUrl!)
+                            : null,
+                        child: group.profilePicUrl == null || group.profilePicUrl!.isEmpty
+                            ? Icon(
+                                Icons.person,
+                                color: DesignSystem.textSubtle(context),
+                              )
+                            : null,
+                      ),
                     ),
                   ),
                 ),
@@ -126,5 +115,77 @@ class StoryCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class StoryRingPainter extends CustomPainter {
+  final int storyCount;
+  final bool isLiked;
+  final bool isMe;
+
+  StoryRingPainter({
+    required this.storyCount,
+    required this.isLiked,
+    required this.isMe,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (storyCount == 0) {
+      if (!isMe) {
+        // Draw dull border for others with no stories
+        final paint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0
+          ..color = Colors.white24;
+        canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 2, paint);
+      }
+      return;
+    }
+
+    final Rect rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final double strokeWidth = 3.0;
+
+    final Paint paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    if (isLiked) {
+      paint.color = Colors.grey.withValues(alpha: 0.8);
+    } else {
+      paint.shader = const LinearGradient(
+        colors: [Color(0xFFE94CFF), Color(0xFF7B2CBF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(rect);
+    }
+
+    final double totalSweep = 2 * 3.14159265;
+    // Spacing between segments (approx 6 degrees if multiple)
+    final double space = storyCount > 1 ? (6 * 3.14159265 / 180) : 0.0;
+    final double sweepAngle = (totalSweep - (space * storyCount)) / storyCount;
+
+    double startAngle = -3.14159265 / 2; // Start at top
+
+    for (int i = 0; i < storyCount; i++) {
+      canvas.drawArc(
+        Rect.fromCenter(
+          center: Offset(size.width / 2, size.height / 2),
+          width: size.width - strokeWidth,
+          height: size.height - strokeWidth,
+        ),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+      startAngle += sweepAngle + space;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant StoryRingPainter oldDelegate) {
+    return oldDelegate.storyCount != storyCount || oldDelegate.isLiked != isLiked;
   }
 }
