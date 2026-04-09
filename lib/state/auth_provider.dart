@@ -153,6 +153,12 @@ class AuthNotifier extends Notifier<AuthState> {
     final service = ref.read(supabaseServiceProvider);
     final user = service.currentUser;
     if (user != null) {
+      // Skip redundant state write if already authenticated with same user.
+      // This prevents a cascade rebuild of all providers watching authProvider
+      // (profile, portfolio, yearbook, reunion, notifications) on every app resume.
+      if (state.isAuthenticated && state.email == user.email) {
+        return;
+      }
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
