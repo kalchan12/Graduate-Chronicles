@@ -66,6 +66,7 @@ class ForgotNotifier extends Notifier<ForgotState> {
 
   @override
   ForgotState build() {
+    ref.onDispose(() => _timer?.cancel());
     return const ForgotState();
   }
 
