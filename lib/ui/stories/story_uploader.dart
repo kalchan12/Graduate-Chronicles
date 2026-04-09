@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/stories_state.dart';
@@ -13,16 +13,13 @@ class StoryUploader {
 
   Future<void> pickAndUpload() async {
     try {
-      // Pick file (Image or Video)
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.media,
-        allowMultiple: true, // Allow multiple selection
-      );
+      // Pick multiple media files directly from Gallery
+      final ImagePicker picker = ImagePicker();
+      final List<XFile> result = await picker.pickMultipleMedia();
 
-      if (result != null && result.files.isNotEmpty) {
-        final List<File> filesToUpload = result.files
-            .where((f) => f.path != null)
-            .map((f) => File(f.path!))
+      if (result.isNotEmpty) {
+        final List<File> filesToUpload = result
+            .map((f) => File(f.path))
             .toList();
 
         if (filesToUpload.isEmpty) return;
