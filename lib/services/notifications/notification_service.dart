@@ -80,19 +80,25 @@ class NotificationService {
       final userId = _supabaseService.currentAuthUserId;
       if (userId == null) return;
       
+      print('🔔 FCM Sync: Attempting to register token for Auth ID: $userId');
+      
       // Upserts the push notification token into the new multi-device system
-      await _supabaseService.client
+      final response = await _supabaseService.client
           .from('device_tokens')
           .upsert({
             'user_id': userId,
             'fcm_token': token,
             'platform': Platform.operatingSystem,
             'last_seen': DateTime.now().toUtc().toIso8601String(),
-          }, onConflict: 'fcm_token');
+          }, onConflict: 'fcm_token').select();
           
-      print('Successfully registered FCM token to Supabase device_tokens.');
+      if (response.isEmpty) {
+        print('⚠️ FCM Sync Warning: No row was returned after upsert. Check RLS policies.');
+      } else {
+        print('✅ FCM Sync Success: Token registered for $userId');
+      }
     } catch (e) {
-      print('Error saving FCM token to Supabase: $e');
+      print('❌ FCM Sync Error: Failed to save token to Supabase. details: $e');
     }
   }
 

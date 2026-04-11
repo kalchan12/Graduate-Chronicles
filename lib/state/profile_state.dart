@@ -72,13 +72,6 @@ class ProfileNotifier extends Notifier<UserProfile> {
       Future(() => _loadProfile());
     }
 
-    // CRITICAL FIX: Preserve existing profile data during auth-triggered rebuilds.
-    // Returning an empty UserProfile() here was causing HomeScreen to flash a skeleton
-    // on every app resume because profile.id.isEmpty was momentarily true.
-    // Instead, keep the current state if we already have a loaded profile.
-    if (state.id.isNotEmpty) {
-      return state;
-    }
     return const UserProfile();
   }
 
