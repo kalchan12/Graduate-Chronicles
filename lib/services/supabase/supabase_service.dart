@@ -1671,6 +1671,7 @@ class SupabaseService {
   */
   Future<String?> fetchAdminRequestStatus(String email) async {
     // NOTE: This might be insecure if open to public.
+    
     // Ideally, we move this logic.
     // For this iteration, we will rely on "Try Login -> Failed (Inactive)" flow.
     return null;
