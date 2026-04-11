@@ -2448,7 +2448,9 @@ class SupabaseService {
     }
   }
 
-  /// Fetch announcements by a specific user
+  Future<List<Map<String, dynamic>>> fetchAnnouncementsByUser(
+    String userId,
+  ) async {
     if (userId.isEmpty) {
       print('[PROFILE_ANNOUNCEMENTS_FETCH] Skipping fetch for empty userId');
       return [];
