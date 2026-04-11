@@ -48,3 +48,7 @@ plan.md
 .env
 # Database setup
 /supabase/
+service-account.json
+google-services.json
+firebase_options.dart
+firebase.json
