@@ -5,6 +5,8 @@ import '../state/theme_provider.dart';
 import '../screens/screens.dart';
 import '../state/auth_provider.dart';
 import '../ui/community/mentorship/mentorship_screen.dart';
+import '../services/notifications/notification_handlers.dart';
+import '../services/notifications/notification_service.dart';
 import '../ui/community/reunion/reunion_list_screen.dart';
 import '../ui/community/reunion/reunion_create_screen.dart';
 import '../ui/auth/forgot/forgot_password_screen.dart';
@@ -43,6 +45,10 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationServiceProvider).init();
+    });
   }
 
   @override
@@ -64,6 +70,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
+      navigatorKey: NotificationHandlers.navigatorKey,
       title: 'Graduate Chronicles',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

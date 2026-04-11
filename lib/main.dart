@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:graduate_chronicles/core/app.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+// import 'firebase_options.dart'; // TODO: Uncomment when flutterfire configure has been run
+
 
 Future<void> main() async {
   /*
@@ -13,6 +16,17 @@ Future<void> main() async {
 
   // Load environment variables
   await dotenv.load(fileName: ".env");
+
+  // Initialize Firebase (wrapped in try-catch so app doesn't crash before flutterfire is run)
+  try {
+    // TODO: After running flutterfire configure, uncomment the options line below
+    await Firebase.initializeApp(
+      // options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully.');
+  } catch (e) {
+    print('Warning: Firebase failed to initialize. Did you run flutterfire configure? Error: $e');
+  }
 
   // DEBUG: Print to verify correct credentials (REMOVE after debugging)
   print('🔍 DEBUG - Supabase URL: ${dotenv.env['SUPABASE_URL']}');
