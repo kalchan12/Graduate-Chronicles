@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../supabase/supabase_service.dart';
@@ -79,15 +80,42 @@ class NotificationService {
       final userId = await _supabaseService.getCurrentUserId();
       if (userId == null) return;
       
-      // Updates the profile with the push notification token
+      // Upserts the push notification token into the new multi-device system
       await _supabaseService.client
-          .from('profiles')
-          .update({'fcm_token': token})
-          .eq('user_id', userId);
+          .from('device_tokens')
+          .upsert({
+            'user_id': userId,
+            'fcm_token': token,
+            'platform': Platform.operatingSystem,
+            'last_seen': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'fcm_token');
           
-      print('Successfully registered FCM token to Supabase Profiles.');
+      print('Successfully registered FCM token to Supabase device_tokens.');
     } catch (e) {
       print('Error saving FCM token to Supabase: $e');
+    }
+  }
+
+  /// Removes the current device's FCM token. Safe to call on logout to prevent ghost notifications.
+  Future<void> deleteCurrentDeviceToken() async {
+    try {
+      String? token = await _messaging.getToken();
+      if (token == null) return;
+      
+      final userId = await _supabaseService.getCurrentUserId();
+      if (userId == null) return;
+
+      await _supabaseService.client
+          .from('device_tokens')
+          .delete()
+          .eq('fcm_token', token)
+          .eq('user_id', userId);
+          
+      // Also tell Firebase to delete the instance ID to aggressively revoke token locally
+      await _messaging.deleteToken();
+      print("Successfully revoked current device FCM token.");
+    } catch (e) {
+      print("Error revoking device FCM token: $e");
     }
   }
 }
