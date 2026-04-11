@@ -78,7 +78,10 @@ class NotificationService {
   Future<void> _updateTokenOnBackend(String token) async {
     try {
       final userId = _supabaseService.currentAuthUserId;
-      if (userId == null) return;
+      if (userId == null) {
+        print('ℹ️ FCM Sync: User not authenticated yet. Skipping token registration.');
+        return;
+      }
       
       print('🔔 FCM Sync: Attempting to register token for Auth ID: $userId');
       

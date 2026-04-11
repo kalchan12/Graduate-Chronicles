@@ -138,6 +138,10 @@ class AuthNotifier extends Notifier<AuthState> {
         email: email.trim(),
         errorMessage: null,
       );
+      
+      // Sync push token immediately after successful login
+      ref.read(notificationServiceProvider).saveDeviceToken();
+      
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -167,6 +171,9 @@ class AuthNotifier extends Notifier<AuthState> {
         username: user.userMetadata?['username'] ?? user.email,
         errorMessage: null,
       );
+      
+      // Sync push token immediately after session restoration
+      ref.read(notificationServiceProvider).saveDeviceToken();
     }
   }
 
@@ -207,6 +214,9 @@ class AuthNotifier extends Notifier<AuthState> {
         username: username ?? state.username,
         errorMessage: null,
       );
+      
+      // Sync push token immediately after successful signup
+      ref.read(notificationServiceProvider).saveDeviceToken();
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
