@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:graduate_chronicles/core/app.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'firebase_options.dart'; // TODO: Uncomment when flutterfire configure has been run
+import 'firebase_options.dart';
 
 
 Future<void> main() async {
@@ -19,9 +19,8 @@ Future<void> main() async {
 
   // Initialize Firebase (wrapped in try-catch so app doesn't crash before flutterfire is run)
   try {
-    // TODO: After running flutterfire configure, uncomment the options line below
     await Firebase.initializeApp(
-      // options: DefaultFirebaseOptions.currentPlatform,
+      options: DefaultFirebaseOptions.currentPlatform,
     );
     print('Firebase initialized successfully.');
   } catch (e) {
