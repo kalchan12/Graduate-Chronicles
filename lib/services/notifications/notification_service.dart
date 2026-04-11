@@ -77,7 +77,7 @@ class NotificationService {
 
   Future<void> _updateTokenOnBackend(String token) async {
     try {
-      final userId = await _supabaseService.getCurrentUserId();
+      final userId = _supabaseService.currentAuthUserId;
       if (userId == null) return;
       
       // Upserts the push notification token into the new multi-device system
@@ -102,7 +102,7 @@ class NotificationService {
       String? token = await _messaging.getToken();
       if (token == null) return;
       
-      final userId = await _supabaseService.getCurrentUserId();
+      final userId = _supabaseService.currentAuthUserId;
       if (userId == null) return;
 
       await _supabaseService.client
