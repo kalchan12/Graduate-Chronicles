@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
+import '../services/notifications/notification_service.dart';
 
 /// Signup draft to preserve multi-step UI state (kept for compatibility).
 class SignupDraft {
@@ -211,11 +212,19 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  void logout() {
-    // 1. Sign out from Supabase
-    ref.read(supabaseServiceProvider).signOut();
+  Future<void> logout() async {
+    // 1. Revoke FCM device token directly from the multi-device database
+    // Must occur before signing out of Supabase so RLS lets us delete it
+    try {
+      await ref.read(notificationServiceProvider).deleteCurrentDeviceToken();
+    } catch (_) {
+      // Best effort deletion, ignore offline errors during logout
+    }
 
-    // 2. Clear Auth State
+    // 2. Sign out from Supabase
+    await ref.read(supabaseServiceProvider).signOut();
+
+    // 3. Clear Auth State
     state = AuthState.initial();
 
     // Note: Other providers (Profile, Portfolio) should ideally listen to this
