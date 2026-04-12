@@ -14,6 +14,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final SupabaseService _supabaseService;
+  
+  /// Cached FCM token so post-login sync doesn't need a second getToken() call
+  String? _cachedToken;
 
   NotificationService(this._supabaseService);
 
@@ -56,6 +59,7 @@ class NotificationService {
       // 7. Subscribe to token refreshes
       _messaging.onTokenRefresh.listen((newToken) async {
         print("FCM Token Refreshed: $newToken");
+        _cachedToken = newToken;
         await _updateTokenOnBackend(newToken);
       });
     } catch (e) {
@@ -65,10 +69,22 @@ class NotificationService {
 
   Future<void> saveDeviceToken() async {
     try {
-      String? token = await _messaging.getToken();
+      String? token;
+      try {
+        token = await _messaging.getToken();
+      } catch (e) {
+        print('⚠️ FCM getToken() failed: $e. Using cached token.');
+      }
+      
+      // Use cached token as fallback if getToken() returned null or threw
+      token ??= _cachedToken;
+      
       if (token != null) {
-        print("Fetched FCM Device Token: $token");
+        _cachedToken = token;
+        print("📱 FCM Device Token ready: ${token.substring(0, 20)}...");
         await _updateTokenOnBackend(token);
+      } else {
+        print('⚠️ FCM: No token available (neither fresh nor cached).');
       }
     } catch (e) {
       print('Failed to get FCM token (is Firebase configured?): $e');

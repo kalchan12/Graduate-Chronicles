@@ -140,7 +140,11 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       
       // Sync push token immediately after successful login
-      ref.read(notificationServiceProvider).saveDeviceToken();
+      try {
+        await ref.read(notificationServiceProvider).saveDeviceToken();
+      } catch (e) {
+        print('⚠️ Post-login FCM sync failed: $e');
+      }
       
       return true;
     } catch (e) {
@@ -173,7 +177,11 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       
       // Sync push token immediately after session restoration
-      ref.read(notificationServiceProvider).saveDeviceToken();
+      try {
+        await ref.read(notificationServiceProvider).saveDeviceToken();
+      } catch (e) {
+        print('⚠️ Post-restore FCM sync failed: $e');
+      }
     }
   }
 
