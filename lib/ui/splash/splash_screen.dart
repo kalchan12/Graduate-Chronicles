@@ -73,45 +73,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _mainCtrl.forward();
 
-    Future.delayed(_splashDuration).then((_) async {
-      if (!mounted) return;
+    // Start restoring session immediately, don't wait 6.5s!
+    final sessionTask = ref.read(authProvider.notifier).restoreSession();
 
-      // Restore Session Logic
-      try {
-        await ref.read(authProvider.notifier).restoreSession();
-      } catch (e) {
+    // The animation takes 2 seconds to complete. 
+    // Wait for the animation to finish AND the session to restore.
+    Future.wait([
+      Future.delayed(const Duration(milliseconds: 2000)),
+      sessionTask.catchError((e) {
         debugPrint('Splash restore session error: $e');
-      }
-
+      }),
+    ]).then((_) async {
       if (!mounted) return;
 
       final auth = ref.read(authProvider);
-
+      
+      // If we found a session, navigate to the app immediately!
+      // This bypasses the old 6.5s hardcoded wait when returning from background.
       if (auth.isAuthenticated) {
-        // Navigate directly to App if logged in
         Navigator.of(context).pushReplacementNamed('/app');
-      } else {
-        // Check if onboarding has been completed before
-        final onboardingCompleted = await OnboardingStorage.isCompleted();
+        return;
+      }
 
-        if (mounted) {
-          if (onboardingCompleted) {
-            // Skip onboarding, go directly to login
-            Navigator.of(context).pushReplacementNamed('/login');
-          } else {
-            // Show onboarding for first-time users
-            Navigator.of(context).pushReplacement(
-              PageRouteBuilder(
-                pageBuilder: (context, a1, a2) => const OnboardingScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                transitionDuration: const Duration(milliseconds: 800),
-              ),
-            );
-          }
-        }
+      // If NOT logged in, show onboarding/login
+      final onboardingCompleted = await OnboardingStorage.isCompleted();
+      
+      if (!mounted) return;
+
+      if (onboardingCompleted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      } else {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, a1, a2) => const OnboardingScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
       }
     });
   }
