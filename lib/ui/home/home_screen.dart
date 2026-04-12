@@ -45,10 +45,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure profile data and stories are loaded on Home (first screen)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(profileProvider.notifier).refresh();
+    // NOTE: Profile data is NOT fetched here. ProfileNotifier.build() already
+    // auto-loads when authProvider changes. Calling refresh() here was a
+    // duplicate that added 2 extra Supabase requests at login.
+    
+    // Stagger secondary data loads to avoid overwhelming the connection.
+    // Critical data (profile, feed) loads first via their providers.
+    // Non-critical data (stories, announcements) loads after a short delay.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Small delay to let critical profile + feed requests complete first
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      
       ref.read(storiesProvider.notifier).loadStories();
+      
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      
       _loadAnnouncements();
     });
   }

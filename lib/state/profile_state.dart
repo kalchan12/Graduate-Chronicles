@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase/supabase_service.dart';
+import '../services/supabase/request_retry.dart';
 import '../services/recommendation/gorse_service.dart';
 import 'auth_provider.dart';
 
@@ -83,11 +84,15 @@ class ProfileNotifier extends Notifier<UserProfile> {
     try {
       final service = ref.read(supabaseServiceProvider);
 
-      // Get current internal public ID
-      final userId = await service.getCurrentUserId();
+      // Get current internal public ID (with retry for transient network errors)
+      final userId = await RequestRetry.retry(
+        () => service.getCurrentUserId(),
+      );
       if (userId == null) return; // Not logged in or user record missing
 
-      final data = await service.getFullProfile(userId);
+      final data = await RequestRetry.retry(
+        () => service.getFullProfile(userId),
+      );
       if (data != null) {
         state = UserProfile.fromMap(data);
       }
