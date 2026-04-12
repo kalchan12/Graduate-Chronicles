@@ -71,7 +71,15 @@ class NotificationService {
     try {
       String? token;
       try {
-        token = await _messaging.getToken();
+        // Timeout after 5s — getToken() can hang on devices with flaky
+        // Google Play Services, and we must not block the app.
+        token = await _messaging.getToken().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            print('⚠️ FCM getToken() timed out after 5s. Using cached token.');
+            return null;
+          },
+        );
       } catch (e) {
         print('⚠️ FCM getToken() failed: $e. Using cached token.');
       }
