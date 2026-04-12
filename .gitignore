@@ -47,7 +47,7 @@ app.*.map.json
 plan.md
 .env
 # Database setup
-/supabase/
+/supabase/.temp/
 service-account.json
 google-services.json
 firebase_options.dart
